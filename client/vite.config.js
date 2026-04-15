@@ -14,6 +14,7 @@ export default defineConfig({
     proxy: {
       // Routes any frontend request starting with '/api' to your local Node.js server
       // This prevents CORS errors during local development.
+      // NOTE: Vercel completely ignores this proxy block during production!
       '/api': {
         target: 'http://localhost:5000',
         changeOrigin: true,
@@ -22,9 +23,9 @@ export default defineConfig({
     }
   },
 
-  // --- 2. PRODUCTION BUILD SETTINGS (For cPanel) ---
+  // --- 2. PRODUCTION BUILD SETTINGS (For Vercel) ---
   build: {
-    outDir: 'dist',
+    outDir: 'dist',    // Vercel automatically looks for this 'dist' folder for Vite projects
     emptyOutDir: true, // Clears the dist folder before every new build
     sourcemap: false,  // SECURITY: Set to false so your raw source code isn't exposed in production
     chunkSizeWarningLimit: 1000, // Suppresses warnings for heavy UI libraries
@@ -33,6 +34,7 @@ export default defineConfig({
     rollupOptions: {
       output: {
         // Manual Chunking: Splits dependencies into separate files for aggressive browser caching
+        // This makes your Vercel deployment load much faster for users!
         manualChunks(id) {
           // Core React Ecosystem
           if (id.includes('node_modules/react') || id.includes('node_modules/react-dom') || id.includes('node_modules/react-router-dom')) {

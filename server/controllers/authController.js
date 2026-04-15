@@ -1,5 +1,4 @@
 const db = require('../config/db');
-const bcrypt = require('bcrypt');
 
 exports.signup = async (req, res) => {
     const { role, username, email, password } = req.body;
@@ -8,11 +7,9 @@ exports.signup = async (req, res) => {
             if (err) return res.status(500).json({ error: 'Database error' });
             if (results.length > 0) return res.status(400).json({ error: 'Email already exists' });
 
-            const salt = await bcrypt.genSalt(10);
-            const hashedPassword = await bcrypt.hash(password, salt);
-
+            // Raw password inserted as requested
             const query = `INSERT INTO userssignup (role, username, email, password) VALUES (?, ?, ?, ?)`;
-            db.query(query, [role, username, email, hashedPassword], (err) => {
+            db.query(query, [role, username, email, password], (err) => {
                 if (err) return res.status(500).json({ error: 'Failed to register' });
                 res.status(201).json({ message: 'User registered successfully!' });
             });
@@ -30,8 +27,11 @@ exports.login = (req, res) => {
         if (results.length === 0) return res.status(400).json({ error: 'User not found or role mismatch' });
 
         const user = results[0];
-        const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) return res.status(400).json({ error: 'Incorrect password' });
+        
+        // Raw password check as requested
+        if (password !== user.password) {
+            return res.status(400).json({ error: 'Incorrect password' });
+        }
 
         res.status(200).json({
             message: 'Login successful',
@@ -41,16 +41,11 @@ exports.login = (req, res) => {
 };
 
 exports.getUserInfo = (req, res) => {
-    db.query('SELECT * FROM userinfo', (err, results) => {
+    // ✅ SMART FILTER: Only select roles where ActStatus is exactly 1
+    // This handles both local and cloud databases perfectly!
+    db.query('SELECT * FROM userinfo WHERE ActStatus = 1', (err, results) => {
         if (err) {
-            // Updated Fallback with Astha Maa and IsActive Flags!
-            return res.json([
-                { UserInfoId: 1, UserType: 'State Super Administrator', UserRole: 'Superadmin', IsActive: 1 },
-                { UserInfoId: 2, UserType: 'District Administrator', UserRole: 'Admin', IsActive: 1 },
-                { UserInfoId: 3, UserType: 'Supervisor', UserRole: 'Viewer', IsActive: 1 },
-                { UserInfoId: 4, UserType: 'Astha Didi', UserRole: 'Viewer', IsActive: 1 },
-                { UserInfoId: 5, UserType: 'Astha Maa', UserRole: 'Viewer', IsActive: 1 }
-            ]);
+            return res.status(500).json({ error: 'Database error while fetching roles' });
         }
         res.json(results);
     });
@@ -60,8 +55,9 @@ exports.getUserInfo = (req, res) => {
 // ROLE MANAGEMENT ENDPOINTS (userinfo table)
 // ==========================================
 exports.createUserRole = (req, res) => {
-    const { UserType, UserRole, IsActive } = req.body;
-    db.query('INSERT INTO userinfo (UserType, UserRole, IsActive) VALUES (?, ?, ?)', [UserType, UserRole, IsActive], (err, result) => {
+    // Fixed: Changed IsActive to ActStatus to match your database image
+    const { UserType, UserRole, ActStatus } = req.body;
+    db.query('INSERT INTO userinfo (UserType, UserRole, ActStatus) VALUES (?, ?, ?)', [UserType, UserRole, ActStatus], (err, result) => {
         if (err) return res.status(500).json({ error: 'Database error' });
         res.status(201).json({ message: 'Role added successfully', id: result.insertId });
     });
@@ -69,8 +65,9 @@ exports.createUserRole = (req, res) => {
 
 exports.updateUserRole = (req, res) => {
     const { id } = req.params;
-    const { UserType, UserRole, IsActive } = req.body;
-    db.query('UPDATE userinfo SET UserType = ?, UserRole = ?, IsActive = ? WHERE UserInfoId = ?', [UserType, UserRole, IsActive, id], (err) => {
+    // Fixed: Changed IsActive to ActStatus to match your database image
+    const { UserType, UserRole, ActStatus } = req.body;
+    db.query('UPDATE userinfo SET UserType = ?, UserRole = ?, ActStatus = ? WHERE UserInfoId = ?', [UserType, UserRole, ActStatus, id], (err) => {
         if (err) return res.status(500).json({ error: 'Database error' });
         res.json({ message: 'Role updated successfully' });
     });

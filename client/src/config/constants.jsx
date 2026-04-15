@@ -1,10 +1,11 @@
 import React from 'react';
 
 // --- GLOBAL CONFIGURATION ---
-// Automatically switch between local development and cPanel production
-export const API_BASE_URL = import.meta.env.PROD
-    ? '/api'
-    : 'http://localhost:5000/api';
+// SMART ROUTING: Automatically uses your local Node backend during development,
+// and securely connects to your Render backend via Vercel Environment Variables when deployed!
+export const API_BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD 
+    ? '/api' 
+    : 'http://localhost:5000/api');
 
 export const DUMMY_AVATAR = "https://api.dicebear.com/8.x/initials/svg?seed=Rajesh&backgroundColor=696cff";
 export const indianZipRegex = /^[1-9][0-9]{5}$/;

@@ -32,7 +32,7 @@ export const asthaMaaSchema = z.object({
     accountNo: z.string().optional(),
     ifsCode: z.string().optional(),
     panNo: z.string().optional(),
-    aadharNo: z.string().optional() 
+    aadharNo: z.string().optional()
 });
 
 const AsthaMaaForm = ({ onSuccess }) => {
@@ -45,7 +45,7 @@ const AsthaMaaForm = ({ onSuccess }) => {
         resolver: zodResolver(asthaMaaSchema),
         mode: 'onChange',
         defaultValues: {
-            joiningAmount: '105', 
+            joiningAmount: '105',
             walletBalance: '27000',
             fullName: '', sdwOf: '', dob: '', guardianContactNo: '',
             state: null, district: null, city: '', block: '', postOffice: '', policeStation: '', gramPanchayet: '', village: '', pinCode: '', mobileNo: '', email: '', userName: '', password: '',
@@ -130,7 +130,7 @@ const AsthaMaaForm = ({ onSuccess }) => {
             IFSCode: data.ifsCode || "",
             PanNo: data.panNo || "",
             AadharNo: data.aadharNo,
-            JoiningAmt: parseInt(data.joiningAmount) || 105, 
+            JoiningAmt: parseInt(data.joiningAmount) || 105,
             WalletBalance: parseInt(data.walletBalance) || 0,
             Status: 1,
             IsActive: 1,

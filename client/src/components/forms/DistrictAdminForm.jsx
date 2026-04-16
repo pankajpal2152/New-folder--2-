@@ -90,7 +90,7 @@ const DistrictAdminForm = ({ onSuccess }) => {
             DistNGOWorkingAddress: data.ngoWorkingAddress,
             DistNGOStateName: data.state ? data.state.label : "",
             DistNGODistName: data.district ? data.district.label : "",
-            BlockName: data.blockName, 
+            BlockName: data.blockName,
             DistNGOSDPName: data.sdpName,
             DistNGOSDPMailId: data.secretaryEmail,
             DistNGOSDPPhoneNo: data.secretaryMobile,
@@ -106,13 +106,13 @@ const DistrictAdminForm = ({ onSuccess }) => {
 
         try {
             toast.loading("Saving District Admin data...", { toastId: 'savingAdmin' });
-            
+
             const response = await fetch(`${API_BASE_URL}/districtadmin`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(dbPayload)
             });
-            
+
             toast.dismiss('savingAdmin');
 
             if (response.ok) {
@@ -137,7 +137,7 @@ const DistrictAdminForm = ({ onSuccess }) => {
             </div>
             <div style={styles.cardBody}>
                 <form onSubmit={handleSubmit(onSubmitDistrictAdmin, onError)}>
-                    
+
                     <h6 style={styles.sectionHeader}>NGO Details</h6>
                     <div style={styles.formGrid}>
                         <Controller name="ngoName" control={control} render={({ field }) => (

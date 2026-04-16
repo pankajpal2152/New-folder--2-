@@ -1747,7 +1747,7 @@ const DistrictAdminTable = ({ refreshTrigger }) => {
 // 7. ORCHESTRATOR COMPONENT
 // ==========================================
 const AccountTab = () => {
-    const [appUserRole, setAppUserRole] = useState(null); 
+    const [appUserRole, setAppUserRole] = useState(null);
     const [refreshTrigger, setRefreshTrigger] = useState(0);
     const [adminActiveView, setAdminActiveView] = useState(''); // ✅ Starts empty so we can dynamically set it
 
@@ -1756,7 +1756,7 @@ const AccountTab = () => {
         if (user) {
             const role = user.role || '';
             setAppUserRole(role);
-            
+
             // ✅ Set the DEFAULT view loaded when they log in based on their Role
             if (role === 'State Super Administrator' || role.toLowerCase() === 'developer') {
                 setAdminActiveView('District Administrator');

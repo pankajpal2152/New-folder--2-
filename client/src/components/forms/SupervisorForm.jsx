@@ -27,8 +27,8 @@ export const asthaMaaSchema = z.object({
     pinCode: z.string().regex(indianZipRegex, "Valid 6-digit Pincode required").length(6, "Must be exactly 6 digits"),
     mobileNo: z.string().regex(indianPhoneRegex, "Valid Indian phone required"),
     email: z.string().email("Please enter a valid email address").max(100, "Max 100 characters"),
-    userName: z.string().min(1, "Username is required"), 
-    password: z.string().min(1, "Password is required"), 
+    userName: z.string().min(1, "Username is required"),
+    password: z.string().min(1, "Password is required"),
     bankName: z.string().optional(),
     branchName: z.string().optional(),
     accountNo: z.string().optional(),
@@ -85,7 +85,7 @@ const SupervisorForm = ({ onSuccess }) => {
             reader.readAsDataURL(file);
         }
     };
-    
+
     const handleResetImage = () => {
         setProfileImage(DUMMY_AVATAR);
         if (fileInputRef.current) fileInputRef.current.value = "";
@@ -125,9 +125,9 @@ const SupervisorForm = ({ onSuccess }) => {
             Village: data.village || "",
             Pincode: parseInt(data.pinCode),
             ContactNo: data.mobileNo,
-            email: data.email, 
-            userName: data.userName, 
-            password: data.password, 
+            email: data.email,
+            userName: data.userName,
+            password: data.password,
             BankName: data.bankName || "",
             BranchName: data.branchName || "",
             AcctNo: data.accountNo || "0",
@@ -146,7 +146,7 @@ const SupervisorForm = ({ onSuccess }) => {
 
         try {
             toast.loading("Saving Supervisor data...", { toastId: 'saving' });
-            
+
             const response = await fetch(`${API_BASE_URL}/supervisor`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -157,7 +157,7 @@ const SupervisorForm = ({ onSuccess }) => {
             if (response.ok) {
                 toast.success("Success: Data saved to Database!", { position: "top-right" });
                 handleCancelAsthaMaa();
-                if(onSuccess) onSuccess(); 
+                if (onSuccess) onSuccess();
             } else {
                 toast.error("Failed to save data. Check backend logs.", { position: "top-right" });
             }

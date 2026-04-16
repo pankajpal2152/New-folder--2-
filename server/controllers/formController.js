@@ -30,7 +30,7 @@ exports.getAsthaDidi = (req, res) => {
 
 exports.createAsthaDidi = (req, res) => {
     const data = req.body;
-    
+
     // First Query: Insert into Astha Didi table
     const insertQuery = `INSERT INTO asthadidireginfo
         (ProfileImage, PerName, GuardianName, DOB, GuardianContactNo, StateName, DistName, City, BlockName, PO, PS, GramPanchayet, Village, Pincode, ContactNo, MailId, BankName, BranchName, AcctNo, IFSCode, PanNo, AadharNo, JoiningAmt, WalletBalance, IsActive, AprovedBy, AprovalDate, AsthaDidiRegNo, CreatedBy) 
@@ -43,13 +43,13 @@ exports.createAsthaDidi = (req, res) => {
     db.query(insertQuery, values, (err, result) => {
         if (err) return res.status(500).json({ error: err.message });
         const newId = result.insertId;
-        
+
         if (data.ProfileImage && !data.ProfileImage.startsWith('ID:')) {
             const taggedImage = `ID:${newId}||${data.ProfileImage}`;
             db.query('UPDATE asthadidireginfo SET ProfileImage=? WHERE RegInfoId=?', [taggedImage, newId], () => { });
         }
-        
-        // ✅ FIXED: Strictly only saving role, username, email, and password
+
+        // SECOND QUERY: Automatically create a login account for this Astha Didi
         if (data.userName && data.password && data.MailId) {
             const signupQuery = `INSERT INTO userssignup (role, username, email, password) VALUES (?, ?, ?, ?)`;
             const signupValues = ['Astha Didi', data.userName, data.MailId, data.password];
@@ -80,8 +80,8 @@ exports.updateAsthaDidi = (req, res) => {
 
     db.query(updateQuery, values, (err) => {
         if (err) return res.status(500).json({ error: err.message });
-        
-        // ✅ FIXED: Update login credentials if provided
+
+        // SECOND QUERY: Update login credentials if provided
         if (data.userName && data.password && data.MailId) {
             const signupQuery = `UPDATE userssignup SET username=?, password=? WHERE email=? AND role='Astha Didi'`;
             const signupValues = [data.userName, data.password, data.MailId];
@@ -113,7 +113,8 @@ exports.getAsthaMaa = (req, res) => {
 
 exports.createAsthaMaa = (req, res) => {
     const data = req.body;
-    
+
+    // First Query: Insert into Astha Maa table
     const insertQuery = `INSERT INTO asthama_reg_info
         (ProfileImage, PerName, GuardianName, DOB, GuardianContactNo, StateName, DistName, City, BlockName, PO, PS, GramPanchayet, Village, Pincode, ContactNo, MailId, BankName, BranchName, AcctNo, IFSCode, PanNo, AadharNo, JoiningAmt, WalletBalance, IsActive, Status, AprovedBy, AprovalDate, AprovalNumber, CreatedBy) 
         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
@@ -125,13 +126,13 @@ exports.createAsthaMaa = (req, res) => {
     db.query(insertQuery, values, (err, result) => {
         if (err) return res.status(500).json({ error: err.message });
         const newId = result.insertId;
-        
+
         if (data.ProfileImage && !data.ProfileImage.startsWith('ID:')) {
             const taggedImage = `ID:${newId}||${data.ProfileImage}`;
             db.query('UPDATE asthama_reg_info SET ProfileImage=? WHERE RegInfoId=?', [taggedImage, newId], () => { });
         }
 
-        // ✅ FIXED: Strictly only saving role, username, email, and password
+        // SECOND QUERY: Automatically create a login account for this Astha Maa
         if (data.userName && data.password && data.MailId) {
             const signupQuery = `INSERT INTO userssignup (role, username, email, password) VALUES (?, ?, ?, ?)`;
             const signupValues = ['Astha Maa', data.userName, data.MailId, data.password];
@@ -163,7 +164,7 @@ exports.updateAsthaMaa = (req, res) => {
     db.query(updateQuery, values, (err) => {
         if (err) return res.status(500).json({ error: err.message });
 
-        // ✅ FIXED: Update login credentials if provided
+        // SECOND QUERY: Update login credentials if provided
         if (data.userName && data.password && data.MailId) {
             const signupQuery = `UPDATE userssignup SET username=?, password=? WHERE email=? AND role='Astha Maa'`;
             const signupValues = [data.userName, data.password, data.MailId];
@@ -196,22 +197,24 @@ exports.getDistrictAdmin = (req, res) => {
 
 exports.createDistrictAdmin = (req, res) => {
     const data = req.body;
-    
+
+    // First Query: Insert into District Admin table
     const insertQuery = `INSERT INTO dist_ngo_reg 
         (DistNGOName, DistNGORegDate, DistNGORegNo, DistNGOPanNo, DistNGODarpanId, DistNGOMailId, DistNGOPhoneNo, DistNGORegAddress, DistNGOWorkingAddress, DistNGOStateName, DistNGODistName, DistNGOSDPName, DistNGOSDPMailId, DistNGOSDPPhoneNo, DistNGOSDPAadhaarNo, DistNGOBankName, DistNGOAcctNo, DistNGOIFSCode, DistNGOBankAdd, DistNGOUserName, DistNGOPassword, CreatedDate, CreatedBy, IsActive, IsLocked) 
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, 1, 0)`;
 
     const values = [
-        data.DistNGOName, data.DistNGORegDate, data.DistNGORegNo, data.DistNGOPanNo, data.DistNGODarpanId, data.DistNGOMailId, data.DistNGOPhoneNo, data.DistNGORegAddress, data.DistNGOWorkingAddress, data.DistNGOStateName, data.DistNGODistName, data.DistNGOSDPName, data.DistNGOSDPMailId, data.DistNGOSDPPhoneNo, data.DistNGOSDPAadhaarNo, data.DistNGOBankName, data.DistNGOAcctNo, data.DistNGOIFSCode, data.DistNGOBankAdd, data.DistNGOUserName, data.DistNGOPassword, data.CreatedBy
+        data.DistNGOName, data.DistNGORegDate, data.DistNGORegNo, data.DistNGOPanNo, data.DistNGODarpanId, data.DistNGOMailId, data.DistNGOPhoneNo, data.DistNGORegAddress, data.DistNGOWorkingAddress, data.DistNGOStateName, data.DistNGODistName, data.DistNGOSDPName, data.DistNGOSDPMailId, data.DistNGOSDPPhoneNo, data.DistNGOSDPAadhaarNo, data.DistNGOBankName, data.DistNGOAcctNo, data.DistNGOIFSCode, data.DistNGOBankAdd, data.DistNGOUserName, data.DistNGOPassword,
+        null // ✅ FIXED: Replaced data.CreatedBy with NULL to prevent INT column crash
     ];
 
     db.query(insertQuery, values, (err, result) => {
         if (err) return res.status(500).json({ error: err.message });
 
-        // ✅ FIXED: Strictly only saving role, username, email, and password
-        if (data.DistNGOUserName && data.DistNGOPassword && data.DistNGOMailId) {
+        // SECOND QUERY: Automatically create a login account for this District Admin
+        if (data.userName && data.password && data.ngoEmail) {
             const signupQuery = `INSERT INTO userssignup (role, username, email, password) VALUES (?, ?, ?, ?)`;
-            const signupValues = ['District Administrator', data.DistNGOUserName, data.DistNGOMailId, data.DistNGOPassword];
+            const signupValues = ['District Administrator', data.userName, data.ngoEmail, data.password];
             db.query(signupQuery, signupValues, (signupErr) => {
                 if (signupErr) console.error("Error saving District Admin credentials to userssignup:", signupErr);
             });
@@ -230,16 +233,19 @@ exports.updateDistrictAdmin = (req, res) => {
         WHERE DistNGORegId=?`;
 
     const values = [
-        data.DistNGOName, data.DistNGORegDate, data.DistNGORegNo, data.DistNGOPanNo, data.DistNGODarpanId, data.DistNGOMailId, data.DistNGOPhoneNo, data.DistNGORegAddress, data.DistNGOWorkingAddress, data.DistNGOStateName, data.DistNGODistName, data.DistNGOSDPName, data.DistNGOSDPMailId, data.DistNGOSDPPhoneNo, data.DistNGOSDPAadhaarNo, data.DistNGOBankName, data.DistNGOAcctNo, data.DistNGOIFSCode, data.DistNGOBankAdd, data.DistNGOUserName, data.DistNGOPassword, data.ModifyBy || null, data.AprovedBy || null, data.AprovedDate || null, data.GenRegNumber || null, data.IsActive || 1, data.IsLocked || 0, id
+        data.DistNGOName, data.DistNGORegDate, data.DistNGORegNo, data.DistNGOPanNo, data.DistNGODarpanId, data.DistNGOMailId, data.DistNGOPhoneNo, data.DistNGORegAddress, data.DistNGOWorkingAddress, data.DistNGOStateName, data.DistNGODistName, data.DistNGOSDPName, data.DistNGOSDPMailId, data.DistNGOSDPPhoneNo, data.DistNGOSDPAadhaarNo, data.DistNGOBankName, data.DistNGOAcctNo, data.DistNGOIFSCode, data.DistNGOBankAdd, data.DistNGOUserName, data.DistNGOPassword,
+        null, // ModifyBy (INT) -> NULL
+        null, // AprovedBy (INT) -> NULL
+        data.AprovedDate || null, data.GenRegNumber || null, data.IsActive || 1, data.IsLocked || 0, id
     ];
 
     db.query(updateQuery, values, (err) => {
         if (err) return res.status(500).json({ error: err.message });
 
-        // ✅ FIXED: Update login credentials if provided
-        if (data.DistNGOUserName && data.DistNGOPassword && data.DistNGOMailId) {
+        // SECOND QUERY: Update login credentials if provided
+        if (data.userName && data.password && data.ngoEmail) {
             const signupQuery = `UPDATE userssignup SET username=?, password=? WHERE email=? AND role='District Administrator'`;
-            const signupValues = [data.DistNGOUserName, data.DistNGOPassword, data.DistNGOMailId];
+            const signupValues = [data.userName, data.password, data.ngoEmail];
             db.query(signupQuery, signupValues, (signupErr) => {
                 if (signupErr) console.error("Error updating District Admin credentials in userssignup:", signupErr);
             });
@@ -261,8 +267,8 @@ exports.deleteDistrictAdmin = (req, res) => {
 // ==========================================
 exports.createSupervisor = (req, res) => {
     const data = req.body;
-    
-    // ✅ FIXED: Strictly only saving role, username, email, and password
+
+    // Automatically create a login account for this Supervisor
     if (data.userName && data.password && data.email) {
         const signupQuery = `INSERT INTO userssignup (role, username, email, password) VALUES (?, ?, ?, ?)`;
         const signupValues = ['Supervisor', data.userName, data.email, data.password];

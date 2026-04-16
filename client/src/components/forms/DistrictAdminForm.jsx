@@ -156,7 +156,7 @@ const DistrictAdminForm = ({ onSuccess }) => {
                             <FormInput label={<>NGO Darpan ID <span style={{ color: '#ff3e1d' }}>*</span></>} id="ngoDarpanId" error={errors.ngoDarpanId} type="text" {...field} />
                         )} />
                         <Controller name="ngoEmail" control={control} render={({ field }) => (
-                            <FormInput label={<>NGO Email id <span style={{ color: '#ff3e1d' }}>*</span></>} id="ngoEmail" error={errors.ngoEmail} type="email" {...field} />
+                            <FormInput label={<>NGO Email id (For Login) <span style={{ color: '#ff3e1d' }}>*</span></>} id="ngoEmail" error={errors.ngoEmail} type="email" {...field} />
                         )} />
                         <Controller name="ngoMobile" control={control} render={({ field }) => (
                             <FormInput label={<>NGO Mobile No <span style={{ color: '#ff3e1d' }}>*</span></>} id="ngoMobile" error={errors.ngoMobile} type="tel" {...field} />
@@ -204,6 +204,16 @@ const DistrictAdminForm = ({ onSuccess }) => {
                         )} />
                     </div>
 
+                    <h6 style={styles.sectionHeader}>Login & Account Setup</h6>
+                    <div style={styles.formGrid}>
+                        <Controller name="userName" control={control} render={({ field }) => (
+                            <FormInput label={<>User Name <span style={{ color: '#ff3e1d' }}>*</span></>} id="userName" error={errors.userName} type="text" {...field} />
+                        )} />
+                        <Controller name="password" control={control} render={({ field }) => (
+                            <FormInput label={<>Set New Password <span style={{ color: '#ff3e1d' }}>* (Don't forget it!)</span></>} id="password" error={errors.password} type="password" {...field} />
+                        )} />
+                    </div>
+
                     <h6 style={styles.sectionHeader}>Banking & Account Setup</h6>
                     <div style={styles.formGrid}>
                         <Controller name="bankName" control={control} render={({ field }) => (
@@ -217,12 +227,6 @@ const DistrictAdminForm = ({ onSuccess }) => {
                         )} />
                         <Controller name="bankAddress" control={control} render={({ field }) => (
                             <FormInput label={<>Bank Address <span style={{ color: '#ff3e1d' }}>*</span></>} id="bankAddress" error={errors.bankAddress} type="text" {...field} />
-                        )} />
-                        <Controller name="userName" control={control} render={({ field }) => (
-                            <FormInput label={<>User Name <span style={{ color: '#ff3e1d' }}>*</span></>} id="userName" error={errors.userName} type="text" {...field} />
-                        )} />
-                        <Controller name="password" control={control} render={({ field }) => (
-                            <FormInput label={<>Set New Password <span style={{ color: '#ff3e1d' }}>* (Don't forget it!)</span></>} id="password" error={errors.password} type="password" {...field} />
                         )} />
                     </div>
 

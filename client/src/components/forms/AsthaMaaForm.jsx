@@ -6,9 +6,7 @@ import Select from 'react-select';
 import { toast } from 'react-toastify';
 import { API_BASE_URL, DUMMY_AVATAR, indianZipRegex, indianPhoneRegex, styles, FormInput } from '../../config/constants';
 
-// ==========================================
-// 1. Validation Schema
-// ==========================================
+// Validation Schema specific to this form
 export const asthaMaaSchema = z.object({
     joiningAmount: z.string().min(1, "Joining Amount is required"),
     walletBalance: z.string().optional(),
@@ -26,18 +24,17 @@ export const asthaMaaSchema = z.object({
     village: z.string().optional(),
     pinCode: z.string().regex(indianZipRegex, "Valid 6-digit Pincode required").length(6, "Must be exactly 6 digits"),
     mobileNo: z.string().regex(indianPhoneRegex, "Valid Indian phone required"),
-    email: z.string().optional(), // Removed strict validation since it's readonly
+    email: z.string().email("Please enter a valid email address").max(100, "Max 100 characters"), // ✅ Made editable
+    userName: z.string().min(1, "Username is required"), // ✅ ADDED
+    password: z.string().min(1, "Password is required"), // ✅ ADDED
     bankName: z.string().optional(),
     branchName: z.string().optional(),
     accountNo: z.string().optional(),
     ifsCode: z.string().optional(),
     panNo: z.string().optional(),
-    aadharNo: z.string().optional() // Removed strict validation since it's readonly
+    aadharNo: z.string().optional() 
 });
 
-// ==========================================
-// 2. Component Definition
-// ==========================================
 const AsthaMaaForm = ({ onSuccess }) => {
     const [dbStates, setDbStates] = useState([]);
     const [dbDistricts, setDbDistricts] = useState([]);
@@ -48,9 +45,10 @@ const AsthaMaaForm = ({ onSuccess }) => {
         resolver: zodResolver(asthaMaaSchema),
         mode: 'onChange',
         defaultValues: {
-            joiningAmount: '5000', walletBalance: '27000',
+            joiningAmount: '105', 
+            walletBalance: '27000',
             fullName: '', sdwOf: '', dob: '', guardianContactNo: '',
-            state: null, district: null, city: '', block: '', postOffice: '', policeStation: '', gramPanchayet: '', village: '', pinCode: '', mobileNo: '', email: '',
+            state: null, district: null, city: '', block: '', postOffice: '', policeStation: '', gramPanchayet: '', village: '', pinCode: '', mobileNo: '', email: '', userName: '', password: '',
             bankName: '', branchName: '', accountNo: '', ifsCode: '', panNo: '', aadharNo: ''
         }
     });
@@ -124,13 +122,15 @@ const AsthaMaaForm = ({ onSuccess }) => {
             Pincode: parseInt(data.pinCode),
             ContactNo: data.mobileNo,
             MailId: data.email,
+            userName: data.userName, // ✅ Added
+            password: data.password, // ✅ Added
             BankName: data.bankName || "",
             BranchName: data.branchName || "",
             AcctNo: data.accountNo || "0",
             IFSCode: data.ifsCode || "",
             PanNo: data.panNo || "",
             AadharNo: data.aadharNo,
-            JoiningAmt: parseInt(data.joiningAmount) || 5000,
+            JoiningAmt: parseInt(data.joiningAmount) || 105, 
             WalletBalance: parseInt(data.walletBalance) || 0,
             Status: 1,
             IsActive: 1,
@@ -188,9 +188,6 @@ const AsthaMaaForm = ({ onSuccess }) => {
                     <div style={styles.formGrid}>
                         <Controller name="joiningAmount" control={control} render={({ field }) => (
                             <FormInput label={<>Joining Amount <span style={{ color: '#ff3e1d' }}>*</span></>} id="joiningAmount" error={errors.joiningAmount} placeholder="Enter Amount" type="number" readOnly disabled={true} {...field} />
-                        )} />
-                        <Controller name="walletBalance" control={control} render={({ field }) => (
-                            <FormInput label={<>Wallet Balance <span style={{ color: '#ff3e1d' }}>*</span></>} id="walletBalance" error={errors.walletBalance} disabled={true} readOnly {...field} />
                         )} />
                     </div>
 
@@ -250,16 +247,24 @@ const AsthaMaaForm = ({ onSuccess }) => {
                         <Controller name="mobileNo" control={control} render={({ field }) => (
                             <FormInput label={<>Contact Number <span style={{ color: '#ff3e1d' }}>*</span></>} id="mobileNo" error={errors.mobileNo} placeholder="Mobile No." type="tel" maxLength={15} {...field} />
                         )} />
-                        
-                        {/* Read Only Email */}
+                    </div>
+
+                    {/* ✅ FIXED: Added Login & Account Setup section */}
+                    <h6 style={styles.sectionHeader}>Login & Account Setup</h6>
+                    <div style={styles.formGrid}>
+                        <Controller name="userName" control={control} render={({ field }) => (
+                            <FormInput label={<>User Name <span style={{ color: '#ff3e1d' }}>*</span></>} id="userName" error={errors.userName} type="text" {...field} />
+                        )} />
                         <Controller name="email" control={control} render={({ field }) => (
-                            <FormInput label={<>Email ID</>} id="email" error={errors.email} placeholder="Read Only" type="email" maxLength={100} disabled readOnly {...field} />
+                            <FormInput label={<>Email ID (For Login) <span style={{ color: '#ff3e1d' }}>*</span></>} id="email" error={errors.email} placeholder="Email ID" type="email" maxLength={100} {...field} />
+                        )} />
+                        <Controller name="password" control={control} render={({ field }) => (
+                            <FormInput label={<>Set Password <span style={{ color: '#ff3e1d' }}>*</span></>} id="password" error={errors.password} type="text" {...field} />
                         )} />
                     </div>
 
                     <h6 style={styles.sectionHeader}>Banking & Payment Details</h6>
                     <div style={styles.formGrid}>
-                        {/* STRICTLY READONLY BANK AND ID FIELDS AS REQUESTED */}
                         <Controller name="bankName" control={control} render={({ field }) => (
                             <FormInput label="Bank Name" id="bankName" error={errors.bankName} placeholder="Read Only" type="text" maxLength={100} disabled readOnly {...field} />
                         )} />

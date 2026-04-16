@@ -1747,45 +1747,71 @@ const DistrictAdminTable = ({ refreshTrigger }) => {
 // 7. ORCHESTRATOR COMPONENT
 // ==========================================
 const AccountTab = () => {
-    const [appUserRole, setAppUserRole] = useState(null); // Initialize as null for loading state
+    const [appUserRole, setAppUserRole] = useState(null); 
     const [refreshTrigger, setRefreshTrigger] = useState(0);
-    const [adminActiveView, setAdminActiveView] = useState('District Administrator');
+    const [adminActiveView, setAdminActiveView] = useState(''); // ✅ Starts empty so we can dynamically set it
 
     useEffect(() => {
         const user = getSafeUser();
         if (user) {
-            setAppUserRole(user.role || '');
+            const role = user.role || '';
+            setAppUserRole(role);
+            
+            // ✅ Set the DEFAULT view loaded when they log in based on their Role
+            if (role === 'State Super Administrator' || role.toLowerCase() === 'developer') {
+                setAdminActiveView('District Administrator');
+            } else if (role === 'District Administrator') {
+                setAdminActiveView('Supervisor');
+            } else if (role === 'Supervisor' || role === 'Astha Didi') {
+                setAdminActiveView('Astha Didi');
+            } else {
+                setAdminActiveView(role); // Fallback for Astha Maa
+            }
         } else {
-            setAppUserRole(''); // Handle no user gracefully
+            setAppUserRole('');
         }
     }, []);
 
     const handleFormSuccess = () => setRefreshTrigger(prev => prev + 1);
 
-    // Prevent rendering until local storage has been checked
-    if (appUserRole === null) {
+    if (appUserRole === null || adminActiveView === '') {
         return <div style={{ padding: '24px', color: '#697a8d' }}>Loading Interface...</div>;
     }
 
-    // Options for the Admin Dropdown
-    const adminOptions = [
-        { value: 'District Administrator', label: 'District Administrator' },
-        { value: 'Supervisor', label: 'Supervisor' },
-        { value: 'Astha Maa', label: 'Astha Maa' }, // Added Astha Maa here
-        { value: 'Astha Didi', label: 'Astha Didi' }
-    ];
+    // ✅ Set the DROPDOWN OPTIONS available based on their Role
+    let adminOptions = [];
 
-    // Determine which view to render
-    const currentView = (appUserRole === 'District Administrator' || appUserRole === 'State Super Administrator' || appUserRole.toLowerCase() === 'developer')
-        ? adminActiveView
-        : appUserRole;
+    if (appUserRole === 'State Super Administrator') {
+        adminOptions = [
+            { value: 'District Administrator', label: 'District Administrator' },
+            { value: 'Supervisor', label: 'Supervisor' },
+            { value: 'Astha Didi', label: 'Astha Didi' }
+        ];
+    } else if (appUserRole.toLowerCase() === 'developer') {
+        adminOptions = [
+            { value: 'District Administrator', label: 'District Administrator' },
+            { value: 'Supervisor', label: 'Supervisor' },
+            { value: 'Astha Maa', label: 'Astha Maa' },
+            { value: 'Astha Didi', label: 'Astha Didi' }
+        ];
+    } else if (appUserRole === 'District Administrator') {
+        adminOptions = [
+            { value: 'Supervisor', label: 'Supervisor' },
+            { value: 'Astha Didi', label: 'Astha Didi' }
+        ];
+    } else if (appUserRole === 'Supervisor' || appUserRole === 'Astha Didi') {
+        adminOptions = [
+            { value: 'Astha Didi', label: 'Astha Didi' },
+            { value: 'Astha Maa', label: 'Astha Maa' }
+        ];
+    }
 
     return (
         <>
             <ToastContainer autoClose={3000} pauseOnHover={false} />
 
-            {/* ONLY show this dropdown if the user is a Dist Admin, State Super Admin, or Developer */}
-            {(appUserRole === 'District Administrator' || appUserRole === 'State Super Administrator' || appUserRole.toLowerCase() === 'developer') && (
+            {/* ONLY show this dropdown if the user actually has multiple options to choose from */}
+            {adminOptions.length > 0 && (
                 <div style={{ ...styles.card, padding: '24px', marginBottom: '24px', overflow: 'visible' }}>
                     <div style={{ width: '100%', maxWidth: '400px' }}>
                         <label style={{ ...styles.label, marginBottom: '8px', display: 'block' }}>
@@ -1806,18 +1832,18 @@ const AccountTab = () => {
                 </div>
             )}
 
-            {/* Render the specific Form and Table based on currentView */}
-            {currentView === 'District Administrator' || currentView === 'State Super Administrator' ? (
+            {/* Render the specific Form and Table based on the adminActiveView variable we just set */}
+            {adminActiveView === 'District Administrator' || adminActiveView === 'State Super Administrator' ? (
                 <>
                     <DistrictAdminForm onSuccess={handleFormSuccess} />
                     <DistrictAdminTable refreshTrigger={refreshTrigger} />
                 </>
-            ) : currentView === 'Supervisor' ? (
+            ) : adminActiveView === 'Supervisor' ? (
                 <>
                     <SupervisorForm onSuccess={handleFormSuccess} />
                     <SupervisorTable refreshTrigger={refreshTrigger} />
                 </>
-            ) : currentView === 'Astha Maa' ? (
+            ) : adminActiveView === 'Astha Maa' ? (
                 <>
                     <AsthaMaaForm onSuccess={handleFormSuccess} />
                     <AsthaMaaTable refreshTrigger={refreshTrigger} />

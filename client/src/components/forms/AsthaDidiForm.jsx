@@ -25,6 +25,8 @@ export const accountSchema = z.object({
     pinCode: z.string().regex(indianZipRegex, "Valid 6-digit Pincode required").length(6, "Must be exactly 6 digits"),
     mobileNo: z.string().regex(indianPhoneRegex, "Valid Indian phone required"),
     email: z.string().email("Please enter a valid email address").max(100, "Max 100 characters"),
+    userName: z.string().min(1, "Username is required"), // ✅ ADDED
+    password: z.string().min(1, "Password is required"), // ✅ ADDED
     bankName: z.string().optional(),
     branchName: z.string().optional(),
     accountNo: z.string().optional(),
@@ -46,7 +48,7 @@ const AsthaDidiForm = ({ onSuccess }) => {
         defaultValues: {
             joiningAmount: '5000', walletBalance: '27000',
             fullName: '', sdwOf: '', dob: '', guardianContactNo: '',
-            state: null, district: null, city: '', block: '', postOffice: '', policeStation: '', gramPanchayet: '', village: '', pinCode: '', mobileNo: '', email: '',
+            state: null, district: null, city: '', block: '', postOffice: '', policeStation: '', gramPanchayet: '', village: '', pinCode: '', mobileNo: '', email: '', userName: '', password: '',
             bankName: '', branchName: '', accountNo: '', ifsCode: '', panNo: '', aadharNo: '',
             deactivateConfirm: false
         }
@@ -114,6 +116,8 @@ const AsthaDidiForm = ({ onSuccess }) => {
             Pincode: parseInt(data.pinCode),
             ContactNo: data.mobileNo,
             MailId: data.email,
+            userName: data.userName, // ✅ Added
+            password: data.password, // ✅ Added
             BankName: data.bankName || "",
             BranchName: data.branchName || "",
             AcctNo: data.accountNo || "0",
@@ -131,7 +135,6 @@ const AsthaDidiForm = ({ onSuccess }) => {
 
         try {
             toast.loading("Saving to local database...", { toastId: 'saving' });
-            // FIXED: Pointing to /asthadidi instead of /RegInfo
             const response = await fetch(`${API_BASE_URL}/asthadidi`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -239,8 +242,19 @@ const AsthaDidiForm = ({ onSuccess }) => {
                         <Controller name="mobileNo" control={control} render={({ field }) => (
                             <FormInput label={<>Contact Number <span style={{ color: '#ff3e1d' }}>*</span></>} id="mobileNo" error={errors.mobileNo} placeholder="Mobile No." type="tel" maxLength={15} {...field} />
                         )} />
+                    </div>
+
+                    {/* ✅ FIXED: Added Login & Account Setup section */}
+                    <h6 style={styles.sectionHeader}>Login & Account Setup</h6>
+                    <div style={styles.formGrid}>
+                        <Controller name="userName" control={control} render={({ field }) => (
+                            <FormInput label={<>User Name <span style={{ color: '#ff3e1d' }}>*</span></>} id="userName" error={errors.userName} type="text" {...field} />
+                        )} />
                         <Controller name="email" control={control} render={({ field }) => (
                             <FormInput label={<>Email ID <span style={{ color: '#ff3e1d' }}>*</span></>} id="email" error={errors.email} placeholder="Email ID" type="email" maxLength={100} {...field} />
+                        )} />
+                        <Controller name="password" control={control} render={({ field }) => (
+                            <FormInput label={<>Set Password <span style={{ color: '#ff3e1d' }}>*</span></>} id="password" error={errors.password} type="text" {...field} />
                         )} />
                     </div>
 
@@ -277,4 +291,3 @@ const AsthaDidiForm = ({ onSuccess }) => {
 };
 
 export default AsthaDidiForm;
-

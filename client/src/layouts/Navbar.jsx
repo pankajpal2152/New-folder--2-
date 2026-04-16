@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-// --- STRICT LOCAL API URL CONFIGURATION ---
-const API_BASE_URL = 'http://localhost:5000/api';
+// ✅ FIXED: Imported the smart dynamic URL to work on both Localhost and Vercel/Render!
+import { API_BASE_URL } from '../config/constants';
 
 // --- HELPER FUNCTION: Clean DB Tagged Image ---
 // Strips the "ID:123||" tag so the Navbar avatar renders correctly
@@ -14,6 +14,7 @@ const extractBase64 = (dbString) => {
 const Navbar = () => {
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const [profileImage, setProfileImage] = useState('');
+    const [userRole, setUserRole] = useState(''); // ✅ Added state to hold the user's role
     const dropdownRef = useRef(null);
 
     // Default placeholder if no image is uploaded
@@ -25,11 +26,13 @@ const Navbar = () => {
 
         if (userStr) {
             const user = JSON.parse(userStr);
+            
+            // ✅ Set the role to display in the Navbar
+            setUserRole(user.role || '');
 
-            // 2. Fetch their specific profile image from the LOCAL database (Now pointing to asthadidireginfo via /asthadidi)
+            // 2. Fetch their specific profile image from the database (Now pointing to asthadidireginfo via /asthadidi)
             const fetchProfileImage = async () => {
                 try {
-                    // UPDATED: Fetching from the new asthadidi endpoint
                     const res = await fetch(`${API_BASE_URL}/asthadidi`);
                     const data = await res.json();
 
@@ -45,7 +48,7 @@ const Navbar = () => {
                         setProfileImage(`https://api.dicebear.com/8.x/initials/svg?seed=${user.username || 'User'}&backgroundColor=696cff`);
                     }
                 } catch (error) {
-                    console.error("Failed to fetch profile image from local DB", error);
+                    console.error("Failed to fetch profile image from DB", error);
                     setProfileImage(DUMMY_AVATAR);
                 }
             };
@@ -102,6 +105,19 @@ const Navbar = () => {
             alignItems: 'center',
             gap: '16px'
         },
+        // ✅ NEW STYLE: Professional badge for the user role
+        roleBadge: {
+            backgroundColor: '#e7e7ff',
+            color: '#696cff',
+            padding: '6px 14px',
+            borderRadius: '6px',
+            fontSize: '0.875rem',
+            fontWeight: '600',
+            letterSpacing: '0.25px',
+            display: 'flex',
+            alignItems: 'center',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+        },
         avatarContainer: {
             position: 'relative',
             cursor: 'pointer'
@@ -153,7 +169,6 @@ const Navbar = () => {
             fontWeight: '500',
             transition: 'background-color 0.2s'
         },
-        // NEW STYLE FOR DIRECT LOGOUT BUTTON
         logoutBtn: {
             backgroundColor: '#ff3e1d',
             color: '#fff',
@@ -178,6 +193,14 @@ const Navbar = () => {
             </div>
 
             <div style={styles.rightControls}>
+                
+                {/* ✅ DYNAMIC ROLE BADGE */}
+                {userRole && (
+                    <div style={styles.roleBadge}>
+                        {userRole}
+                    </div>
+                )}
+
                 {/* --- HIDING THE PROFILE ICON AS REQUESTED ---
                 <div
                     style={styles.avatarContainer}
@@ -209,7 +232,6 @@ const Navbar = () => {
                     onMouseLeave={(e) => { e.target.style.backgroundColor = '#ff3e1d' }}
                 >
                     Logout
-                    {/* 🚪 Logout */}
                 </button>
             </div>
         </nav>

@@ -6,9 +6,6 @@ import Select from 'react-select';
 import { toast } from 'react-toastify';
 import { API_BASE_URL, DUMMY_AVATAR, indianZipRegex, indianPhoneRegex, styles, FormInput } from '../../config/constants';
 
-// ==========================================
-// 1. Validation Schema
-// ==========================================
 export const asthaMaaSchema = z.object({
     joiningAmount: z.string().min(1, "Joining Amount is required"),
     walletBalance: z.string().optional(),
@@ -37,15 +34,9 @@ export const asthaMaaSchema = z.object({
     aadharNo: z.string().length(12, "Must be exactly 12 digits").regex(/^\d+$/, "Numbers only")
 });
 
-// ==========================================
-// Password Input Helper Component
-// ==========================================
 const PasswordInput = ({ label, id, error, placeholder, disabled, ...props }) => {
     const [showPassword, setShowPassword] = useState(false);
-
-    const togglePasswordVisibility = () => {
-        setShowPassword(!showPassword);
-    };
+    const togglePasswordVisibility = () => setShowPassword(!showPassword);
 
     return (
         <div style={styles.inputGroup}>
@@ -63,17 +54,8 @@ const PasswordInput = ({ label, id, error, placeholder, disabled, ...props }) =>
                     type="button"
                     onClick={togglePasswordVisibility}
                     style={{
-                        position: 'absolute',
-                        right: '10px',
-                        background: 'transparent',
-                        border: 'none',
-                        cursor: 'pointer',
-                        color: '#697a8d',
-                        fontSize: '1.2rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        padding: 0
+                        position: 'absolute', right: '10px', background: 'transparent', border: 'none', cursor: 'pointer',
+                        color: '#697a8d', fontSize: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0
                     }}
                     title={showPassword ? "Hide password" : "Show password"}
                 >
@@ -85,9 +67,6 @@ const PasswordInput = ({ label, id, error, placeholder, disabled, ...props }) =>
     );
 };
 
-// ==========================================
-// 2. Component Definition
-// ==========================================
 const SupervisorForm = ({ onSuccess }) => {
     const [dbStates, setDbStates] = useState([]);
     const [dbDistricts, setDbDistricts] = useState([]);
@@ -139,7 +118,7 @@ const SupervisorForm = ({ onSuccess }) => {
         if (fileInputRef.current) fileInputRef.current.value = "";
     };
 
-    const handleCancelAsthaMaa = () => {
+    const handleCancelForm = () => {
         reset();
         handleResetImage();
     };
@@ -152,44 +131,42 @@ const SupervisorForm = ({ onSuccess }) => {
         return "";
     };
 
-    const onSubmitAsthaMaa = async (data) => {
+    const onSubmitSupervisor = async (data) => {
         const stateName = data.state ? data.state.label : "";
         const districtName = data.district ? data.district.label : "";
         const currentUserEmail = getCurrentUserEmail();
 
         const dbPayload = {
-            ProfileImage: profileImage === DUMMY_AVATAR ? null : profileImage,
-            PerName: data.fullName,
-            GuardianName: data.sdwOf || "",
-            DOB: data.dob,
-            GuardianContactNo: data.guardianContactNo || "",
-            StateName: stateName,
-            DistName: districtName,
-            City: data.city || "",
-            BlockName: data.block || "",
-            PO: data.postOffice || "",
-            PS: data.policeStation || "",
-            GramPanchayet: data.gramPanchayet || "",
-            Village: data.village || "",
-            Pincode: parseInt(data.pinCode),
-            ContactNo: data.mobileNo,
-            email: data.email,
+            SupProfileImage: profileImage === DUMMY_AVATAR ? null : profileImage,
+            SupName: data.fullName,
+            SupGuardianName: data.sdwOf || "",
+            SupDOB: data.dob,
+            SupGuardianContactNo: data.guardianContactNo || "",
+            SupStateName: stateName,
+            SupDistName: districtName,
+            SupCity: data.city || "",
+            SupBlockName: data.block || "",
+            SupPO: data.postOffice || "",
+            SupPS: data.policeStation || "",
+            SupGramPanchayet: data.gramPanchayet || "",
+            SupVillage: data.village || "",
+            SupPincode: parseInt(data.pinCode),
+            SupContactNo: data.mobileNo,
+            SupMailId: data.email, // ✅ FIXED: Single L
             userName: data.userName,
             password: data.password,
-            BankName: data.bankName || "",
-            BranchName: data.branchName || "",
-            AcctNo: data.accountNo || "0",
-            IFSCode: data.ifsCode || "",
-            PanNo: data.panNo || "",
-            AadharNo: data.aadharNo,
-            JoiningAmt: parseInt(data.joiningAmount) || 5000,
-            WalletBalance: parseInt(data.walletBalance) || 0,
-            Status: 1,
-            IsActive: 1,
-            AprovedBy: null,
-            AprovalDate: null,
-            AprovalNumber: null,
-            CreatedBy: currentUserEmail
+            SupBankName: data.bankName || "",
+            SupBranchName: data.branchName || "",
+            SupAcctNo: data.accountNo || "0",
+            SupIFSCode: data.ifsCode || "",
+            SupPanNo: data.panNo || "",
+            SupAadharNo: data.aadharNo,
+            SupJoiningAmt: parseInt(data.joiningAmount) || 5000,
+            SupWalletBalance: parseInt(data.walletBalance) || 0,
+            SupIsActive: 1,
+            SupAprovedBy: null,
+            SupAprovalDate: null,
+            SupRegNo: null
         };
 
         try {
@@ -204,7 +181,7 @@ const SupervisorForm = ({ onSuccess }) => {
 
             if (response.ok) {
                 toast.success("Success: Data saved to Database!", { position: "top-right" });
-                handleCancelAsthaMaa();
+                handleCancelForm();
                 if (onSuccess) onSuccess();
             } else {
                 toast.error("Failed to save data. Check backend logs.", { position: "top-right" });
@@ -215,7 +192,7 @@ const SupervisorForm = ({ onSuccess }) => {
         }
     };
 
-    const onErrorAsthaMaa = () => toast.error("Error: Please check the red fields.", { position: "top-right" });
+    const onErrorForm = () => toast.error("Error: Please check the red fields.", { position: "top-right" });
 
     return (
         <div style={styles.card}>
@@ -235,15 +212,12 @@ const SupervisorForm = ({ onSuccess }) => {
                     </div>
                 </div>
 
-                <form onSubmit={handleSubmit(onSubmitAsthaMaa, onErrorAsthaMaa)}>
+                <form onSubmit={handleSubmit(onSubmitSupervisor, onErrorForm)}>
                     <h6 style={styles.sectionHeader}>Supervisor Information</h6>
                     <div style={styles.formGrid}>
                         <Controller name="joiningAmount" control={control} render={({ field }) => (
                             <FormInput label={<>Joining Amount <span style={{ color: '#ff3e1d' }}>*</span></>} id="joiningAmount" error={errors.joiningAmount} placeholder="Enter Amount" type="number" readOnly disabled={true} {...field} />
                         )} />
-                        {/* <Controller name="walletBalance" control={control} render={({ field }) => (
-                            <FormInput label={<>Wallet Balance <span style={{ color: '#ff3e1d' }}>*</span></>} id="walletBalance" error={errors.walletBalance} disabled={true} readOnly {...field} />
-                        )} /> */}
                     </div>
 
                     <h6 style={styles.sectionHeader}>Personal Details</h6>
@@ -312,7 +286,6 @@ const SupervisorForm = ({ onSuccess }) => {
                         <Controller name="email" control={control} render={({ field }) => (
                             <FormInput label={<>Email ID (For Login) <span style={{ color: '#ff3e1d' }}>*</span></>} id="email" error={errors.email} placeholder="Email ID" type="email" maxLength={100} {...field} />
                         )} />
-                        {/* ✅ ADDED: Integrated PasswordInput component here */}
                         <Controller name="password" control={control} render={({ field }) => (
                             <PasswordInput label={<>Set New Password <span style={{ color: '#ff3e1d' }}>* (Don't forget it!)</span></>} id="password" error={errors.password} {...field} />
                         )} />
@@ -341,7 +314,7 @@ const SupervisorForm = ({ onSuccess }) => {
                     </div>
 
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '16px', marginTop: '32px' }}>
-                        <button type="button" style={styles.btnOutline} onClick={handleCancelAsthaMaa}>Cancel</button>
+                        <button type="button" style={styles.btnOutline} onClick={handleCancelForm}>Cancel</button>
                         <button type="submit" style={styles.btnPrimary}>Submit</button>
                     </div>
                 </form>

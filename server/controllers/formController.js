@@ -191,7 +191,6 @@ exports.getDistrictAdmin = (req, res) => {
 exports.createDistrictAdmin = (req, res) => {
     const data = req.body;
 
-    // ✅ FIXED: Mapped the precise database column names for Block and PDFs
     const insertQuery = `INSERT INTO dist_ngo_reg 
         (DistNGOName, DistNGORegDate, DistNGORegNo, DistNGOPanNo, DistNGODarpanId, DistNGOMailId, DistNGOPhoneNo, DistNGORegAddress, DistNGOWorkingAddress, DistNGOStateName, DistNGODistName, DistNGOBlockName, DistNGOSDPName, DistNGOSDPMailId, DistNGOSDPPhoneNo, DistNGOSDPAadhaarNo, DistNGOBankName, DistNGOAcctNo, DistNGOIFSCode, DistNGOBankAdd, DistNGOUserName, DistNGOPassword, DistNGORecCertificate, DistNGOPanPic, DistNGODarpanPic, CreatedDate, CreatedBy, IsActive, IsLocked) 
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, 1, 0)`;
@@ -221,7 +220,6 @@ exports.updateDistrictAdmin = (req, res) => {
     const { id } = req.params;
     const data = req.body;
 
-    // ✅ FIXED: Mapped the precise database column names for Block and PDFs
     const updateQuery = `UPDATE dist_ngo_reg SET 
         DistNGOName=?, DistNGORegDate=?, DistNGORegNo=?, DistNGOPanNo=?, DistNGODarpanId=?, DistNGOMailId=?, DistNGOPhoneNo=?, DistNGORegAddress=?, DistNGOWorkingAddress=?, DistNGOStateName=?, DistNGODistName=?, DistNGOBlockName=?, DistNGOSDPName=?, DistNGOSDPMailId=?, DistNGOSDPPhoneNo=?, DistNGOSDPAadhaarNo=?, DistNGOBankName=?, DistNGOAcctNo=?, DistNGOIFSCode=?, DistNGOBankAdd=?, DistNGOUserName=?, DistNGOPassword=?, DistNGORecCertificate=?, DistNGOPanPic=?, DistNGODarpanPic=?, ModifyDate=NOW(), ModifyBy=?, AprovedBy=?, AprovedDate=?, GenRegNumber=?, IsActive=?, IsLocked=?
         WHERE DistNGORegId=?`;
@@ -254,19 +252,113 @@ exports.deleteDistrictAdmin = (req, res) => {
 };
 
 // ==========================================
-// SUPERVISOR REGISTRATION
+// SUPERVISOR REGISTRATION (suvervisor_reg)
 // ==========================================
+exports.getSupervisor = (req, res) => {
+    db.query('SELECT * FROM suvervisor_reg ORDER BY SupRegId DESC', (err, results) => {
+        if (err) {
+            console.error("❌ getSupervisor DB Error:", err.message);
+            return res.status(500).json({ error: err.message });
+        }
+        res.json(results);
+    });
+};
+
 exports.createSupervisor = (req, res) => {
     const data = req.body;
 
-    if (data.userName && data.password && data.email) {
-        const signupQuery = `INSERT INTO userssignup (role, username, email, password) VALUES (?, ?, ?, ?)`;
-        const signupValues = ['Supervisor', data.userName, data.email, data.password];
-        db.query(signupQuery, signupValues, (signupErr) => {
-            if (signupErr) console.error("❌ Auto-Signup DB Error (Supervisor):", signupErr.message);
-            else console.log(`✅ Auto-signup successful for Supervisor: ${data.email}`);
-        });
+    // Fixed: SupMailId instead of SupMaillId
+    const insertQuery = `INSERT INTO suvervisor_reg (
+        SupProfileImage, SupName, SupGuardianName, SupDOB, SupGuardianContactNo, 
+        SupStateName, SupDistName, SupCity, SupBlockName, SupPO, SupPS, 
+        SupGramPanchayet, SupVillage, SupPincode, SupContactNo, SupMailId, 
+        SupBankName, SupBranchName, SupAcctNo, SupIFSCode, SupPanNo, SupAadharNo, 
+        SupJoiningAmt, SupWalletBalance, SupIsActive, SupAprovedBy, SupAprovalDate, SupRegNo
+    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
+
+    const values = [
+        data.SupProfileImage, data.SupName, data.SupGuardianName, data.SupDOB, data.SupGuardianContactNo,
+        data.SupStateName, data.SupDistName, data.SupCity, data.SupBlockName, data.SupPO, data.SupPS,
+        data.SupGramPanchayet, data.SupVillage, data.SupPincode, data.SupContactNo, data.SupMailId,
+        data.SupBankName, data.SupBranchName, data.SupAcctNo, data.SupIFSCode, data.SupPanNo, data.SupAadharNo,
+        data.SupJoiningAmt, data.SupWalletBalance, data.SupIsActive || 1, data.SupAprovedBy || null, data.SupAprovalDate || null, data.SupRegNo || null
+    ];
+
+    db.query(insertQuery, values, (err, result) => {
+        if (err) {
+            console.error("❌ createSupervisor DB Error:", err.message);
+            return res.status(500).json({ error: err.message });
+        }
+
+        const newId = result.insertId;
+
+        if (data.SupProfileImage && !data.SupProfileImage.startsWith('ID:')) {
+            const taggedImage = `ID:${newId}||${data.SupProfileImage}`;
+            db.query('UPDATE suvervisor_reg SET SupProfileImage=? WHERE SupRegId=?', [taggedImage, newId], () => { });
+        }
+
+        if (data.userName && data.password && data.SupMailId) {
+            const signupQuery = `INSERT INTO userssignup (role, username, email, password) VALUES (?, ?, ?, ?)`;
+            const signupValues = ['Supervisor', data.userName, data.SupMailId, data.password];
+            db.query(signupQuery, signupValues, (signupErr) => {
+                if (signupErr) console.error("❌ Auto-Signup DB Error (Supervisor):", signupErr.message);
+                else console.log(`✅ Auto-signup successful for Supervisor: ${data.SupMailId}`);
+            });
+        }
+
+        res.json({ message: 'Supervisor added successfully', id: newId });
+    });
+};
+
+exports.updateSupervisor = (req, res) => {
+    const { id } = req.params;
+    const data = req.body;
+
+    if (data.SupProfileImage && !data.SupProfileImage.startsWith('ID:')) {
+        data.SupProfileImage = `ID:${id}||${data.SupProfileImage}`;
     }
 
-    res.json({ message: 'Supervisor added successfully' });
+    // Fixed: SupMailId instead of SupMaillId
+    const updateQuery = `UPDATE suvervisor_reg SET 
+        SupProfileImage=?, SupName=?, SupGuardianName=?, SupDOB=?, SupGuardianContactNo=?, 
+        SupStateName=?, SupDistName=?, SupCity=?, SupBlockName=?, SupPO=?, SupPS=?, 
+        SupGramPanchayet=?, SupVillage=?, SupPincode=?, SupContactNo=?, SupMailId=?, 
+        SupBankName=?, SupBranchName=?, SupAcctNo=?, SupIFSCode=?, SupPanNo=?, SupAadharNo=?, 
+        SupJoiningAmt=?, SupWalletBalance=?, SupIsActive=?, SupAprovedBy=?, SupAprovalDate=?, SupRegNo=?
+        WHERE SupRegId=?`;
+
+    const values = [
+        data.SupProfileImage, data.SupName, data.SupGuardianName, data.SupDOB, data.SupGuardianContactNo,
+        data.SupStateName, data.SupDistName, data.SupCity, data.SupBlockName, data.SupPO, data.SupPS,
+        data.SupGramPanchayet, data.SupVillage, data.SupPincode, data.SupContactNo, data.SupMailId,
+        data.SupBankName, data.SupBranchName, data.SupAcctNo, data.SupIFSCode, data.SupPanNo, data.SupAadharNo,
+        data.SupJoiningAmt, data.SupWalletBalance, data.SupIsActive, data.SupAprovedBy, data.SupAprovalDate, data.SupRegNo, id
+    ];
+
+    db.query(updateQuery, values, (err) => {
+        if (err) {
+            console.error("❌ updateSupervisor DB Error:", err.message);
+            return res.status(500).json({ error: err.message });
+        }
+
+        if (data.userName && data.password && data.SupMailId) {
+            const signupQuery = `UPDATE userssignup SET username=?, password=? WHERE email=? AND role='Supervisor'`;
+            const signupValues = [data.userName, data.password, data.SupMailId];
+            db.query(signupQuery, signupValues, (signupErr) => {
+                if (signupErr) console.error("❌ Auto-Update Signup DB Error (Supervisor):", signupErr.message);
+            });
+        }
+
+        res.json({ message: 'Supervisor updated successfully' });
+    });
+};
+
+exports.deleteSupervisor = (req, res) => {
+    db.query('DELETE FROM suvervisor_reg WHERE SupRegId = ?', [req.params.id], (err) => {
+        if (err) {
+            console.error("❌ deleteSupervisor DB Error:", err.message);
+            return res.status(500).json({ error: err.message });
+        }
+        res.json({ message: 'Supervisor deleted successfully' });
+    });
 };

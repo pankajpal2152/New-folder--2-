@@ -28,13 +28,16 @@ router.post('/asthamaa', formController.createAsthaMaa);
 router.put('/asthamaa/:id', formController.updateAsthaMaa);
 router.delete('/asthamaa/:id', formController.deleteAsthaMaa);
 
-// --- DISTRICT ADMIN ROUTES (MAPPED TO dist_ngo_reg) ---
+// --- DISTRICT ADMIN ROUTES ---
 router.get('/districtadmin', formController.getDistrictAdmin);
 router.post('/districtadmin', formController.createDistrictAdmin);
 router.put('/districtadmin/:id', formController.updateDistrictAdmin);
 router.delete('/districtadmin/:id', formController.deleteDistrictAdmin);
 
 // --- SUPERVISOR ROUTES ---
+router.get('/supervisor', formController.getSupervisor);
 router.post('/supervisor', formController.createSupervisor);
+router.put('/supervisor/:id', formController.updateSupervisor);
+router.delete('/supervisor/:id', formController.deleteSupervisor);
 
 module.exports = router;

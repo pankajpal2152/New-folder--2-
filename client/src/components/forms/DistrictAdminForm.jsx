@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import Select from 'react-select';
 import { toast } from 'react-toastify';
-import { API_BASE_URL, indianPhoneRegex, styles, FormInput } from '../../config/constants';
+import { API_BASE_URL, indianPhoneRegex, styles, FormInput, fileToBase64 } from '../../config/constants';
 
 // ==========================================
 // 1. Validation Schema
@@ -15,7 +15,7 @@ export const ngoSchema = z.object({
     ngoRegistrationNo: z.string().min(1, "Registration No is required"),
     ngoPanNo: z.string().min(1, "PAN No is required"),
     ngoDarpanId: z.string().min(1, "Darpan ID is required"),
-    generalNgoEmail: z.string().email("Valid email required").optional(), // General NGO Email
+    generalNgoEmail: z.string().email("Valid email required").optional(),
     ngoMobile: z.string().regex(indianPhoneRegex, "Valid Indian phone required"),
     ngoRegAddress: z.string().min(5, "Address is required"),
     ngoWorkingAddress: z.string().min(5, "Address is required"),
@@ -85,9 +85,28 @@ const PasswordInput = ({ label, id, error, placeholder, disabled, ...props }) =>
     );
 };
 
+// ✅ ADDED: Helper to View Base64 PDF in a new tab (for Add Form)
+const handleViewPdf = (base64String) => {
+    if (!base64String) return;
+    const pdfData = base64String.startsWith('data:application/pdf;base64,') 
+        ? base64String 
+        : `data:application/pdf;base64,${base64String}`;
+    const pdfWindow = window.open("");
+    if (pdfWindow) {
+        pdfWindow.document.write(`<iframe width='100%' height='100%' style='border:none; margin:0; padding:0;' src='${pdfData}'></iframe>`);
+    } else {
+        toast.error("Pop-up blocked! Please allow pop-ups for this site to view documents.");
+    }
+};
+
 const DistrictAdminForm = ({ onSuccess }) => {
     const [dbStates, setDbStates] = useState([]);
     const [dbDistricts, setDbDistricts] = useState([]);
+    
+    // State for PDF Document Uploads
+    const [regCertPdf, setRegCertPdf] = useState(null);
+    const [panPdf, setPanPdf] = useState(null);
+    const [darpanPdf, setDarpanPdf] = useState(null);
 
     const { control, handleSubmit, reset, watch, formState: { errors } } = useForm({
         resolver: zodResolver(ngoSchema),
@@ -123,7 +142,27 @@ const DistrictAdminForm = ({ onSuccess }) => {
         return "";
     };
 
-    const handleCancel = () => reset();
+    // Handler for PDF Uploads
+    const handlePdfUpload = async (event, setPdfState) => {
+        const file = event.target.files[0];
+        if (file) {
+            if (file.type !== 'application/pdf') return toast.warning("Only PDF files are allowed.");
+            if (file.size > 5000000) return toast.warning("File size exceeds the 5MB limit.");
+            try { 
+                const b64 = await fileToBase64(file); 
+                setPdfState(b64); 
+            } catch (err) { 
+                toast.error("Error reading the file."); 
+            }
+        }
+    };
+
+    const handleCancel = () => {
+        reset();
+        setRegCertPdf(null);
+        setPanPdf(null);
+        setDarpanPdf(null);
+    };
 
     const onSubmitDistrictAdmin = async (data) => {
         const currentUserEmail = getCurrentUserEmail();
@@ -141,7 +180,7 @@ const DistrictAdminForm = ({ onSuccess }) => {
             DistNGOWorkingAddress: data.ngoWorkingAddress,
             DistNGOStateName: data.state ? data.state.label : "",
             DistNGODistName: data.district ? data.district.label : "",
-            BlockName: data.blockName,
+            DistNGOBlockName: data.blockName,
             DistNGOSDPName: data.sdpName,
             DistNGOSDPMailId: data.secretaryEmail,
             DistNGOSDPPhoneNo: data.secretaryMobile,
@@ -151,7 +190,12 @@ const DistrictAdminForm = ({ onSuccess }) => {
             DistNGOIFSCode: data.ifsCode,
             DistNGOBankAdd: data.bankAddress,
 
-            // Login Credentials (passed to backend to be sorted into userssignup)
+            // Mapped PDF state precisely to Backend Columns
+            DistNGORecCertificate: regCertPdf, 
+            DistNGOPanPic: panPdf, 
+            DistNGODarpanPic: darpanPdf,
+
+            // Login Credentials 
             DistNGOUserName: data.userName,
             loginEmail: data.ngoEmail,
             DistNGOPassword: data.password,
@@ -210,7 +254,7 @@ const DistrictAdminForm = ({ onSuccess }) => {
                             <FormInput label={<>NGO Darpan ID <span style={{ color: '#ff3e1d' }}>*</span></>} id="ngoDarpanId" error={errors.ngoDarpanId} type="text" {...field} />
                         )} />
                         <Controller name="generalNgoEmail" control={control} render={({ field }) => (
-                            <FormInput label="NGO Email ID" id="generalNgoEmail" error={errors.generalNgoEmail} type="email" {...field} />
+                            <FormInput label="NGO General Email ID" id="generalNgoEmail" error={errors.generalNgoEmail} type="email" placeholder="Optional general contact email" {...field} />
                         )} />
                         <Controller name="ngoMobile" control={control} render={({ field }) => (
                             <FormInput label={<>NGO Mobile No <span style={{ color: '#ff3e1d' }}>*</span></>} id="ngoMobile" error={errors.ngoMobile} type="tel" {...field} />
@@ -219,12 +263,6 @@ const DistrictAdminForm = ({ onSuccess }) => {
 
                     <h6 style={styles.sectionHeader}>Address Details</h6>
                     <div style={styles.formGrid}>
-                        <Controller name="ngoRegAddress" control={control} render={({ field }) => (
-                            <FormInput label={<>NGO Register Address <span style={{ color: '#ff3e1d' }}>*</span></>} id="ngoRegAddress" error={errors.ngoRegAddress} type="text" {...field} />
-                        )} />
-                        <Controller name="ngoWorkingAddress" control={control} render={({ field }) => (
-                            <FormInput label={<>NGO Working office full address <span style={{ color: '#ff3e1d' }}>*</span></>} id="ngoWorkingAddress" error={errors.ngoWorkingAddress} type="text" {...field} />
-                        )} />
                         <div style={styles.inputGroup}>
                             <label style={styles.label}>Willing to work State Name <span style={{ color: '#ff3e1d' }}>*</span></label>
                             <Controller name="state" control={control} render={({ field }) => (
@@ -239,6 +277,21 @@ const DistrictAdminForm = ({ onSuccess }) => {
                         </div>
                         <Controller name="blockName" control={control} render={({ field }) => (
                             <FormInput label={<>Which Block Name <span style={{ color: '#ff3e1d' }}>* (Can type multiple)</span></>} id="blockName" error={errors.blockName} type="text" {...field} />
+                        )} />
+
+                        <Controller name="ngoRegAddress" control={control} render={({ field }) => (
+                            <div style={{ ...styles.inputGroup, gridColumn: '1 / -1' }}>
+                                <label htmlFor="ngoRegAddress" style={styles.label}>NGO Register Address <span style={{ color: '#ff3e1d' }}>*</span></label>
+                                <textarea id="ngoRegAddress" style={{ ...styles.input(!!errors.ngoRegAddress), resize: 'vertical', minHeight: '80px', backgroundColor: '#fff' }} {...field} />
+                                {errors.ngoRegAddress && <p style={styles.errorText}>{errors.ngoRegAddress.message}</p>}
+                            </div>
+                        )} />
+                        <Controller name="ngoWorkingAddress" control={control} render={({ field }) => (
+                            <div style={{ ...styles.inputGroup, gridColumn: '1 / -1' }}>
+                                <label htmlFor="ngoWorkingAddress" style={styles.label}>NGO Working office full address <span style={{ color: '#ff3e1d' }}>*</span></label>
+                                <textarea id="ngoWorkingAddress" style={{ ...styles.input(!!errors.ngoWorkingAddress), resize: 'vertical', minHeight: '80px', backgroundColor: '#fff' }} {...field} />
+                                {errors.ngoWorkingAddress && <p style={styles.errorText}>{errors.ngoWorkingAddress.message}</p>}
+                            </div>
                         )} />
                     </div>
 
@@ -266,7 +319,6 @@ const DistrictAdminForm = ({ onSuccess }) => {
                         <Controller name="ngoEmail" control={control} render={({ field }) => (
                             <FormInput label={<>Email ID (For Login) <span style={{ color: '#ff3e1d' }}>*</span></>} id="ngoEmail" error={errors.ngoEmail} type="email" {...field} />
                         )} />
-                        {/* ✅ CHANGED TO PASSWORD INPUT */}
                         <Controller name="password" control={control} render={({ field }) => (
                             <PasswordInput label={<>Set New Password <span style={{ color: '#ff3e1d' }}>* (Don't forget it!)</span></>} id="password" error={errors.password} {...field} />
                         )} />
@@ -286,6 +338,40 @@ const DistrictAdminForm = ({ onSuccess }) => {
                         <Controller name="bankAddress" control={control} render={({ field }) => (
                             <FormInput label={<>Bank Address <span style={{ color: '#ff3e1d' }}>*</span></>} id="bankAddress" error={errors.bankAddress} type="text" {...field} />
                         )} />
+                    </div>
+
+                    <h6 style={styles.sectionHeader}>Documents</h6>
+                    <div style={styles.formGrid}>
+                        <div style={styles.inputGroup}>
+                            <label style={styles.label}>Reg Cert PDF</label>
+                            <input type="file" accept="application/pdf" onChange={(e) => handlePdfUpload(e, setRegCertPdf)} style={styles.input(false)} />
+                            {regCertPdf && (
+                                <div style={{ display: 'flex', alignItems: 'center', marginTop: '8px' }}>
+                                    <button type="button" onClick={() => handleViewPdf(regCertPdf)} style={{...styles.btnOutline, padding: '4px 8px', fontSize: '0.85rem'}}>👁️ Preview PDF</button>
+                                    <span style={{...styles.hintText, color: '#71dd37', marginLeft: '10px', marginBottom: 0}}>✅ Ready</span>
+                                </div>
+                            )}
+                        </div>
+                        <div style={styles.inputGroup}>
+                            <label style={styles.label}>NGO PAN PDF</label>
+                            <input type="file" accept="application/pdf" onChange={(e) => handlePdfUpload(e, setPanPdf)} style={styles.input(false)} />
+                            {panPdf && (
+                                <div style={{ display: 'flex', alignItems: 'center', marginTop: '8px' }}>
+                                    <button type="button" onClick={() => handleViewPdf(panPdf)} style={{...styles.btnOutline, padding: '4px 8px', fontSize: '0.85rem'}}>👁️ Preview PDF</button>
+                                    <span style={{...styles.hintText, color: '#71dd37', marginLeft: '10px', marginBottom: 0}}>✅ Ready</span>
+                                </div>
+                            )}
+                        </div>
+                        <div style={styles.inputGroup}>
+                            <label style={styles.label}>Darpan PDF</label>
+                            <input type="file" accept="application/pdf" onChange={(e) => handlePdfUpload(e, setDarpanPdf)} style={styles.input(false)} />
+                            {darpanPdf && (
+                                <div style={{ display: 'flex', alignItems: 'center', marginTop: '8px' }}>
+                                    <button type="button" onClick={() => handleViewPdf(darpanPdf)} style={{...styles.btnOutline, padding: '4px 8px', fontSize: '0.85rem'}}>👁️ Preview PDF</button>
+                                    <span style={{...styles.hintText, color: '#71dd37', marginLeft: '10px', marginBottom: 0}}>✅ Ready</span>
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '16px', marginTop: '32px' }}>

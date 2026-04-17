@@ -191,19 +191,19 @@ exports.getDistrictAdmin = (req, res) => {
 exports.createDistrictAdmin = (req, res) => {
     const data = req.body;
 
+    // ✅ FIXED: Mapped the precise database column names for Block and PDFs
     const insertQuery = `INSERT INTO dist_ngo_reg 
-        (DistNGOName, DistNGORegDate, DistNGORegNo, DistNGOPanNo, DistNGODarpanId, DistNGOMailId, DistNGOPhoneNo, DistNGORegAddress, DistNGOWorkingAddress, DistNGOStateName, DistNGODistName, DistNGOSDPName, DistNGOSDPMailId, DistNGOSDPPhoneNo, DistNGOSDPAadhaarNo, DistNGOBankName, DistNGOAcctNo, DistNGOIFSCode, DistNGOBankAdd, DistNGOUserName, DistNGOPassword, CreatedDate, CreatedBy, IsActive, IsLocked) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, 1, 0)`;
+        (DistNGOName, DistNGORegDate, DistNGORegNo, DistNGOPanNo, DistNGODarpanId, DistNGOMailId, DistNGOPhoneNo, DistNGORegAddress, DistNGOWorkingAddress, DistNGOStateName, DistNGODistName, DistNGOBlockName, DistNGOSDPName, DistNGOSDPMailId, DistNGOSDPPhoneNo, DistNGOSDPAadhaarNo, DistNGOBankName, DistNGOAcctNo, DistNGOIFSCode, DistNGOBankAdd, DistNGOUserName, DistNGOPassword, DistNGORecCertificate, DistNGOPanPic, DistNGODarpanPic, CreatedDate, CreatedBy, IsActive, IsLocked) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, 1, 0)`;
 
     const values = [
-        data.DistNGOName, data.DistNGORegDate, data.DistNGORegNo, data.DistNGOPanNo, data.DistNGODarpanId, data.DistNGOMailId, data.DistNGOPhoneNo, data.DistNGORegAddress, data.DistNGOWorkingAddress, data.DistNGOStateName, data.DistNGODistName, data.DistNGOSDPName, data.DistNGOSDPMailId, data.DistNGOSDPPhoneNo, data.DistNGOSDPAadhaarNo, data.DistNGOBankName, data.DistNGOAcctNo, data.DistNGOIFSCode, data.DistNGOBankAdd, data.DistNGOUserName, data.DistNGOPassword,
+        data.DistNGOName, data.DistNGORegDate, data.DistNGORegNo, data.DistNGOPanNo, data.DistNGODarpanId, data.DistNGOMailId, data.DistNGOPhoneNo, data.DistNGORegAddress, data.DistNGOWorkingAddress, data.DistNGOStateName, data.DistNGODistName, data.DistNGOBlockName, data.DistNGOSDPName, data.DistNGOSDPMailId, data.DistNGOSDPPhoneNo, data.DistNGOSDPAadhaarNo, data.DistNGOBankName, data.DistNGOAcctNo, data.DistNGOIFSCode, data.DistNGOBankAdd, data.DistNGOUserName, data.DistNGOPassword, data.DistNGORecCertificate, data.DistNGOPanPic, data.DistNGODarpanPic,
         null
     ];
 
     db.query(insertQuery, values, (err, result) => {
         if (err) { console.error("❌ createDistrictAdmin Primary DB Error:", err.message); return res.status(500).json({ error: err.message }); }
 
-        // ✅ FIXED: Reads 'loginEmail' explicitly passed from the frontend for signup
         if (data.DistNGOUserName && data.DistNGOPassword && data.loginEmail) {
             const signupQuery = `INSERT INTO userssignup (role, username, email, password) VALUES (?, ?, ?, ?)`;
             const signupValues = ['District Administrator', data.DistNGOUserName, data.loginEmail, data.DistNGOPassword];
@@ -221,19 +221,19 @@ exports.updateDistrictAdmin = (req, res) => {
     const { id } = req.params;
     const data = req.body;
 
+    // ✅ FIXED: Mapped the precise database column names for Block and PDFs
     const updateQuery = `UPDATE dist_ngo_reg SET 
-        DistNGOName=?, DistNGORegDate=?, DistNGORegNo=?, DistNGOPanNo=?, DistNGODarpanId=?, DistNGOMailId=?, DistNGOPhoneNo=?, DistNGORegAddress=?, DistNGOWorkingAddress=?, DistNGOStateName=?, DistNGODistName=?, DistNGOSDPName=?, DistNGOSDPMailId=?, DistNGOSDPPhoneNo=?, DistNGOSDPAadhaarNo=?, DistNGOBankName=?, DistNGOAcctNo=?, DistNGOIFSCode=?, DistNGOBankAdd=?, DistNGOUserName=?, DistNGOPassword=?, ModifyDate=NOW(), ModifyBy=?, AprovedBy=?, AprovedDate=?, GenRegNumber=?, IsActive=?, IsLocked=?
+        DistNGOName=?, DistNGORegDate=?, DistNGORegNo=?, DistNGOPanNo=?, DistNGODarpanId=?, DistNGOMailId=?, DistNGOPhoneNo=?, DistNGORegAddress=?, DistNGOWorkingAddress=?, DistNGOStateName=?, DistNGODistName=?, DistNGOBlockName=?, DistNGOSDPName=?, DistNGOSDPMailId=?, DistNGOSDPPhoneNo=?, DistNGOSDPAadhaarNo=?, DistNGOBankName=?, DistNGOAcctNo=?, DistNGOIFSCode=?, DistNGOBankAdd=?, DistNGOUserName=?, DistNGOPassword=?, DistNGORecCertificate=?, DistNGOPanPic=?, DistNGODarpanPic=?, ModifyDate=NOW(), ModifyBy=?, AprovedBy=?, AprovedDate=?, GenRegNumber=?, IsActive=?, IsLocked=?
         WHERE DistNGORegId=?`;
 
     const values = [
-        data.DistNGOName, data.DistNGORegDate, data.DistNGORegNo, data.DistNGOPanNo, data.DistNGODarpanId, data.DistNGOMailId, data.DistNGOPhoneNo, data.DistNGORegAddress, data.DistNGOWorkingAddress, data.DistNGOStateName, data.DistNGODistName, data.DistNGOSDPName, data.DistNGOSDPMailId, data.DistNGOSDPPhoneNo, data.DistNGOSDPAadhaarNo, data.DistNGOBankName, data.DistNGOAcctNo, data.DistNGOIFSCode, data.DistNGOBankAdd, data.DistNGOUserName, data.DistNGOPassword,
+        data.DistNGOName, data.DistNGORegDate, data.DistNGORegNo, data.DistNGOPanNo, data.DistNGODarpanId, data.DistNGOMailId, data.DistNGOPhoneNo, data.DistNGORegAddress, data.DistNGOWorkingAddress, data.DistNGOStateName, data.DistNGODistName, data.DistNGOBlockName, data.DistNGOSDPName, data.DistNGOSDPMailId, data.DistNGOSDPPhoneNo, data.DistNGOSDPAadhaarNo, data.DistNGOBankName, data.DistNGOAcctNo, data.DistNGOIFSCode, data.DistNGOBankAdd, data.DistNGOUserName, data.DistNGOPassword, data.DistNGORecCertificate, data.DistNGOPanPic, data.DistNGODarpanPic,
         null, null, data.AprovedDate || null, data.GenRegNumber || null, data.IsActive || 1, data.IsLocked || 0, id
     ];
 
     db.query(updateQuery, values, (err) => {
         if (err) { console.error("❌ updateDistrictAdmin Primary DB Error:", err.message); return res.status(500).json({ error: err.message }); }
 
-        // ✅ Update Login Account using loginEmail
         if (data.DistNGOUserName && data.DistNGOPassword && data.loginEmail) {
             const signupQuery = `UPDATE userssignup SET username=?, password=? WHERE email=? AND role='District Administrator'`;
             const signupValues = [data.DistNGOUserName, data.DistNGOPassword, data.loginEmail];

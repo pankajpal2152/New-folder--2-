@@ -193,9 +193,9 @@ const SupervisorForm = ({ onSuccess }) => {
                         <Controller name="joiningAmount" control={control} render={({ field }) => (
                             <FormInput label={<>Joining Amount <span style={{ color: '#ff3e1d' }}>*</span></>} id="joiningAmount" error={errors.joiningAmount} placeholder="Enter Amount" type="number" readOnly disabled={true} {...field} />
                         )} />
-                        <Controller name="walletBalance" control={control} render={({ field }) => (
+                        {/* <Controller name="walletBalance" control={control} render={({ field }) => (
                             <FormInput label={<>Wallet Balance <span style={{ color: '#ff3e1d' }}>*</span></>} id="walletBalance" error={errors.walletBalance} disabled={true} readOnly {...field} />
-                        )} />
+                        )} /> */}
                     </div>
 
                     <h6 style={styles.sectionHeader}>Personal Details</h6>

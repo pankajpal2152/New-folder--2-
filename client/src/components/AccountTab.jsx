@@ -28,6 +28,58 @@ const getSafeUser = () => {
 };
 
 // ==========================================
+// Password Input Helper Component (For Modals)
+// ==========================================
+const PasswordInput = ({ label, id, error, placeholder, disabled, ...props }) => {
+    const [showPassword, setShowPassword] = useState(false);
+    const togglePasswordVisibility = () => setShowPassword(!showPassword);
+
+    return (
+        <div style={styles.inputGroup}>
+            <label htmlFor={id} style={styles.label}>{label}</label>
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                <input
+                    id={id}
+                    type={showPassword ? "text" : "password"}
+                    style={disabled ? styles.inputDisabled : { ...styles.input(!!error), paddingRight: '40px' }}
+                    placeholder={placeholder}
+                    disabled={disabled}
+                    {...props}
+                />
+                <button
+                    type="button"
+                    onClick={togglePasswordVisibility}
+                    style={{
+                        position: 'absolute', right: '10px', background: 'transparent', border: 'none', cursor: 'pointer',
+                        color: '#697a8d', fontSize: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0
+                    }}
+                    title={showPassword ? "Hide password" : "Show password"}
+                >
+                    {showPassword ? '👁️‍🗨️' : '👁️'}
+                </button>
+            </div>
+            {error && <p style={styles.errorText}>{error.message}</p>}
+        </div>
+    );
+};
+
+// ==========================================
+// Helper to View Base64 PDF in a new tab
+// ==========================================
+const handleViewPdf = (base64String) => {
+    if (!base64String) return;
+    const pdfData = base64String.startsWith('data:application/pdf;base64,')
+        ? base64String
+        : `data:application/pdf;base64,${base64String}`;
+    const pdfWindow = window.open("");
+    if (pdfWindow) {
+        pdfWindow.document.write(`<iframe width='100%' height='100%' style='border:none; margin:0; padding:0;' src='${pdfData}'></iframe>`);
+    } else {
+        toast.error("Pop-up blocked! Please allow pop-ups for this site to view documents.");
+    }
+};
+
+// ==========================================
 // 1. ASTHA DIDI MODAL (VIEW & EDIT)
 // ==========================================
 const AsthaDidiModal = ({ member, mode, onClose, onSuccess }) => {
@@ -151,7 +203,6 @@ const AsthaDidiModal = ({ member, mode, onClose, onSuccess }) => {
                     <div style={styles.profileSection}>
                         <img src={profileImage} alt="Profile Avatar" style={styles.avatar} />
                         <div>
-                            <p style={styles.hintText}><strong>ID:</strong> #{member.RegInfoId}</p>
                             <p style={styles.hintText}><strong>Status:</strong> {member.Status === 2 ? 'Approved' : 'Pending'}</p>
                             {member.Status === 2 && member.AprovedBy && (
                                 <p style={styles.hintText}><strong>Approved By:</strong> {member.AprovedBy}</p>
@@ -253,7 +304,6 @@ const MembersTable = ({ refreshTrigger }) => {
             if (!res.ok) throw new Error("Failed to fetch table data");
             let data = await res.json();
 
-            // SOFT DELETE FILTER: Strictly filter out '0' both string and numeric
             data = data.filter(member => String(member.IsActive) !== '0' && String(member.Status) !== '0');
 
             const user = getSafeUser();
@@ -391,8 +441,8 @@ const MembersTable = ({ refreshTrigger }) => {
                             <table style={styles.table}>
                                 <thead>
                                     <tr>
-                                        {renderTh('ID', 'RegInfoId', true, false)}
-                                        {renderTh('Profile', 'ProfileImage')}
+                                        {/* REMOVED ID COLUMN FROM FRONTEND */}
+                                        {renderTh('Profile', 'ProfileImage', true)}
                                         {renderTh('Full Name', 'PerName')}
                                         {renderTh('S/D/W Of', 'GuardianName')}
                                         {renderTh('DOB', 'DOB')}
@@ -425,8 +475,7 @@ const MembersTable = ({ refreshTrigger }) => {
                                 <tbody>
                                     {currentMembers.map((row) => (
                                         <tr key={row.RegInfoId}>
-                                            <td style={styles.stickyLeftTd}>#{row.RegInfoId}</td>
-                                            <td style={styles.td}>
+                                            <td style={styles.stickyLeftTd}>
                                                 <img src={extractBase64(row.ProfileImage) || DUMMY_AVATAR} alt="User" style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} />
                                             </td>
                                             <td style={styles.td}>{row.PerName}</td>
@@ -467,7 +516,7 @@ const MembersTable = ({ refreshTrigger }) => {
                                             </td>
                                         </tr>
                                     ))}
-                                    {currentMembers.length === 0 && <tr><td colSpan="29" style={{ ...styles.td, textAlign: 'center' }}>No members found in database.</td></tr>}
+                                    {currentMembers.length === 0 && <tr><td colSpan="28" style={{ ...styles.td, textAlign: 'center' }}>No members found in database.</td></tr>}
                                 </tbody>
                             </table>
                         </div>
@@ -615,7 +664,6 @@ const SupervisorModal = ({ member, mode, onClose, onSuccess }) => {
 
                     <div style={{ marginBottom: '24px' }}>
                         <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', alignItems: 'center', fontSize: '0.9rem', color: '#566a7f', fontWeight: '500' }}>
-                            <div><strong>ID:</strong> #{member.RegInfoId}</div>
                             <div><strong>Status:</strong> {member.Status === 2 ? 'Approved' : 'Pending'}</div>
                             <div><strong>Joining Amount:</strong> ₹{member.JoiningAmt}</div>
                             <div><strong>Wallet Balance:</strong> ₹{member.WalletBalance}</div>
@@ -820,8 +868,8 @@ const SupervisorTable = ({ refreshTrigger }) => {
                             <table style={styles.table}>
                                 <thead>
                                     <tr>
-                                        {renderTh('ID', 'RegInfoId', true, false)}
-                                        {renderTh('Profile', 'ProfileImage')}
+                                        {/* REMOVED ID COLUMN FROM FRONTEND */}
+                                        {renderTh('Profile', 'ProfileImage', true)}
                                         {renderTh('Full Name', 'PerName')}
                                         {renderTh('S/D/W Of', 'SdwOf')}
                                         {renderTh('DOB', 'DOB')}
@@ -845,8 +893,7 @@ const SupervisorTable = ({ refreshTrigger }) => {
                                 <tbody>
                                     {currentMembers.map((row) => (
                                         <tr key={row.RegInfoId}>
-                                            <td style={styles.stickyLeftTd}>#{row.RegInfoId}</td>
-                                            <td style={styles.td}>
+                                            <td style={styles.stickyLeftTd}>
                                                 <img src={extractBase64(row.ProfileImage) || DUMMY_AVATAR} alt="User" style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} />
                                             </td>
                                             <td style={styles.td}>{row.PerName}</td>
@@ -1299,8 +1346,8 @@ const AsthaMaaTable = ({ refreshTrigger }) => {
                             <table style={styles.table}>
                                 <thead>
                                     <tr>
-                                        {renderTh('ID', 'RegInfoId', true, false)}
-                                        {renderTh('Profile', 'ProfileImage')}
+                                        {/* REMOVED ID COLUMN FROM FRONTEND */}
+                                        {renderTh('Profile', 'ProfileImage', true)}
                                         {renderTh('Full Name', 'PerName')}
                                         {renderTh('S/D/W Of', 'GuardianName')}
                                         {renderTh('DOB', 'DOB')}
@@ -1333,8 +1380,7 @@ const AsthaMaaTable = ({ refreshTrigger }) => {
                                 <tbody>
                                     {currentMembers.map((row) => (
                                         <tr key={row.RegInfoId}>
-                                            <td style={styles.stickyLeftTd}>#{row.RegInfoId}</td>
-                                            <td style={styles.td}>
+                                            <td style={styles.stickyLeftTd}>
                                                 <img src={extractBase64(row.ProfileImage) || DUMMY_AVATAR} alt="User" style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} />
                                             </td>
                                             <td style={styles.td}>{row.PerName}</td>
@@ -1375,7 +1421,7 @@ const AsthaMaaTable = ({ refreshTrigger }) => {
                                             </td>
                                         </tr>
                                     ))}
-                                    {currentMembers.length === 0 && <tr><td colSpan="29" style={{ ...styles.td, textAlign: 'center' }}>No members found in database.</td></tr>}
+                                    {currentMembers.length === 0 && <tr><td colSpan="28" style={{ ...styles.td, textAlign: 'center' }}>No members found in database.</td></tr>}
                                 </tbody>
                             </table>
                         </div>
@@ -1439,9 +1485,11 @@ const DistrictAdminModal = ({ member, mode, onClose, onSuccess }) => {
     const isView = mode === 'view';
     const [dbStates, setDbStates] = useState([]);
     const [dbDistricts, setDbDistricts] = useState([]);
-    const [regCertPdf, setRegCertPdf] = useState(member.RegistrationCertPDF || null);
-    const [panPdf, setPanPdf] = useState(member.NgoPanPDF || null);
-    const [darpanPdf, setDarpanPdf] = useState(member.DarpanCertPDF || null);
+
+    // ✅ Re-mapped specifically to DB columns from user images
+    const [regCertPdf, setRegCertPdf] = useState(member.DistNGORecCertificate || null);
+    const [panPdf, setPanPdf] = useState(member.DistNGOPanPic || null);
+    const [darpanPdf, setDarpanPdf] = useState(member.DistNGODarpanPic || null);
 
     const { control, handleSubmit, watch, setValue, formState: { errors } } = useForm({
         resolver: zodResolver(ngoSchema),
@@ -1452,11 +1500,12 @@ const DistrictAdminModal = ({ member, mode, onClose, onSuccess }) => {
             ngoRegistrationNo: member.DistNGORegNo || '',
             ngoPanNo: member.DistNGOPanNo || '',
             ngoDarpanId: member.DistNGODarpanId || '',
-            ngoEmail: member.DistNGOMailId || '',
+            generalNgoEmail: member.DistNGOMailId || '',
             ngoMobile: member.DistNGOPhoneNo || '',
             ngoRegAddress: member.DistNGORegAddress || '',
             ngoWorkingAddress: member.DistNGOWorkingAddress || '',
-            state: null, district: null, blockName: member.BlockName || '',
+            state: null, district: null,
+            blockName: member.DistNGOBlockName || '', // ✅ Mapped exactly to DB
             sdpName: member.DistNGOSDPName || '',
             secretaryEmail: member.DistNGOSDPMailId || '',
             secretaryMobile: member.DistNGOSDPPhoneNo || '',
@@ -1466,7 +1515,8 @@ const DistrictAdminModal = ({ member, mode, onClose, onSuccess }) => {
             ifsCode: member.DistNGOIFSCode || '',
             bankAddress: member.DistNGOBankAdd || '',
             userName: member.DistNGOUserName || '',
-            password: member.DistNGOPassword || ''
+            password: member.DistNGOPassword || '',
+            ngoEmail: member.DistNGOMailId || ''
         }
     });
 
@@ -1514,14 +1564,16 @@ const DistrictAdminModal = ({ member, mode, onClose, onSuccess }) => {
         const dbPayload = {
             ...member,
             DistNGOName: data.ngoName, DistNGORegDate: data.ngoRegistrationDate, DistNGORegNo: data.ngoRegistrationNo,
-            DistNGOPanNo: data.ngoPanNo, DistNGODarpanId: data.ngoDarpanId, DistNGOMailId: data.ngoEmail,
+            DistNGOPanNo: data.ngoPanNo, DistNGODarpanId: data.ngoDarpanId, DistNGOMailId: data.generalNgoEmail,
             DistNGOPhoneNo: data.ngoMobile, DistNGORegAddress: data.ngoRegAddress, DistNGOWorkingAddress: data.ngoWorkingAddress,
             DistNGOStateName: data.state ? data.state.label : "", DistNGODistName: data.district ? data.district.label : "",
-            BlockName: data.blockName, DistNGOSDPName: data.sdpName, DistNGOSDPMailId: data.secretaryEmail,
+            DistNGOBlockName: data.blockName, // ✅ Mapped precisely
+            DistNGOSDPName: data.sdpName, DistNGOSDPMailId: data.secretaryEmail,
             DistNGOSDPPhoneNo: data.secretaryMobile, DistNGOSDPAadhaarNo: data.secretaryAadhar, DistNGOBankName: data.bankName,
             DistNGOAcctNo: data.accountNo, DistNGOIFSCode: data.ifsCode, DistNGOBankAdd: data.bankAddress,
             DistNGOUserName: data.userName, DistNGOPassword: data.password,
-            RegistrationCertPDF: regCertPdf, NgoPanPDF: panPdf, DarpanCertPDF: darpanPdf,
+            DistNGORecCertificate: regCertPdf, DistNGOPanPic: panPdf, DistNGODarpanPic: darpanPdf, // ✅ Mapped PDF state precisely
+            loginEmail: data.ngoEmail,
             ModifyBy: loggedInUser ? loggedInUser.email : "System"
         };
 
@@ -1553,14 +1605,12 @@ const DistrictAdminModal = ({ member, mode, onClose, onSuccess }) => {
                             <Controller name="ngoRegistrationNo" control={control} render={({ field }) => (<FormInput label="Registration No *" id="e_ngoRegNo" error={errors.ngoRegistrationNo} disabled={isView} {...field} />)} />
                             <Controller name="ngoPanNo" control={control} render={({ field }) => (<FormInput label="NGO PAN No *" id="e_ngoPan" error={errors.ngoPanNo} disabled={isView} {...field} />)} />
                             <Controller name="ngoDarpanId" control={control} render={({ field }) => (<FormInput label="NGO Darpan ID *" id="e_ngoDarpan" error={errors.ngoDarpanId} disabled={isView} {...field} />)} />
-                            <Controller name="ngoEmail" control={control} render={({ field }) => (<FormInput label="NGO Email *" id="e_ngoEmail" type="email" error={errors.ngoEmail} disabled={isView} {...field} />)} />
+                            <Controller name="generalNgoEmail" control={control} render={({ field }) => (<FormInput label="NGO General Email *" id="e_generalNgoEmail" type="email" error={errors.generalNgoEmail} disabled={isView} {...field} />)} />
                             <Controller name="ngoMobile" control={control} render={({ field }) => (<FormInput label="NGO Mobile *" id="e_ngoMobile" type="tel" error={errors.ngoMobile} disabled={isView} {...field} />)} />
                         </div>
 
                         <h6 style={styles.sectionHeader}>Address Details</h6>
                         <div style={styles.formGrid}>
-                            <Controller name="ngoRegAddress" control={control} render={({ field }) => (<FormInput label="NGO Register Address *" id="e_ngoRegAdd" error={errors.ngoRegAddress} disabled={isView} {...field} />)} />
-                            <Controller name="ngoWorkingAddress" control={control} render={({ field }) => (<FormInput label="NGO Working Address *" id="e_ngoWorkAdd" error={errors.ngoWorkingAddress} disabled={isView} {...field} />)} />
                             <div style={styles.inputGroup}>
                                 <label style={styles.label}>State *</label>
                                 <Controller name="state" control={control} render={({ field }) => (<Select {...field} options={dbStates} styles={styles.selectStyles(!!errors.state)} isDisabled={isView} menuPortalTarget={document.body} />)} />
@@ -1570,6 +1620,22 @@ const DistrictAdminModal = ({ member, mode, onClose, onSuccess }) => {
                                 <Controller name="district" control={control} render={({ field }) => (<Select {...field} options={dbDistricts} styles={styles.selectStyles(!!errors.district)} isDisabled={isView || !selectedState} menuPortalTarget={document.body} />)} />
                             </div>
                             <Controller name="blockName" control={control} render={({ field }) => (<FormInput label="Block Name *" id="e_block" error={errors.blockName} disabled={isView} {...field} />)} />
+
+                            {/* TEXTAREAS MATCHING THE ADD FORM LAYOUT */}
+                            <Controller name="ngoRegAddress" control={control} render={({ field }) => (
+                                <div style={{ ...styles.inputGroup, gridColumn: '1 / -1' }}>
+                                    <label htmlFor="e_ngoRegAdd" style={styles.label}>NGO Register Address <span style={{ color: '#ff3e1d' }}>*</span></label>
+                                    <textarea id="e_ngoRegAdd" disabled={isView} style={{ ...styles.input(!!errors.ngoRegAddress), resize: 'vertical', minHeight: '80px', backgroundColor: isView ? '#eceeef' : '#fff' }} {...field} />
+                                    {errors.ngoRegAddress && <p style={styles.errorText}>{errors.ngoRegAddress.message}</p>}
+                                </div>
+                            )} />
+                            <Controller name="ngoWorkingAddress" control={control} render={({ field }) => (
+                                <div style={{ ...styles.inputGroup, gridColumn: '1 / -1' }}>
+                                    <label htmlFor="e_ngoWorkAdd" style={styles.label}>NGO Working office full address <span style={{ color: '#ff3e1d' }}>*</span></label>
+                                    <textarea id="e_ngoWorkAdd" disabled={isView} style={{ ...styles.input(!!errors.ngoWorkingAddress), resize: 'vertical', minHeight: '80px', backgroundColor: isView ? '#eceeef' : '#fff' }} {...field} />
+                                    {errors.ngoWorkingAddress && <p style={styles.errorText}>{errors.ngoWorkingAddress.message}</p>}
+                                </div>
+                            )} />
                         </div>
 
                         <h6 style={styles.sectionHeader}>Secretary Details</h6>
@@ -1580,29 +1646,58 @@ const DistrictAdminModal = ({ member, mode, onClose, onSuccess }) => {
                             <Controller name="secretaryAadhar" control={control} render={({ field }) => (<FormInput label="Secretary Aadhaar *" id="e_secAadhar" error={errors.secretaryAadhar} disabled={isView} {...field} />)} />
                         </div>
 
+                        <h6 style={styles.sectionHeader}>Login & Account Setup</h6>
+                        <div style={styles.formGrid}>
+                            <Controller name="userName" control={control} render={({ field }) => (<FormInput label="User Name *" id="e_user" error={errors.userName} disabled={isView} {...field} />)} />
+                            <Controller name="ngoEmail" control={control} render={({ field }) => (<FormInput label="Email ID (For Login) *" id="e_loginEmail" type="email" error={errors.ngoEmail} disabled={isView} {...field} />)} />
+                            <Controller name="password" control={control} render={({ field }) => (<PasswordInput label={<>Set Password <span style={{ color: '#ff3e1d' }}>*</span></>} id="e_pass" error={errors.password} disabled={isView} {...field} />)} />
+                        </div>
+
                         <h6 style={styles.sectionHeader}>Banking & Account Setup</h6>
                         <div style={styles.formGrid}>
                             <Controller name="bankName" control={control} render={({ field }) => (<FormInput label="Bank Name *" id="e_bank" error={errors.bankName} disabled={isView} {...field} />)} />
                             <Controller name="accountNo" control={control} render={({ field }) => (<FormInput label="Account Number *" id="e_acct" error={errors.accountNo} disabled={isView} {...field} />)} />
                             <Controller name="ifsCode" control={control} render={({ field }) => (<FormInput label="IFS Code *" id="e_ifs" error={errors.ifsCode} disabled={isView} {...field} />)} />
                             <Controller name="bankAddress" control={control} render={({ field }) => (<FormInput label="Bank Address *" id="e_bankAdd" error={errors.bankAddress} disabled={isView} {...field} />)} />
-                            <Controller name="userName" control={control} render={({ field }) => (<FormInput label="User Name *" id="e_user" error={errors.userName} disabled={isView} {...field} />)} />
-                            <Controller name="password" control={control} render={({ field }) => (<FormInput label="Password *" id="e_pass" type={isView ? "password" : "text"} error={errors.password} disabled={isView} {...field} />)} />
                         </div>
 
                         <h6 style={styles.sectionHeader}>Documents</h6>
                         <div style={styles.formGrid}>
                             <div style={styles.inputGroup}>
                                 <label style={styles.label}>Reg Cert PDF</label>
-                                {isView ? <p style={styles.hintText}>{regCertPdf ? "✅ Document Uploaded" : "❌ Missing"}</p> : <input type="file" accept="application/pdf" onChange={(e) => handlePdfUpload(e, setRegCertPdf)} style={styles.input(false)} />}
+                                {!isView && <input type="file" accept="application/pdf" onChange={(e) => handlePdfUpload(e, setRegCertPdf)} style={styles.input(false)} />}
+                                {regCertPdf ? (
+                                    <div style={{ display: 'flex', alignItems: 'center', marginTop: '8px' }}>
+                                        <button type="button" onClick={() => handleViewPdf(regCertPdf)} style={{ ...styles.btnOutline, padding: '4px 8px', fontSize: '0.85rem' }}>👁️ View PDF</button>
+                                        {!isView && <span style={{ ...styles.hintText, color: '#71dd37', marginLeft: '10px', marginBottom: 0 }}>✅ Ready</span>}
+                                    </div>
+                                ) : (
+                                    <p style={styles.hintText}>❌ Missing</p>
+                                )}
                             </div>
                             <div style={styles.inputGroup}>
                                 <label style={styles.label}>NGO PAN PDF</label>
-                                {isView ? <p style={styles.hintText}>{panPdf ? "✅ Document Uploaded" : "❌ Missing"}</p> : <input type="file" accept="application/pdf" onChange={(e) => handlePdfUpload(e, setPanPdf)} style={styles.input(false)} />}
+                                {!isView && <input type="file" accept="application/pdf" onChange={(e) => handlePdfUpload(e, setPanPdf)} style={styles.input(false)} />}
+                                {panPdf ? (
+                                    <div style={{ display: 'flex', alignItems: 'center', marginTop: '8px' }}>
+                                        <button type="button" onClick={() => handleViewPdf(panPdf)} style={{ ...styles.btnOutline, padding: '4px 8px', fontSize: '0.85rem' }}>👁️ View PDF</button>
+                                        {!isView && <span style={{ ...styles.hintText, color: '#71dd37', marginLeft: '10px', marginBottom: 0 }}>✅ Ready</span>}
+                                    </div>
+                                ) : (
+                                    <p style={styles.hintText}>❌ Missing</p>
+                                )}
                             </div>
                             <div style={styles.inputGroup}>
                                 <label style={styles.label}>Darpan PDF</label>
-                                {isView ? <p style={styles.hintText}>{darpanPdf ? "✅ Document Uploaded" : "❌ Missing"}</p> : <input type="file" accept="application/pdf" onChange={(e) => handlePdfUpload(e, setDarpanPdf)} style={styles.input(false)} />}
+                                {!isView && <input type="file" accept="application/pdf" onChange={(e) => handlePdfUpload(e, setDarpanPdf)} style={styles.input(false)} />}
+                                {darpanPdf ? (
+                                    <div style={{ display: 'flex', alignItems: 'center', marginTop: '8px' }}>
+                                        <button type="button" onClick={() => handleViewPdf(darpanPdf)} style={{ ...styles.btnOutline, padding: '4px 8px', fontSize: '0.85rem' }}>👁️ View PDF</button>
+                                        {!isView && <span style={{ ...styles.hintText, color: '#71dd37', marginLeft: '10px', marginBottom: 0 }}>✅ Ready</span>}
+                                    </div>
+                                ) : (
+                                    <p style={styles.hintText}>❌ Missing</p>
+                                )}
                             </div>
                         </div>
 
@@ -1670,8 +1765,8 @@ const DistrictAdminTable = ({ refreshTrigger }) => {
                         <table style={styles.table}>
                             <thead>
                                 <tr>
-                                    {renderTh('ID', true, false)}
-                                    {renderTh('NGO Name')}
+                                    {/* REMOVED ID COLUMN PER INSTRUCTIONS */}
+                                    {renderTh('NGO Name', true, false)}
                                     {renderTh('Reg Date')}
                                     {renderTh('Reg No')}
                                     {renderTh('PAN No')}
@@ -1694,14 +1789,17 @@ const DistrictAdminTable = ({ refreshTrigger }) => {
                                     {renderTh('User Name')}
                                     {renderTh('Status')}
                                     {renderTh('Created By')}
+                                    {/* ✅ ADDED: Display PDF Status Columns */}
+                                    {renderTh('Reg Cert PDF')}
+                                    {renderTh('NGO PAN PDF')}
+                                    {renderTh('Darpan PDF')}
                                     {renderTh('Actions', false, true)}
                                 </tr>
                             </thead>
                             <tbody>
                                 {members.map((row) => (
                                     <tr key={row.DistNGORegId}>
-                                        <td style={styles.stickyLeftTd}>#{row.DistNGORegId}</td>
-                                        <td style={styles.td}>{row.DistNGOName}</td>
+                                        <td style={styles.stickyLeftTd}>{row.DistNGOName}</td>
                                         <td style={styles.td}>{row.DistNGORegDate ? row.DistNGORegDate.substring(0, 10) : ''}</td>
                                         <td style={styles.td}>{row.DistNGORegNo}</td>
                                         <td style={styles.td}>{row.DistNGOPanNo}</td>
@@ -1712,7 +1810,7 @@ const DistrictAdminTable = ({ refreshTrigger }) => {
                                         <td style={styles.td}>{row.DistNGOWorkingAddress}</td>
                                         <td style={styles.td}>{row.DistNGOStateName}</td>
                                         <td style={styles.td}>{row.DistNGODistName}</td>
-                                        <td style={styles.td}>{row.BlockName}</td>
+                                        <td style={styles.td}>{row.DistNGOBlockName}</td>
                                         <td style={styles.td}>{row.DistNGOSDPName}</td>
                                         <td style={styles.td}>{row.DistNGOSDPMailId}</td>
                                         <td style={styles.td}>{row.DistNGOSDPPhoneNo}</td>
@@ -1724,6 +1822,12 @@ const DistrictAdminTable = ({ refreshTrigger }) => {
                                         <td style={styles.td}>{row.DistNGOUserName}</td>
                                         <td style={{ ...styles.td, color: Number(row.IsActive) === 2 ? 'green' : 'orange', fontWeight: 'bold' }}>{Number(row.IsActive) === 2 ? 'Approved' : 'Pending'}</td>
                                         <td style={styles.td}>{row.CreatedBy || '-'}</td>
+
+                                        {/* ✅ Clean Display for PDFs in the Table view */}
+                                        <td style={styles.td}>{row.DistNGORecCertificate ? '✅ Uploaded' : '❌ Missing'}</td>
+                                        <td style={styles.td}>{row.DistNGOPanPic ? '✅ Uploaded' : '❌ Missing'}</td>
+                                        <td style={styles.td}>{row.DistNGODarpanPic ? '✅ Uploaded' : '❌ Missing'}</td>
+
                                         <td style={styles.stickyRightTd}>
                                             <button onClick={() => openModal('view', row)} style={styles.actionBtn}>👁️</button>
                                             <button onClick={() => openModal('edit', row)} style={styles.actionBtn}>✏️</button>
@@ -1749,7 +1853,7 @@ const DistrictAdminTable = ({ refreshTrigger }) => {
 const AccountTab = () => {
     const [appUserRole, setAppUserRole] = useState(null);
     const [refreshTrigger, setRefreshTrigger] = useState(0);
-    const [adminActiveView, setAdminActiveView] = useState(''); // ✅ Starts empty so we can dynamically set it
+    const [adminActiveView, setAdminActiveView] = useState('');
 
     useEffect(() => {
         const user = getSafeUser();
@@ -1757,7 +1861,6 @@ const AccountTab = () => {
             const role = user.role || '';
             setAppUserRole(role);
 
-            // ✅ Set the DEFAULT view loaded when they log in based on their Role
             if (role === 'State Super Administrator' || role.toLowerCase() === 'developer') {
                 setAdminActiveView('District Administrator');
             } else if (role === 'District Administrator') {
@@ -1765,7 +1868,7 @@ const AccountTab = () => {
             } else if (role === 'Supervisor' || role === 'Astha Didi') {
                 setAdminActiveView('Astha Didi');
             } else {
-                setAdminActiveView(role); // Fallback for Astha Maa
+                setAdminActiveView(role);
             }
         } else {
             setAppUserRole('');
@@ -1778,7 +1881,6 @@ const AccountTab = () => {
         return <div style={{ padding: '24px', color: '#697a8d' }}>Loading Interface...</div>;
     }
 
-    // ✅ Set the DROPDOWN OPTIONS available based on their Role
     let adminOptions = [];
 
     if (appUserRole === 'State Super Administrator') {
@@ -1810,7 +1912,6 @@ const AccountTab = () => {
         <>
             <ToastContainer autoClose={3000} pauseOnHover={false} />
 
-            {/* ONLY show this dropdown if the user actually has multiple options to choose from */}
             {adminOptions.length > 0 && (
                 <div style={{ ...styles.card, padding: '24px', marginBottom: '24px', overflow: 'visible' }}>
                     <div style={{ width: '100%', maxWidth: '400px' }}>
@@ -1832,7 +1933,6 @@ const AccountTab = () => {
                 </div>
             )}
 
-            {/* Render the specific Form and Table based on the adminActiveView variable we just set */}
             {adminActiveView === 'District Administrator' || adminActiveView === 'State Super Administrator' ? (
                 <>
                     <DistrictAdminForm onSuccess={handleFormSuccess} />

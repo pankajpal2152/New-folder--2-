@@ -7,7 +7,7 @@ import { toast } from 'react-toastify';
 import { API_BASE_URL, indianPhoneRegex, styles, FormInput } from '../../config/constants';
 
 // ==========================================
-// 1. Validation Schema (All 22 Fields)
+// 1. Validation Schema
 // ==========================================
 export const ngoSchema = z.object({
     ngoName: z.string().min(2, "NGO Name is required"),
@@ -15,7 +15,7 @@ export const ngoSchema = z.object({
     ngoRegistrationNo: z.string().min(1, "Registration No is required"),
     ngoPanNo: z.string().min(1, "PAN No is required"),
     ngoDarpanId: z.string().min(1, "Darpan ID is required"),
-    ngoEmail: z.string().email("Valid email required"),
+    generalNgoEmail: z.string().email("Valid email required").optional(), // General NGO Email
     ngoMobile: z.string().regex(indianPhoneRegex, "Valid Indian phone required"),
     ngoRegAddress: z.string().min(5, "Address is required"),
     ngoWorkingAddress: z.string().min(5, "Address is required"),
@@ -30,9 +30,60 @@ export const ngoSchema = z.object({
     accountNo: z.string().min(1, "Account Number is required"),
     ifsCode: z.string().min(1, "IFS Code is required"),
     bankAddress: z.string().min(1, "Bank Address is required"),
+
+    // Login Credentials
     userName: z.string().min(1, "User Name is required"),
+    ngoEmail: z.string().email("Valid login email required"),
     password: z.string().min(1, "Password is required")
 });
+
+// ==========================================
+// Password Input Helper Component
+// ==========================================
+const PasswordInput = ({ label, id, error, placeholder, disabled, ...props }) => {
+    const [showPassword, setShowPassword] = useState(false);
+
+    const togglePasswordVisibility = () => {
+        setShowPassword(!showPassword);
+    };
+
+    return (
+        <div style={styles.inputGroup}>
+            <label htmlFor={id} style={styles.label}>{label}</label>
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                <input
+                    id={id}
+                    type={showPassword ? "text" : "password"}
+                    style={disabled ? styles.inputDisabled : { ...styles.input(!!error), paddingRight: '40px' }}
+                    placeholder={placeholder}
+                    disabled={disabled}
+                    {...props}
+                />
+                <button
+                    type="button"
+                    onClick={togglePasswordVisibility}
+                    style={{
+                        position: 'absolute',
+                        right: '10px',
+                        background: 'transparent',
+                        border: 'none',
+                        cursor: 'pointer',
+                        color: '#697a8d',
+                        fontSize: '1.2rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: 0
+                    }}
+                    title={showPassword ? "Hide password" : "Show password"}
+                >
+                    {showPassword ? '👁️‍🗨️' : '👁️'}
+                </button>
+            </div>
+            {error && <p style={styles.errorText}>{error.message}</p>}
+        </div>
+    );
+};
 
 const DistrictAdminForm = ({ onSuccess }) => {
     const [dbStates, setDbStates] = useState([]);
@@ -42,7 +93,7 @@ const DistrictAdminForm = ({ onSuccess }) => {
         resolver: zodResolver(ngoSchema),
         mode: 'onChange',
         defaultValues: {
-            ngoName: '', ngoRegistrationDate: '', ngoRegistrationNo: '', ngoPanNo: '', ngoDarpanId: '', ngoEmail: '', ngoMobile: '', ngoRegAddress: '', ngoWorkingAddress: '', state: null, district: null, blockName: '', sdpName: '', secretaryEmail: '', secretaryMobile: '', secretaryAadhar: '', bankName: '', accountNo: '', ifsCode: '', bankAddress: '', userName: '', password: ''
+            ngoName: '', ngoRegistrationDate: '', ngoRegistrationNo: '', ngoPanNo: '', ngoDarpanId: '', generalNgoEmail: '', ngoMobile: '', ngoRegAddress: '', ngoWorkingAddress: '', state: null, district: null, blockName: '', sdpName: '', secretaryEmail: '', secretaryMobile: '', secretaryAadhar: '', bankName: '', accountNo: '', ifsCode: '', bankAddress: '', userName: '', ngoEmail: '', password: ''
         }
     });
 
@@ -84,7 +135,7 @@ const DistrictAdminForm = ({ onSuccess }) => {
             DistNGORegNo: data.ngoRegistrationNo,
             DistNGOPanNo: data.ngoPanNo,
             DistNGODarpanId: data.ngoDarpanId,
-            DistNGOMailId: data.ngoEmail,
+            DistNGOMailId: data.generalNgoEmail,
             DistNGOPhoneNo: data.ngoMobile,
             DistNGORegAddress: data.ngoRegAddress,
             DistNGOWorkingAddress: data.ngoWorkingAddress,
@@ -99,7 +150,10 @@ const DistrictAdminForm = ({ onSuccess }) => {
             DistNGOAcctNo: data.accountNo,
             DistNGOIFSCode: data.ifsCode,
             DistNGOBankAdd: data.bankAddress,
+
+            // Login Credentials (passed to backend to be sorted into userssignup)
             DistNGOUserName: data.userName,
+            loginEmail: data.ngoEmail,
             DistNGOPassword: data.password,
             CreatedBy: currentUserEmail
         };
@@ -155,8 +209,8 @@ const DistrictAdminForm = ({ onSuccess }) => {
                         <Controller name="ngoDarpanId" control={control} render={({ field }) => (
                             <FormInput label={<>NGO Darpan ID <span style={{ color: '#ff3e1d' }}>*</span></>} id="ngoDarpanId" error={errors.ngoDarpanId} type="text" {...field} />
                         )} />
-                        <Controller name="ngoEmail" control={control} render={({ field }) => (
-                            <FormInput label={<>NGO Email id (For Login) <span style={{ color: '#ff3e1d' }}>*</span></>} id="ngoEmail" error={errors.ngoEmail} type="email" {...field} />
+                        <Controller name="generalNgoEmail" control={control} render={({ field }) => (
+                            <FormInput label="NGO General Email ID" id="generalNgoEmail" error={errors.generalNgoEmail} type="email" placeholder="Optional general contact email" {...field} />
                         )} />
                         <Controller name="ngoMobile" control={control} render={({ field }) => (
                             <FormInput label={<>NGO Mobile No <span style={{ color: '#ff3e1d' }}>*</span></>} id="ngoMobile" error={errors.ngoMobile} type="tel" {...field} />
@@ -209,8 +263,12 @@ const DistrictAdminForm = ({ onSuccess }) => {
                         <Controller name="userName" control={control} render={({ field }) => (
                             <FormInput label={<>User Name <span style={{ color: '#ff3e1d' }}>*</span></>} id="userName" error={errors.userName} type="text" {...field} />
                         )} />
+                        <Controller name="ngoEmail" control={control} render={({ field }) => (
+                            <FormInput label={<>Email ID (For Login) <span style={{ color: '#ff3e1d' }}>*</span></>} id="ngoEmail" error={errors.ngoEmail} type="email" {...field} />
+                        )} />
+                        {/* ✅ CHANGED TO PASSWORD INPUT */}
                         <Controller name="password" control={control} render={({ field }) => (
-                            <FormInput label={<>Set New Password <span style={{ color: '#ff3e1d' }}>* (Don't forget it!)</span></>} id="password" error={errors.password} type="password" {...field} />
+                            <PasswordInput label={<>Set New Password <span style={{ color: '#ff3e1d' }}>* (Don't forget it!)</span></>} id="password" error={errors.password} {...field} />
                         )} />
                     </div>
 

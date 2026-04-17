@@ -5,7 +5,7 @@ const db = require('../config/db');
 // ==========================================
 exports.getStates = (req, res) => {
     db.query('SELECT StateId, StateName FROM state WHERE IsActive = 1', (err, results) => {
-        if (err) return res.status(500).json({ error: err.message });
+        if (err) { console.error("❌ getStates DB Error:", err.message); return res.status(500).json({ error: err.message }); }
         res.json(results);
     });
 };
@@ -13,7 +13,7 @@ exports.getStates = (req, res) => {
 exports.getDistricts = (req, res) => {
     const stateId = req.params.stateId;
     db.query('SELECT DistId, DistName FROM dist WHERE StateId = ? AND IsActive = 1', [stateId], (err, results) => {
-        if (err) return res.status(500).json({ error: err.message });
+        if (err) { console.error("❌ getDistricts DB Error:", err.message); return res.status(500).json({ error: err.message }); }
         res.json(results);
     });
 };
@@ -23,7 +23,7 @@ exports.getDistricts = (req, res) => {
 // ==========================================
 exports.getAsthaDidi = (req, res) => {
     db.query('SELECT * FROM asthadidireginfo ORDER BY RegInfoId DESC', (err, results) => {
-        if (err) return res.status(500).json({ error: err.message });
+        if (err) { console.error("❌ getAsthaDidi DB Error:", err.message); return res.status(500).json({ error: err.message }); }
         res.json(results);
     });
 };
@@ -39,19 +39,20 @@ exports.createAsthaDidi = (req, res) => {
     ];
 
     db.query(insertQuery, values, (err, result) => {
-        if (err) return res.status(500).json({ error: err.message });
+        if (err) { console.error("❌ createAsthaDidi Primary DB Error:", err.message); return res.status(500).json({ error: err.message }); }
         const newId = result.insertId;
+
         if (data.ProfileImage && !data.ProfileImage.startsWith('ID:')) {
             const taggedImage = `ID:${newId}||${data.ProfileImage}`;
             db.query('UPDATE asthadidireginfo SET ProfileImage=? WHERE RegInfoId=?', [taggedImage, newId], () => { });
         }
 
-        // ✅ Auto-Create Login Account for Astha Didi
         if (data.userName && data.password && data.MailId) {
             const signupQuery = `INSERT INTO userssignup (role, username, email, password) VALUES (?, ?, ?, ?)`;
             const signupValues = ['Astha Didi', data.userName, data.MailId, data.password];
             db.query(signupQuery, signupValues, (signupErr) => {
-                if (signupErr) console.error("Error saving Astha Didi credentials:", signupErr);
+                if (signupErr) console.error("❌ Auto-Signup DB Error (Astha Didi):", signupErr.message);
+                else console.log(`✅ Auto-signup successful for Astha Didi: ${data.MailId}`);
             });
         }
 
@@ -76,14 +77,13 @@ exports.updateAsthaDidi = (req, res) => {
     ];
 
     db.query(updateQuery, values, (err) => {
-        if (err) return res.status(500).json({ error: err.message });
+        if (err) { console.error("❌ updateAsthaDidi Primary DB Error:", err.message); return res.status(500).json({ error: err.message }); }
 
-        // ✅ Update Login Account for Astha Didi
         if (data.userName && data.password && data.MailId) {
             const signupQuery = `UPDATE userssignup SET username=?, password=? WHERE email=? AND role='Astha Didi'`;
             const signupValues = [data.userName, data.password, data.MailId];
             db.query(signupQuery, signupValues, (signupErr) => {
-                if (signupErr) console.error("Error updating Astha Didi credentials:", signupErr);
+                if (signupErr) console.error("❌ Auto-Update Signup DB Error (Astha Didi):", signupErr.message);
             });
         }
 
@@ -93,7 +93,7 @@ exports.updateAsthaDidi = (req, res) => {
 
 exports.deleteAsthaDidi = (req, res) => {
     db.query('DELETE FROM asthadidireginfo WHERE RegInfoId = ?', [req.params.id], (err) => {
-        if (err) return res.status(500).json({ error: err.message });
+        if (err) { console.error("❌ deleteAsthaDidi DB Error:", err.message); return res.status(500).json({ error: err.message }); }
         res.json({ message: 'Record deleted successfully' });
     });
 };
@@ -103,7 +103,7 @@ exports.deleteAsthaDidi = (req, res) => {
 // ==========================================
 exports.getAsthaMaa = (req, res) => {
     db.query('SELECT * FROM asthama_reg_info ORDER BY RegInfoId DESC', (err, results) => {
-        if (err) return res.status(500).json({ error: err.message });
+        if (err) { console.error("❌ getAsthaMaa DB Error:", err.message); return res.status(500).json({ error: err.message }); }
         res.json(results);
     });
 };
@@ -119,19 +119,20 @@ exports.createAsthaMaa = (req, res) => {
     ];
 
     db.query(insertQuery, values, (err, result) => {
-        if (err) return res.status(500).json({ error: err.message });
+        if (err) { console.error("❌ createAsthaMaa Primary DB Error:", err.message); return res.status(500).json({ error: err.message }); }
         const newId = result.insertId;
+
         if (data.ProfileImage && !data.ProfileImage.startsWith('ID:')) {
             const taggedImage = `ID:${newId}||${data.ProfileImage}`;
             db.query('UPDATE asthama_reg_info SET ProfileImage=? WHERE RegInfoId=?', [taggedImage, newId], () => { });
         }
 
-        // ✅ Auto-Create Login Account for Astha Maa
         if (data.userName && data.password && data.MailId) {
             const signupQuery = `INSERT INTO userssignup (role, username, email, password) VALUES (?, ?, ?, ?)`;
             const signupValues = ['Astha Maa', data.userName, data.MailId, data.password];
             db.query(signupQuery, signupValues, (signupErr) => {
-                if (signupErr) console.error("Error saving Astha Maa credentials:", signupErr);
+                if (signupErr) console.error("❌ Auto-Signup DB Error (Astha Maa):", signupErr.message);
+                else console.log(`✅ Auto-signup successful for Astha Maa: ${data.MailId}`);
             });
         }
 
@@ -156,14 +157,13 @@ exports.updateAsthaMaa = (req, res) => {
     ];
 
     db.query(updateQuery, values, (err) => {
-        if (err) return res.status(500).json({ error: err.message });
+        if (err) { console.error("❌ updateAsthaMaa Primary DB Error:", err.message); return res.status(500).json({ error: err.message }); }
 
-        // ✅ Update Login Account for Astha Maa
         if (data.userName && data.password && data.MailId) {
             const signupQuery = `UPDATE userssignup SET username=?, password=? WHERE email=? AND role='Astha Maa'`;
             const signupValues = [data.userName, data.password, data.MailId];
             db.query(signupQuery, signupValues, (signupErr) => {
-                if (signupErr) console.error("Error updating Astha Maa credentials:", signupErr);
+                if (signupErr) console.error("❌ Auto-Update Signup DB Error (Astha Maa):", signupErr.message);
             });
         }
 
@@ -173,18 +173,17 @@ exports.updateAsthaMaa = (req, res) => {
 
 exports.deleteAsthaMaa = (req, res) => {
     db.query('DELETE FROM asthama_reg_info WHERE RegInfoId = ?', [req.params.id], (err) => {
-        if (err) return res.status(500).json({ error: err.message });
+        if (err) { console.error("❌ deleteAsthaMaa DB Error:", err.message); return res.status(500).json({ error: err.message }); }
         res.json({ message: 'Record deleted successfully' });
     });
 };
-
 
 // ==========================================
 // DISTRICT ADMIN REGISTRATION (dist_ngo_reg)
 // ==========================================
 exports.getDistrictAdmin = (req, res) => {
     db.query('SELECT * FROM dist_ngo_reg ORDER BY DistNGORegId DESC', (err, results) => {
-        if (err) return res.status(500).json({ error: err.message });
+        if (err) { console.error("❌ getDistrictAdmin DB Error:", err.message); return res.status(500).json({ error: err.message }); }
         res.json(results);
     });
 };
@@ -198,18 +197,19 @@ exports.createDistrictAdmin = (req, res) => {
 
     const values = [
         data.DistNGOName, data.DistNGORegDate, data.DistNGORegNo, data.DistNGOPanNo, data.DistNGODarpanId, data.DistNGOMailId, data.DistNGOPhoneNo, data.DistNGORegAddress, data.DistNGOWorkingAddress, data.DistNGOStateName, data.DistNGODistName, data.DistNGOSDPName, data.DistNGOSDPMailId, data.DistNGOSDPPhoneNo, data.DistNGOSDPAadhaarNo, data.DistNGOBankName, data.DistNGOAcctNo, data.DistNGOIFSCode, data.DistNGOBankAdd, data.DistNGOUserName, data.DistNGOPassword,
-        null // ✅ FIXED: Bypassed INT Crash error! 
+        null
     ];
 
     db.query(insertQuery, values, (err, result) => {
-        if (err) return res.status(500).json({ error: err.message });
+        if (err) { console.error("❌ createDistrictAdmin Primary DB Error:", err.message); return res.status(500).json({ error: err.message }); }
 
-        // ✅ Auto-Create Login Account for District Admin
-        if (data.DistNGOUserName && data.DistNGOPassword && data.DistNGOMailId) {
+        // ✅ FIXED: Reads 'loginEmail' explicitly passed from the frontend for signup
+        if (data.DistNGOUserName && data.DistNGOPassword && data.loginEmail) {
             const signupQuery = `INSERT INTO userssignup (role, username, email, password) VALUES (?, ?, ?, ?)`;
-            const signupValues = ['District Administrator', data.DistNGOUserName, data.DistNGOMailId, data.DistNGOPassword];
+            const signupValues = ['District Administrator', data.DistNGOUserName, data.loginEmail, data.DistNGOPassword];
             db.query(signupQuery, signupValues, (signupErr) => {
-                if (signupErr) console.error("Error saving District Admin credentials:", signupErr);
+                if (signupErr) console.error("❌ Auto-Signup DB Error (District Admin):", signupErr.message);
+                else console.log(`✅ Auto-signup successful for District Admin: ${data.loginEmail}`);
             });
         }
 
@@ -227,20 +227,18 @@ exports.updateDistrictAdmin = (req, res) => {
 
     const values = [
         data.DistNGOName, data.DistNGORegDate, data.DistNGORegNo, data.DistNGOPanNo, data.DistNGODarpanId, data.DistNGOMailId, data.DistNGOPhoneNo, data.DistNGORegAddress, data.DistNGOWorkingAddress, data.DistNGOStateName, data.DistNGODistName, data.DistNGOSDPName, data.DistNGOSDPMailId, data.DistNGOSDPPhoneNo, data.DistNGOSDPAadhaarNo, data.DistNGOBankName, data.DistNGOAcctNo, data.DistNGOIFSCode, data.DistNGOBankAdd, data.DistNGOUserName, data.DistNGOPassword,
-        null, // ModifyBy 
-        null, // AprovedBy 
-        data.AprovedDate || null, data.GenRegNumber || null, data.IsActive || 1, data.IsLocked || 0, id
+        null, null, data.AprovedDate || null, data.GenRegNumber || null, data.IsActive || 1, data.IsLocked || 0, id
     ];
 
     db.query(updateQuery, values, (err) => {
-        if (err) return res.status(500).json({ error: err.message });
+        if (err) { console.error("❌ updateDistrictAdmin Primary DB Error:", err.message); return res.status(500).json({ error: err.message }); }
 
-        // ✅ Update Login Account for District Admin
-        if (data.DistNGOUserName && data.DistNGOPassword && data.DistNGOMailId) {
+        // ✅ Update Login Account using loginEmail
+        if (data.DistNGOUserName && data.DistNGOPassword && data.loginEmail) {
             const signupQuery = `UPDATE userssignup SET username=?, password=? WHERE email=? AND role='District Administrator'`;
-            const signupValues = [data.DistNGOUserName, data.DistNGOPassword, data.DistNGOMailId];
+            const signupValues = [data.DistNGOUserName, data.DistNGOPassword, data.loginEmail];
             db.query(signupQuery, signupValues, (signupErr) => {
-                if (signupErr) console.error("Error updating District Admin credentials:", signupErr);
+                if (signupErr) console.error("❌ Auto-Update Signup DB Error (District Admin):", signupErr.message);
             });
         }
 
@@ -250,7 +248,7 @@ exports.updateDistrictAdmin = (req, res) => {
 
 exports.deleteDistrictAdmin = (req, res) => {
     db.query('DELETE FROM dist_ngo_reg WHERE DistNGORegId = ?', [req.params.id], (err) => {
-        if (err) return res.status(500).json({ error: err.message });
+        if (err) { console.error("❌ deleteDistrictAdmin DB Error:", err.message); return res.status(500).json({ error: err.message }); }
         res.json({ message: 'Record deleted successfully' });
     });
 };
@@ -261,12 +259,12 @@ exports.deleteDistrictAdmin = (req, res) => {
 exports.createSupervisor = (req, res) => {
     const data = req.body;
 
-    // ✅ Auto-Create Login Account for Supervisor
     if (data.userName && data.password && data.email) {
         const signupQuery = `INSERT INTO userssignup (role, username, email, password) VALUES (?, ?, ?, ?)`;
         const signupValues = ['Supervisor', data.userName, data.email, data.password];
         db.query(signupQuery, signupValues, (signupErr) => {
-            if (signupErr) console.error("Error saving Supervisor credentials:", signupErr);
+            if (signupErr) console.error("❌ Auto-Signup DB Error (Supervisor):", signupErr.message);
+            else console.log(`✅ Auto-signup successful for Supervisor: ${data.email}`);
         });
     }
 

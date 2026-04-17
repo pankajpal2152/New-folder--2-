@@ -6,7 +6,7 @@ import { toast } from 'react-toastify';
 
 import { API_BASE_URL, DUMMY_AVATAR, extractBase64, styles, FormInput } from '../config/constants';
 import { asthaMaaSchema as supervisorSchema } from './forms/SupervisorForm';
-import { getSafeUser } from './AccountSharedUtils';
+import { getSafeUser, PasswordInput } from './AccountSharedUtils';
 
 const SupervisorModal = ({ member, mode, onClose, onSuccess }) => {
     const isView = mode === 'view';
@@ -25,11 +25,13 @@ const SupervisorModal = ({ member, mode, onClose, onSuccess }) => {
             fullName: member.SupName || '',
             sdwOf: member.SupGuardianName || '',
             dob: member.SupDOB ? member.SupDOB.substring(0, 10) : '',
-            guardianContactNo: member.SupGuardianContactNo || '',
+            guardianContactNo: member.SupGuardianContactNo || '', // ✅ Properly mapped
             state: null, district: null, city: member.SupCity || '', block: member.SupBlockName || '',
             postOffice: member.SupPO || '', policeStation: member.SupPS || '', gramPanchayet: member.SupGramPanchayet || '',
             village: member.SupVillage || '', pinCode: String(member.SupPincode || ''), mobileNo: member.SupContactNo || '',
-            email: member.SupMailId || '', // ✅ FIXED: Single L
+            email: member.SupMailId || '', // ✅ Fixed: Single L
+            userName: '', // Added for consistency with Add Form
+            password: '', // Added for consistency with Add Form
             bankName: member.SupBankName || '', branchName: member.SupBranchName || '',
             accountNo: member.SupAcctNo || '', ifsCode: member.SupIFSCode || '', panNo: member.SupPanNo || '',
             aadharNo: member.SupAadharNo || ''
@@ -89,17 +91,35 @@ const SupervisorModal = ({ member, mode, onClose, onSuccess }) => {
         const stateName = data.state ? data.state.label : "";
         const districtName = data.district ? data.district.label : "";
 
+        // ✅ Explicitly mapping SupGuardianContactNo and all other fields
         const dbPayload = {
             ...member,
             SupProfileImage: profileImage === DUMMY_AVATAR ? null : profileImage,
-            SupName: data.fullName, SupGuardianName: data.sdwOf || "", SupDOB: data.dob, SupGuardianContactNo: data.guardianContactNo || "",
-            SupStateName: stateName, SupDistName: districtName, SupCity: data.city || "", SupBlockName: data.block || "",
-            SupPO: data.postOffice || "", SupPS: data.policeStation || "", SupGramPanchayet: data.gramPanchayet || "",
-            SupVillage: data.village || "", SupPincode: parseInt(data.pinCode), SupContactNo: data.mobileNo, 
-            SupMailId: data.email, // ✅ FIXED: Single L
-            SupBankName: data.bankName || "", SupBranchName: data.branchName || "", SupAcctNo: data.accountNo || "0",
-            SupIFSCode: data.ifsCode || "", SupPanNo: data.panNo || "", SupAadharNo: data.aadharNo,
-            SupJoiningAmt: parseInt(data.joiningAmount) || 5000, SupWalletBalance: parseInt(data.walletBalance) || 0,
+            SupName: data.fullName,
+            SupGuardianName: data.sdwOf || "",
+            SupDOB: data.dob,
+            SupGuardianContactNo: data.guardianContactNo || "",
+            SupStateName: stateName,
+            SupDistName: districtName,
+            SupCity: data.city || "",
+            SupBlockName: data.block || "",
+            SupPO: data.postOffice || "",
+            SupPS: data.policeStation || "",
+            SupGramPanchayet: data.gramPanchayet || "",
+            SupVillage: data.village || "",
+            SupPincode: parseInt(data.pinCode),
+            SupContactNo: data.mobileNo,
+            SupMailId: data.email,
+            userName: data.userName,
+            password: data.password,
+            SupBankName: data.bankName || "",
+            SupBranchName: data.branchName || "",
+            SupAcctNo: data.accountNo || "0",
+            SupIFSCode: data.ifsCode || "",
+            SupPanNo: data.panNo || "",
+            SupAadharNo: data.aadharNo,
+            SupJoiningAmt: parseInt(data.joiningAmount) || 5000,
+            SupWalletBalance: parseInt(data.walletBalance) || 0,
         };
 
         if (dbPayload.SupDOB) dbPayload.SupDOB = dbPayload.SupDOB.substring(0, 10);
@@ -173,7 +193,13 @@ const SupervisorModal = ({ member, mode, onClose, onSuccess }) => {
                             <Controller name="village" control={control} render={({ field }) => (<FormInput label="Village" id="edit_village" error={errors.village} disabled={isView} {...field} />)} />
                             <Controller name="pinCode" control={control} render={({ field }) => (<FormInput label="Pin Code *" id="edit_pinCode" error={errors.pinCode} disabled={isView} {...field} />)} />
                             <Controller name="mobileNo" control={control} render={({ field }) => (<FormInput label="Contact Number *" id="edit_mobileNo" error={errors.mobileNo} disabled={isView} {...field} />)} />
-                            <Controller name="email" control={control} render={({ field }) => (<FormInput label="Email ID *" id="edit_email" error={errors.email} disabled readOnly {...field} />)} />
+                        </div>
+
+                        <h6 style={styles.sectionHeader}>Login & Account Setup</h6>
+                        <div style={styles.formGrid}>
+                            <Controller name="userName" control={control} render={({ field }) => (<FormInput label="User Name *" id="edit_userName" error={errors.userName} disabled={isView} {...field} />)} />
+                            <Controller name="email" control={control} render={({ field }) => (<FormInput label="Email ID (For Login) *" id="edit_email" error={errors.email} disabled readOnly {...field} />)} />
+                            <Controller name="password" control={control} render={({ field }) => (<PasswordInput label="Set New Password *" id="edit_password" error={errors.password} disabled={isView} {...field} />)} />
                         </div>
 
                         <h6 style={styles.sectionHeader}>Banking & Payment Details</h6>
@@ -348,9 +374,9 @@ const SupervisorTable = ({ refreshTrigger }) => {
                                         {renderTh('Full Name', 'SupName')}
                                         {renderTh('S/D/W Of', 'SupGuardianName')}
                                         {renderTh('DOB', 'SupDOB')}
-                                        {renderTh('Guardian Contact', 'SupGuardianContactNo')}
+                                        {renderTh('Guardian Contact', 'SupGuardianContactNo')} {/* ✅ Explicitly in Table Header */}
                                         {renderTh('Mobile No', 'SupContactNo')}
-                                        {renderTh('Email ID', 'SupMailId')} {/* ✅ FIXED */}
+                                        {renderTh('Email ID', 'SupMailId')}
                                         {renderTh('State', 'SupStateName')}
                                         {renderTh('District', 'SupDistName')}
                                         {renderTh('City', 'SupCity')}
@@ -383,9 +409,9 @@ const SupervisorTable = ({ refreshTrigger }) => {
                                             <td style={styles.td}>{row.SupName}</td>
                                             <td style={styles.td}>{row.SupGuardianName}</td>
                                             <td style={styles.td}>{row.SupDOB ? row.SupDOB.substring(0, 10) : ''}</td>
-                                            <td style={styles.td}>{row.SupGuardianContactNo}</td>
+                                            <td style={styles.td}>{row.SupGuardianContactNo}</td> {/* ✅ Explicitly mapped in Table Data */}
                                             <td style={styles.td}>{row.SupContactNo}</td>
-                                            <td style={styles.td}>{row.SupMailId}</td> {/* ✅ FIXED */}
+                                            <td style={styles.td}>{row.SupMailId}</td>
                                             <td style={styles.td}>{row.SupStateName}</td>
                                             <td style={styles.td}>{row.SupDistName}</td>
                                             <td style={styles.td}>{row.SupCity}</td>

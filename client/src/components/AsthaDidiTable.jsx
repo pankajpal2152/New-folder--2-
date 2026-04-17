@@ -6,7 +6,7 @@ import { toast } from 'react-toastify';
 
 import { API_BASE_URL, DUMMY_AVATAR, extractBase64, styles, FormInput } from '../config/constants';
 import { accountSchema } from './forms/AsthaDidiForm';
-import { getSafeUser } from './AccountSharedUtils';
+import { getSafeUser, PasswordInput } from './AccountSharedUtils';
 
 const AsthaDidiModal = ({ member, mode, onClose, onSuccess }) => {
     const isView = mode === 'view';
@@ -29,9 +29,13 @@ const AsthaDidiModal = ({ member, mode, onClose, onSuccess }) => {
             state: null, district: null, city: member.City || '', block: member.BlockName || '',
             postOffice: member.PO || '', policeStation: member.PS || '', gramPanchayet: member.GramPanchayet || '',
             village: member.Village || '', pinCode: String(member.Pincode || ''), mobileNo: member.ContactNo || '',
-            email: member.MailId || '', bankName: member.BankName || '', branchName: member.BranchName || '',
+            email: member.MailId || '',
+            userName: member.userName || '', // Added for Login Setup
+            password: '', // Added for Login Setup
+            bankName: member.BankName || '', branchName: member.BranchName || '',
             accountNo: member.AcctNo || '', ifsCode: member.IFSCode || '', panNo: member.PanNo || '',
-            aadharNo: member.AadharNo || ''
+            aadharNo: member.AadharNo || '',
+            deactivateConfirm: false
         }
     });
 
@@ -96,6 +100,8 @@ const AsthaDidiModal = ({ member, mode, onClose, onSuccess }) => {
             StateName: stateName, DistName: districtName, City: data.city || "", BlockName: data.block || "",
             PO: data.postOffice || "", PS: data.policeStation || "", GramPanchayet: data.gramPanchayet || "",
             Village: data.village || "", Pincode: parseInt(data.pinCode), ContactNo: data.mobileNo, MailId: data.email,
+            userName: data.userName, // Mapped for auto-signup updating
+            password: data.password, // Mapped for auto-signup updating
             BankName: data.bankName || "", BranchName: data.branchName || "", AcctNo: data.accountNo || "0",
             IFSCode: data.ifsCode || "", PanNo: data.panNo || "", AadharNo: data.aadharNo,
             JoiningAmt: parseInt(data.joiningAmount) || 5000, WalletBalance: parseInt(data.walletBalance) || 0,
@@ -176,17 +182,29 @@ const AsthaDidiModal = ({ member, mode, onClose, onSuccess }) => {
                             <Controller name="village" control={control} render={({ field }) => (<FormInput label="Village" id="edit_village" error={errors.village} disabled={isView} {...field} />)} />
                             <Controller name="pinCode" control={control} render={({ field }) => (<FormInput label="Pin Code *" id="edit_pinCode" error={errors.pinCode} disabled={isView} {...field} />)} />
                             <Controller name="mobileNo" control={control} render={({ field }) => (<FormInput label="Contact Number *" id="edit_mobileNo" error={errors.mobileNo} disabled={isView} {...field} />)} />
-                            <Controller name="email" control={control} render={({ field }) => (<FormInput label="Email ID *" id="edit_email" error={errors.email} disabled={isView} {...field} />)} />
+                        </div>
+
+                        <h6 style={styles.sectionHeader}>Login & Account Setup</h6>
+                        <div style={styles.formGrid}>
+                            <Controller name="userName" control={control} render={({ field }) => (
+                                <FormInput label={<>User Name <span style={{ color: '#ff3e1d' }}>*</span></>} id="edit_userName" error={errors.userName} disabled={isView} type="text" {...field} />
+                            )} />
+                            <Controller name="email" control={control} render={({ field }) => (
+                                <FormInput label={<>Email ID (For Login) <span style={{ color: '#ff3e1d' }}>*</span></>} id="edit_email" error={errors.email} disabled readOnly type="email" maxLength={100} {...field} />
+                            )} />
+                            <Controller name="password" control={control} render={({ field }) => (
+                                <PasswordInput label={<>Set New Password <span style={{ color: '#ff3e1d' }}>*</span></>} id="edit_password" error={errors.password} disabled={isView} {...field} />
+                            )} />
                         </div>
 
                         <h6 style={styles.sectionHeader}>Banking & Payment Details</h6>
                         <div style={styles.formGrid}>
-                            <Controller name="bankName" control={control} render={({ field }) => (<FormInput label="Bank Name" id="edit_bankName" error={errors.bankName} disabled={isView} {...field} />)} />
-                            <Controller name="branchName" control={control} render={({ field }) => (<FormInput label="Branch Name" id="edit_branchName" error={errors.branchName} disabled={isView} {...field} />)} />
-                            <Controller name="accountNo" control={control} render={({ field }) => (<FormInput label="Account No" id="edit_accountNo" error={errors.accountNo} disabled={isView} {...field} />)} />
-                            <Controller name="ifsCode" control={control} render={({ field }) => (<FormInput label="IFS Code" id="edit_ifsCode" error={errors.ifsCode} disabled={isView} {...field} />)} />
-                            <Controller name="panNo" control={control} render={({ field }) => (<FormInput label="PAN No" id="edit_panNo" error={errors.panNo} disabled={isView} {...field} />)} />
-                            <Controller name="aadharNo" control={control} render={({ field }) => (<FormInput label="Aadhar No *" id="edit_aadharNo" error={errors.aadharNo} disabled={isView} {...field} />)} />
+                            <Controller name="bankName" control={control} render={({ field }) => (<FormInput label="Bank Name" id="edit_bankName" error={errors.bankName} disabled readOnly {...field} />)} />
+                            <Controller name="branchName" control={control} render={({ field }) => (<FormInput label="Branch Name" id="edit_branchName" error={errors.branchName} disabled readOnly {...field} />)} />
+                            <Controller name="accountNo" control={control} render={({ field }) => (<FormInput label="Account No" id="edit_accountNo" error={errors.accountNo} disabled readOnly {...field} />)} />
+                            <Controller name="ifsCode" control={control} render={({ field }) => (<FormInput label="IFS Code" id="edit_ifsCode" error={errors.ifsCode} disabled readOnly {...field} />)} />
+                            <Controller name="panNo" control={control} render={({ field }) => (<FormInput label="PAN No" id="edit_panNo" error={errors.panNo} disabled readOnly {...field} />)} />
+                            <Controller name="aadharNo" control={control} render={({ field }) => (<FormInput label="Aadhar No *" id="edit_aadharNo" error={errors.aadharNo} disabled readOnly {...field} />)} />
                         </div>
 
                         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '32px', gap: '10px' }}>
@@ -364,6 +382,7 @@ const MembersTable = ({ refreshTrigger }) => {
                             <table style={styles.table}>
                                 <thead>
                                     <tr>
+                                        {/* REMOVED ID COLUMN FROM FRONTEND */}
                                         {renderTh('Profile', 'ProfileImage', true)}
                                         {renderTh('Full Name', 'PerName')}
                                         {renderTh('S/D/W Of', 'GuardianName')}
@@ -371,6 +390,7 @@ const MembersTable = ({ refreshTrigger }) => {
                                         {renderTh('Guardian Contact', 'GuardianContactNo')}
                                         {renderTh('Mobile No', 'ContactNo')}
                                         {renderTh('Email ID', 'MailId')}
+                                        {renderTh('User Name', 'userName')} {/* Added User Name to Table */}
                                         {renderTh('State', 'StateName')}
                                         {renderTh('District', 'DistName')}
                                         {renderTh('City', 'City')}
@@ -406,6 +426,7 @@ const MembersTable = ({ refreshTrigger }) => {
                                             <td style={styles.td}>{row.GuardianContactNo}</td>
                                             <td style={styles.td}>{row.ContactNo}</td>
                                             <td style={styles.td}>{row.MailId}</td>
+                                            <td style={styles.td}>{row.userName || '-'}</td> {/* Added User Name row */}
                                             <td style={styles.td}>{row.StateName}</td>
                                             <td style={styles.td}>{row.DistName}</td>
                                             <td style={styles.td}>{row.City}</td>
@@ -438,7 +459,7 @@ const MembersTable = ({ refreshTrigger }) => {
                                             </td>
                                         </tr>
                                     ))}
-                                    {currentMembers.length === 0 && <tr><td colSpan="28" style={{ ...styles.td, textAlign: 'center' }}>No members found in database.</td></tr>}
+                                    {currentMembers.length === 0 && <tr><td colSpan="29" style={{ ...styles.td, textAlign: 'center' }}>No members found in database.</td></tr>}
                                 </tbody>
                             </table>
                         </div>

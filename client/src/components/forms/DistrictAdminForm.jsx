@@ -210,7 +210,7 @@ const DistrictAdminForm = ({ onSuccess }) => {
                             <FormInput label={<>NGO Darpan ID <span style={{ color: '#ff3e1d' }}>*</span></>} id="ngoDarpanId" error={errors.ngoDarpanId} type="text" {...field} />
                         )} />
                         <Controller name="generalNgoEmail" control={control} render={({ field }) => (
-                            <FormInput label="NGO General Email ID" id="generalNgoEmail" error={errors.generalNgoEmail} type="email" placeholder="Optional general contact email" {...field} />
+                            <FormInput label="NGO Email ID" id="generalNgoEmail" error={errors.generalNgoEmail} type="email" {...field} />
                         )} />
                         <Controller name="ngoMobile" control={control} render={({ field }) => (
                             <FormInput label={<>NGO Mobile No <span style={{ color: '#ff3e1d' }}>*</span></>} id="ngoMobile" error={errors.ngoMobile} type="tel" {...field} />

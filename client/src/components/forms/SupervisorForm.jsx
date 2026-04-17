@@ -38,6 +38,54 @@ export const asthaMaaSchema = z.object({
 });
 
 // ==========================================
+// Password Input Helper Component
+// ==========================================
+const PasswordInput = ({ label, id, error, placeholder, disabled, ...props }) => {
+    const [showPassword, setShowPassword] = useState(false);
+
+    const togglePasswordVisibility = () => {
+        setShowPassword(!showPassword);
+    };
+
+    return (
+        <div style={styles.inputGroup}>
+            <label htmlFor={id} style={styles.label}>{label}</label>
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                <input
+                    id={id}
+                    type={showPassword ? "text" : "password"}
+                    style={disabled ? styles.inputDisabled : { ...styles.input(!!error), paddingRight: '40px' }}
+                    placeholder={placeholder}
+                    disabled={disabled}
+                    {...props}
+                />
+                <button
+                    type="button"
+                    onClick={togglePasswordVisibility}
+                    style={{
+                        position: 'absolute',
+                        right: '10px',
+                        background: 'transparent',
+                        border: 'none',
+                        cursor: 'pointer',
+                        color: '#697a8d',
+                        fontSize: '1.2rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: 0
+                    }}
+                    title={showPassword ? "Hide password" : "Show password"}
+                >
+                    {showPassword ? '👁️‍🗨️' : '👁️'}
+                </button>
+            </div>
+            {error && <p style={styles.errorText}>{error.message}</p>}
+        </div>
+    );
+};
+
+// ==========================================
 // 2. Component Definition
 // ==========================================
 const SupervisorForm = ({ onSuccess }) => {
@@ -264,8 +312,9 @@ const SupervisorForm = ({ onSuccess }) => {
                         <Controller name="email" control={control} render={({ field }) => (
                             <FormInput label={<>Email ID (For Login) <span style={{ color: '#ff3e1d' }}>*</span></>} id="email" error={errors.email} placeholder="Email ID" type="email" maxLength={100} {...field} />
                         )} />
+                        {/* ✅ ADDED: Integrated PasswordInput component here */}
                         <Controller name="password" control={control} render={({ field }) => (
-                            <FormInput label={<>Set Password <span style={{ color: '#ff3e1d' }}>*</span></>} id="password" error={errors.password} type="text" {...field} />
+                            <PasswordInput label={<>Set New Password <span style={{ color: '#ff3e1d' }}>* (Don't forget it!)</span></>} id="password" error={errors.password} {...field} />
                         )} />
                     </div>
 

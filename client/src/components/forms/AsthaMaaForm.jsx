@@ -6,7 +6,6 @@ import Select from 'react-select';
 import { toast } from 'react-toastify';
 import { API_BASE_URL, DUMMY_AVATAR, indianZipRegex, indianPhoneRegex, styles, FormInput } from '../../config/constants';
 
-// Validation Schema specific to this form
 export const asthaMaaSchema = z.object({
     joiningAmount: z.string().min(1, "Joining Amount is required"),
     walletBalance: z.string().optional(),
@@ -24,9 +23,9 @@ export const asthaMaaSchema = z.object({
     village: z.string().optional(),
     pinCode: z.string().regex(indianZipRegex, "Valid 6-digit Pincode required").length(6, "Must be exactly 6 digits"),
     mobileNo: z.string().regex(indianPhoneRegex, "Valid Indian phone required"),
-    email: z.string().email("Please enter a valid email address").max(100, "Max 100 characters"), // ✅ Made editable
-    userName: z.string().min(1, "Username is required"), // ✅ ADDED
-    password: z.string().min(1, "Password is required"), // ✅ ADDED
+    email: z.string().email("Please enter a valid email address").max(100, "Max 100 characters"),
+    userName: z.string().min(1, "Username is required"),
+    password: z.string().min(1, "Password is required"),
     bankName: z.string().optional(),
     branchName: z.string().optional(),
     accountNo: z.string().optional(),
@@ -92,52 +91,42 @@ const AsthaMaaForm = ({ onSuccess }) => {
         handleResetImage();
     };
 
-    const getCurrentUserEmail = () => {
-        try {
-            const userStr = localStorage.getItem('loggedInUser');
-            if (userStr) return JSON.parse(userStr).email || "";
-        } catch (error) { console.error(error); }
-        return "";
-    };
-
     const onSubmitAsthaMaa = async (data) => {
         const stateName = data.state ? data.state.label : "";
         const districtName = data.district ? data.district.label : "";
-        const currentUserEmail = getCurrentUserEmail();
 
+        // ✅ EXACT MAPPING TO DB COLUMNS FROM THE IMAGES (Removed CreatedBy)
         const dbPayload = {
-            ProfileImage: profileImage === DUMMY_AVATAR ? null : profileImage,
-            PerName: data.fullName,
-            GuardianName: data.sdwOf || "",
-            DOB: data.dob,
-            GuardianContactNo: data.guardianContactNo || "",
-            StateName: stateName,
-            DistName: districtName,
-            City: data.city || "",
-            BlockName: data.block || "",
-            PO: data.postOffice || "",
-            PS: data.policeStation || "",
-            GramPanchayet: data.gramPanchayet || "",
-            Village: data.village || "",
-            Pincode: parseInt(data.pinCode),
-            ContactNo: data.mobileNo,
-            MailId: data.email,
-            userName: data.userName, // ✅ Added
-            password: data.password, // ✅ Added
-            BankName: data.bankName || "",
-            BranchName: data.branchName || "",
-            AcctNo: data.accountNo || "0",
-            IFSCode: data.ifsCode || "",
-            PanNo: data.panNo || "",
-            AadharNo: data.aadharNo,
-            JoiningAmt: parseInt(data.joiningAmount) || 105,
-            WalletBalance: parseInt(data.walletBalance) || 0,
-            Status: 1,
-            IsActive: 1,
-            AprovedBy: null,
-            AprovalDate: null,
-            AprovalNumber: null,
-            CreatedBy: currentUserEmail
+            AsthaMaProfileImage: profileImage === DUMMY_AVATAR ? null : profileImage,
+            AsthaMaName: data.fullName,
+            AsthaMaGuardianName: data.sdwOf || "",
+            AsthaMaDOB: data.dob,
+            AsthaMaGuardianContactNo: data.guardianContactNo || "",
+            AsthaMaStateName: stateName,
+            AsthaMaDistName: districtName,
+            AsthaMaCity: data.city || "",
+            AsthaMaBlockName: data.block || "",
+            AsthaMaPO: data.postOffice || "",
+            AsthaMaPS: data.policeStation || "",
+            AsthaMaGramPanchayet: data.gramPanchayet || "",
+            AsthaMaVillage: data.village || "",
+            AsthaMaPincode: parseInt(data.pinCode),
+            AsthaMaContactNo: data.mobileNo,
+            AsthaMaMailId: data.email, 
+            userName: data.userName, 
+            password: data.password, 
+            AsthaMaBankName: data.bankName || "",
+            AsthaMaBranchName: data.branchName || "",
+            AsthaMaAcctNo: data.accountNo || "0",
+            AsthaMaIFSCode: data.ifsCode || "",
+            AsthaMaPanNo: data.panNo || "",
+            AsthaMaAadharNo: data.aadharNo,
+            AsthaMaJoiningAmt: parseInt(data.joiningAmount) || 105,
+            AsthaMaWalletBalance: parseInt(data.walletBalance) || 0,
+            AsthaMaIsActive: 1,
+            AsthaMaAprovedBy: null,
+            AsthaMaAprovedDate: null,
+            AsthaMaRegNo: null
         };
 
         try {
@@ -249,7 +238,6 @@ const AsthaMaaForm = ({ onSuccess }) => {
                         )} />
                     </div>
 
-                    {/* ✅ FIXED: Added Login & Account Setup section */}
                     <h6 style={styles.sectionHeader}>Login & Account Setup</h6>
                     <div style={styles.formGrid}>
                         <Controller name="userName" control={control} render={({ field }) => (

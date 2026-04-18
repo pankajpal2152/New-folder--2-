@@ -19,7 +19,7 @@ exports.getDistricts = (req, res) => {
 };
 
 // ==========================================
-// ASTHA DIDI REGISTRATION (`asthadidi_reg_ info`)
+// ASTHA DIDI REGISTRATION (`asthadidi_reg`)
 // ==========================================
 exports.getAsthaDidi = (req, res) => {
     // ✅ FIX: Using DATE_FORMAT to force MySQL to output the EXACT string in YYYY-MM-DD.
@@ -29,7 +29,7 @@ exports.getAsthaDidi = (req, res) => {
                DATE_FORMAT(a.AsthaDidiAprovalDate, '%Y-%m-%d') AS AsthaDidiAprovalDateRaw,
                DATE_FORMAT(a.AsthaDidiDOB, '%Y-%m-%d') AS AsthaDidiDOBRaw,
                u.SignupUserName AS ApproverName, u.UserSignUpEmail AS ApproverEmail 
-        FROM \`asthadidi_reg_ info\` a 
+        FROM \`asthadidi_reg\` a 
         LEFT JOIN userssignup u ON a.AsthaDidiAprovedBy = CAST(u.UserSignUpId AS CHAR)
         ORDER BY a.AsthaDidiRegId DESC
     `;
@@ -61,7 +61,7 @@ exports.getAsthaDidi = (req, res) => {
 exports.createAsthaDidi = (req, res) => {
     const data = req.body;
 
-    const insertQuery = `INSERT INTO \`asthadidi_reg_ info\` (
+    const insertQuery = `INSERT INTO \`asthadidi_reg\` (
         AsthaDidiProfileImage, AsthaDidiUserName, AsthaDidiGuardianName, AsthaDidiDOB, AsthaDidiGuardianContactNo, 
         AsthaDidiStateName, AsthaDidiDistName, AsthaDidiCity, AsthaDidiBlockName, AsthaDidiPO, AsthaDidiPS, 
         AsthaDidiGramPanchayet, AsthaDidiVillage, AsthaDidiPincode, AsthaDidiContactNo, AsthaDidiMailId, 
@@ -87,7 +87,7 @@ exports.createAsthaDidi = (req, res) => {
 
         if (data.AsthaDidiProfileImage && !data.AsthaDidiProfileImage.startsWith('ID:')) {
             const taggedImage = `ID:${newId}||${data.AsthaDidiProfileImage}`;
-            db.query('UPDATE `asthadidi_reg_ info` SET AsthaDidiProfileImage=? WHERE AsthaDidiRegId=?', [taggedImage, newId], () => { });
+            db.query('UPDATE `asthadidi_reg` SET AsthaDidiProfileImage=? WHERE AsthaDidiRegId=?', [taggedImage, newId], () => { });
         }
 
         if (data.AsthaDidiSignupUserName && data.AsthaDidiSignupPassword && data.AsthaDidiSignupEmail) {
@@ -111,7 +111,7 @@ exports.updateAsthaDidi = (req, res) => {
         data.AsthaDidiProfileImage = `ID:${id}||${data.AsthaDidiProfileImage}`;
     }
 
-    const updateQuery = `UPDATE \`asthadidi_reg_ info\` SET 
+    const updateQuery = `UPDATE \`asthadidi_reg\` SET 
         AsthaDidiProfileImage=?, AsthaDidiUserName=?, AsthaDidiGuardianName=?, AsthaDidiDOB=?, AsthaDidiGuardianContactNo=?, 
         AsthaDidiStateName=?, AsthaDidiDistName=?, AsthaDidiCity=?, AsthaDidiBlockName=?, AsthaDidiPO=?, AsthaDidiPS=?, 
         AsthaDidiGramPanchayet=?, AsthaDidiVillage=?, AsthaDidiPincode=?, AsthaDidiContactNo=?, AsthaDidiMailId=?, 
@@ -145,17 +145,17 @@ exports.updateAsthaDidi = (req, res) => {
 };
 
 exports.deleteAsthaDidi = (req, res) => {
-    db.query('DELETE FROM `asthadidi_reg_ info` WHERE AsthaDidiRegId = ?', [req.params.id], (err) => {
+    db.query('DELETE FROM `asthadidi_reg` WHERE AsthaDidiRegId = ?', [req.params.id], (err) => {
         if (err) { console.error("❌ deleteAsthaDidi DB Error:", err.message); return res.status(500).json({ error: err.message }); }
         res.json({ message: 'Record deleted successfully' });
     });
 };
 
 // ==========================================
-// ASTHA MAA REGISTRATION (asthama_reg_info)
+// ASTHA MAA REGISTRATION (asthama_reg)
 // ==========================================
 exports.getAsthaMaa = (req, res) => {
-    db.query('SELECT * FROM asthama_reg_info ORDER BY AshtMaRegId DESC', (err, results) => {
+    db.query('SELECT * FROM asthama_reg ORDER BY AshtMaRegId DESC', (err, results) => {
         if (err) { console.error("❌ getAsthaMaa DB Error:", err.message); return res.status(500).json({ error: err.message }); }
         res.json(results);
     });
@@ -163,7 +163,7 @@ exports.getAsthaMaa = (req, res) => {
 
 exports.createAsthaMaa = (req, res) => {
     const data = req.body;
-    const insertQuery = `INSERT INTO asthama_reg_info (
+    const insertQuery = `INSERT INTO asthama_reg (
         AsthaMaProfileImage, AsthaMaName, AsthaMaGuardianName, AsthaMaDOB, AsthaMaGuardianContactNo, 
         AsthaMaStateName, AsthaMaDistName, AsthaMaCity, AsthaMaBlockName, AsthaMaPO, AsthaMaPS, 
         AsthaMaGramPanchayet, AsthaMaVillage, AsthaMaPincode, AsthaMaContactNo, AsthaMaMailId, 
@@ -185,7 +185,7 @@ exports.createAsthaMaa = (req, res) => {
 
         if (data.AsthaMaProfileImage && !data.AsthaMaProfileImage.startsWith('ID:')) {
             const taggedImage = `ID:${newId}||${data.AsthaMaProfileImage}`;
-            db.query('UPDATE asthama_reg_info SET AsthaMaProfileImage=? WHERE AshtMaRegId=?', [taggedImage, newId], () => { });
+            db.query('UPDATE asthama_reg SET AsthaMaProfileImage=? WHERE AshtMaRegId=?', [taggedImage, newId], () => { });
         }
 
         if (data.userName && data.password && data.AsthaMaMailId) {
@@ -208,7 +208,7 @@ exports.updateAsthaMaa = (req, res) => {
         data.AsthaMaProfileImage = `ID:${id}||${data.AsthaMaProfileImage}`;
     }
 
-    const updateQuery = `UPDATE asthama_reg_info SET 
+    const updateQuery = `UPDATE asthama_reg SET 
         AsthaMaProfileImage=?, AsthaMaName=?, AsthaMaGuardianName=?, AsthaMaDOB=?, AsthaMaGuardianContactNo=?, 
         AsthaMaStateName=?, AsthaMaDistName=?, AsthaMaCity=?, AsthaMaBlockName=?, AsthaMaPO=?, AsthaMaPS=?, 
         AsthaMaGramPanchayet=?, AsthaMaVillage=?, AsthaMaPincode=?, AsthaMaContactNo=?, AsthaMaMailId=?, 
@@ -240,7 +240,7 @@ exports.updateAsthaMaa = (req, res) => {
 };
 
 exports.deleteAsthaMaa = (req, res) => {
-    db.query('DELETE FROM asthama_reg_info WHERE AshtMaRegId = ?', [req.params.id], (err) => {
+    db.query('DELETE FROM asthama_reg WHERE AshtMaRegId = ?', [req.params.id], (err) => {
         if (err) { console.error("❌ deleteAsthaMaa DB Error:", err.message); return res.status(500).json({ error: err.message }); }
         res.json({ message: 'Record deleted successfully' });
     });

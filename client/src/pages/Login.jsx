@@ -1,8 +1,6 @@
 // src/pages/Login.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-
-// ✅ FIXED: We now import the smart routing URL from constants instead of hardcoding '/api'!
 import { API_BASE_URL } from '../config/constants';
 
 const styles = {
@@ -52,7 +50,6 @@ const LoginForm = ({ onLogin, onToggleView }) => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!credentials.role || !credentials.email || !credentials.password) {
-            alert("Please select a role and enter both email and password.");
             return;
         }
 
@@ -66,16 +63,15 @@ const LoginForm = ({ onLogin, onToggleView }) => {
             const data = await response.json();
 
             if (response.ok) {
+                // Save user payload directly to local storage (including all DB columns)
                 localStorage.setItem('loggedInUser', JSON.stringify(data.user));
-                alert(`Login Successful! Welcome, ${data.user.username}`);
                 onLogin();
                 navigate('/');
             } else {
-                alert("Error: " + data.error);
+                console.error("Error: " + data.error);
             }
         } catch (error) {
             console.error("Login failed:", error);
-            alert("Failed to connect to the server. Ensure backend is running.");
         }
     };
 
@@ -100,7 +96,6 @@ const LoginForm = ({ onLogin, onToggleView }) => {
                         onChange={handleChange}
                     >
                         <option value="" disabled>Select your role...</option>
-                        {/* Only mapping roles from the database - NO HARDCODING */}
                         {roles.map((r) => (
                             <option key={r.UserInfoId} value={r.UserType}>{r.UserType}</option>
                         ))}
@@ -159,7 +154,6 @@ const SignupForm = ({ onToggleView }) => {
         e.preventDefault();
 
         if (!credentials.role || !credentials.username || !credentials.email || !credentials.password) {
-            alert("Please fill in all required fields.");
             return;
         }
 
@@ -173,14 +167,12 @@ const SignupForm = ({ onToggleView }) => {
             const data = await response.json();
 
             if (response.ok) {
-                alert("Account created successfully! You can now log in.");
                 onToggleView(); 
             } else {
-                alert("Error: " + data.error);
+                console.error("Error: " + data.error);
             }
         } catch (error) {
             console.error("Signup failed:", error);
-            alert("Failed to connect to the server.");
         }
     };
 
@@ -203,7 +195,6 @@ const SignupForm = ({ onToggleView }) => {
                         onChange={handleChange}
                     >
                         <option value="" disabled>Select your role...</option>
-                        {/* Only mapping roles from the database - NO HARDCODING */}
                         {roles.map((r) => (
                             <option key={r.UserInfoId} value={r.UserType}>{r.UserType}</option>
                         ))}
@@ -256,7 +247,11 @@ const Login = ({ onLogin }) => {
 
     return (
         <div style={styles.container}>
-            <LoginForm onLogin={handleLogin} onToggleView={() => setIsLoginView(false)} />
+            {isLoginView ? (
+                <LoginForm onLogin={handleLogin} onToggleView={() => setIsLoginView(false)} />
+            ) : (
+                <SignupForm onToggleView={() => setIsLoginView(true)} />
+            )}
         </div>
     );
 };

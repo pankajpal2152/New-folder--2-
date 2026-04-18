@@ -6,7 +6,6 @@ import Select from 'react-select';
 import { toast } from 'react-toastify';
 import { API_BASE_URL, DUMMY_AVATAR, indianZipRegex, indianPhoneRegex, styles, FormInput } from '../../config/constants';
 
-// Validation Schema specific to this form
 export const accountSchema = z.object({
     joiningAmount: z.string().min(1, "Joining Amount is required"),
     walletBalance: z.string().optional(),
@@ -25,8 +24,8 @@ export const accountSchema = z.object({
     pinCode: z.string().regex(indianZipRegex, "Valid 6-digit Pincode required").length(6, "Must be exactly 6 digits"),
     mobileNo: z.string().regex(indianPhoneRegex, "Valid Indian phone required"),
     email: z.string().email("Please enter a valid email address").max(100, "Max 100 characters"),
-    userName: z.string().min(1, "Username is required"), // ✅ ADDED
-    password: z.string().min(1, "Password is required"), // ✅ ADDED
+    userName: z.string().min(1, "Username is required"),
+    password: z.string().min(1, "Password is required"),
     bankName: z.string().optional(),
     branchName: z.string().optional(),
     accountNo: z.string().optional(),
@@ -75,7 +74,6 @@ const AsthaDidiForm = ({ onSuccess }) => {
     const [profileImage, setProfileImage] = useState(DUMMY_AVATAR);
     const fileInputRef = useRef(null);
 
-    // ✅ Added setValue to the destructured useForm object
     const { control, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm({
         resolver: zodResolver(accountSchema),
         mode: 'onChange',
@@ -89,9 +87,8 @@ const AsthaDidiForm = ({ onSuccess }) => {
     });
 
     const selectedState = watch("state");
-    const fullNameValue = watch("fullName"); // ✅ Watch the Full Name field
+    const fullNameValue = watch("fullName");
 
-    // ✅ Effect to automatically mirror Full Name into User Name
     useEffect(() => {
         if (fullNameValue !== undefined) {
             setValue("userName", fullNameValue, { shouldValidate: true });
@@ -139,40 +136,46 @@ const AsthaDidiForm = ({ onSuccess }) => {
         const districtName = data.district ? data.district.label : "";
         const userStr = localStorage.getItem('loggedInUser');
         const loggedInUser = userStr ? JSON.parse(userStr) : null;
-        const currentUserEmail = loggedInUser ? loggedInUser.email : "";
+        
+        // ✅ Safely extract UserSignUpId from local storage
+        const currentUserId = loggedInUser ? (loggedInUser.UserSignUpId || loggedInUser.id) : null;
 
         const dbPayload = {
-            ProfileImage: profileImage === DUMMY_AVATAR ? null : profileImage,
-            PerName: data.fullName,
-            GuardianName: data.sdwOf || "",
-            DOB: data.dob,
-            GuardianContactNo: data.guardianContactNo || "",
-            StateName: stateName,
-            DistName: districtName,
-            City: data.city || "",
-            BlockName: data.block || "",
-            PO: data.postOffice || "",
-            PS: data.policeStation || "",
-            GramPanchayet: data.gramPanchayet || "",
-            Village: data.village || "",
-            Pincode: parseInt(data.pinCode),
-            ContactNo: data.mobileNo,
-            MailId: data.email,
-            userName: data.userName, // ✅ Sent with payload
-            password: data.password,
-            BankName: data.bankName || "",
-            BranchName: data.branchName || "",
-            AcctNo: data.accountNo || "0",
-            IFSCode: data.ifsCode || "",
-            PanNo: data.panNo || "",
-            AadharNo: data.aadharNo,
-            JoiningAmt: parseInt(data.joiningAmount) || 5000,
-            WalletBalance: parseInt(data.walletBalance) || 0,
-            Status: 1,
-            AprovedBy: null,
-            AprovalDate: null,
-            AprovalNumber: null,
-            CreatedBy: currentUserEmail
+            AsthaDidiProfileImage: profileImage === DUMMY_AVATAR ? null : profileImage,
+            AsthaDidiUserName: data.fullName,
+            AsthaDidiGuardianName: data.sdwOf || "",
+            AsthaDidiDOB: data.dob,
+            AsthaDidiGuardianContactNo: data.guardianContactNo || "",
+            AsthaDidiStateName: stateName,
+            AsthaDidiDistName: districtName,
+            AsthaDidiCity: data.city || "",
+            AsthaDidiBlockName: data.block || "",
+            AsthaDidiPO: data.postOffice || "",
+            AsthaDidiPS: data.policeStation || "",
+            AsthaDidiGramPanchayet: data.gramPanchayet || "",
+            AsthaDidiVillage: data.village || "",
+            AsthaDidiPincode: parseInt(data.pinCode),
+            AsthaDidiContactNo: data.mobileNo,
+            AsthaDidiMailId: data.email,
+            AsthaDidiBankName: data.bankName || "",
+            AsthaDidiBranchName: data.branchName || "",
+            AsthaDidiBankAcctNo: data.accountNo || "0",
+            AsthaDidiIFSCode: data.ifsCode || "",
+            AsthaDidiPanNo: data.panNo || "",
+            AsthaDidiAadharNo: data.aadharNo,
+            AsthaDidiJoiningAmt: parseInt(data.joiningAmount) || 5000,
+            AsthaDidiWalletBalance: parseInt(data.walletBalance) || 0,
+            AsthaDidiSignupUserName: data.userName, 
+            AsthaDidiSignupEmail: data.email, 
+            AsthaDidiSignupPassword: data.password, 
+            AsthaDidiCreatedByAutoRegId: currentUserId, // ✅ Passing the exact Creator ID
+            StateNGORegId: null,
+            DistNGORegId: null,
+            SupRegId: null,
+            AsthaDidiIsActive: 1,
+            AsthaDidiAprovedBy: null,
+            AsthaDidiAprovalDate: null,
+            AsthaDidiRegNo: null
         };
 
         try {
@@ -187,7 +190,7 @@ const AsthaDidiForm = ({ onSuccess }) => {
             if (response.ok) {
                 toast.success("Success: Data saved to Database!", { position: "top-right" });
                 handleCancelAsthaDidi();
-                onSuccess(); // Trigger table refresh in parent component
+                onSuccess(); 
             } else {
                 toast.error("Failed to save data. Check backend logs.", { position: "top-right" });
             }
@@ -288,7 +291,6 @@ const AsthaDidiForm = ({ onSuccess }) => {
 
                     <h6 style={styles.sectionHeader}>Login & Account Setup</h6>
                     <div style={styles.formGrid}>
-                        {/* ✅ User Name rendered disabled/readonly */}
                         <Controller name="userName" control={control} render={({ field }) => (
                             <FormInput label={<>User Name <span style={{ color: '#ff3e1d' }}>*</span></>} id="userName" error={errors.userName} type="text" readOnly disabled {...field} />
                         )} />
@@ -306,19 +308,19 @@ const AsthaDidiForm = ({ onSuccess }) => {
                             <FormInput label="Bank Name" id="bankName" error={errors.bankName} placeholder="Bank Name" type="text" maxLength={100} {...field} />
                         )} />
                         <Controller name="branchName" control={control} render={({ field }) => (
-                            <FormInput label="Branch Name" id="branchName" error={errors.branchName} placeholder="Bank Branch Name" type="text" maxLength={100} {...field} />
+                            <FormInput label="Branch Name" id="branchName" error={errors.branchName} placeholder="Branch Name" type="text" maxLength={100} {...field} />
                         )} />
                         <Controller name="accountNo" control={control} render={({ field }) => (
-                            <FormInput label="Account No" id="accountNo" error={errors.accountNo} placeholder="Bank Ac No" type="text" maxLength={30} {...field} />
+                            <FormInput label="Account No" id="accountNo" error={errors.accountNo} placeholder="Account No" type="text" maxLength={30} {...field} />
                         )} />
                         <Controller name="ifsCode" control={control} render={({ field }) => (
-                            <FormInput label="IFS Code" id="ifsCode" error={errors.ifsCode} placeholder="Bank IFS Code" type="text" maxLength={20} {...field} />
+                            <FormInput label="IFS Code" id="ifsCode" error={errors.ifsCode} placeholder="IFS Code" type="text" maxLength={20} {...field} />
                         )} />
                         <Controller name="panNo" control={control} render={({ field }) => (
-                            <FormInput label="PAN No" id="panNo" error={errors.panNo} placeholder="Pan No." type="text" maxLength={10} {...field} />
+                            <FormInput label="PAN No" id="panNo" error={errors.panNo} placeholder="PAN No" type="text" maxLength={10} {...field} />
                         )} />
                         <Controller name="aadharNo" control={control} render={({ field }) => (
-                            <FormInput label={<>Aadhar No. <span style={{ color: '#ff3e1d' }}>*</span></>} id="aadharNo" error={errors.aadharNo} placeholder="Aadhar No." type="text" maxLength={12} {...field} />
+                            <FormInput label={<>Aadhar No. <span style={{ color: '#ff3e1d' }}>*</span></>} id="aadharNo" error={errors.aadharNo} placeholder="Aadhar No" type="text" maxLength={12} {...field} />
                         )} />
                     </div>
 

@@ -8,9 +8,17 @@ import { API_BASE_URL, DUMMY_AVATAR, extractBase64, styles, FormInput } from '..
 import { accountSchema } from './forms/AsthaDidiForm';
 import { getSafeUser, PasswordInput } from './AccountSharedUtils';
 
+// ✅ PERFECT FIX: Safe Date Formatter (DATE ONLY, STRICT STRING EXTRACTION)
+// Because the backend now sends a raw string (YYYY-MM-DD), this simply displays it as-is.
+const formatDisplayDate = (dbDateStr) => {
+    if (!dbDateStr) return '-';
+    // Extracts exactly the 'YYYY-MM-DD' from the DB string directly
+    return String(dbDateStr).substring(0, 10);
+};
+
 const AsthaDidiModal = ({ member, mode, onClose, onSuccess }) => {
     const isView = mode === 'view';
-    const cleanInitialImage = extractBase64(member.ProfileImage) || DUMMY_AVATAR;
+    const cleanInitialImage = extractBase64(member.AsthaDidiProfileImage) || DUMMY_AVATAR;
     const [profileImage, setProfileImage] = useState(cleanInitialImage);
     const fileInputRef = useRef(null);
     const [dbStates, setDbStates] = useState([]);
@@ -20,21 +28,21 @@ const AsthaDidiModal = ({ member, mode, onClose, onSuccess }) => {
         resolver: zodResolver(accountSchema),
         mode: 'onChange',
         defaultValues: {
-            joiningAmount: String(member.JoiningAmt || '5000'),
-            walletBalance: String(member.WalletBalance || '0'),
-            fullName: member.PerName || '',
-            sdwOf: member.GuardianName || '',
-            dob: member.DOB ? member.DOB.substring(0, 10) : '',
-            guardianContactNo: member.GuardianContactNo || '',
-            state: null, district: null, city: member.City || '', block: member.BlockName || '',
-            postOffice: member.PO || '', policeStation: member.PS || '', gramPanchayet: member.GramPanchayet || '',
-            village: member.Village || '', pinCode: String(member.Pincode || ''), mobileNo: member.ContactNo || '',
-            email: member.MailId || '',
-            userName: member.userName || '', // Added for Login Setup
-            password: '', // Added for Login Setup
-            bankName: member.BankName || '', branchName: member.BranchName || '',
-            accountNo: member.AcctNo || '', ifsCode: member.IFSCode || '', panNo: member.PanNo || '',
-            aadharNo: member.AadharNo || '',
+            joiningAmount: String(member.AsthaDidiJoiningAmt || '5000'),
+            walletBalance: String(member.AsthaDidiWalletBalance || '0'),
+            fullName: member.AsthaDidiUserName || '',
+            sdwOf: member.AsthaDidiGuardianName || '',
+            dob: member.AsthaDidiDOB ? String(member.AsthaDidiDOB).substring(0, 10) : '',
+            guardianContactNo: member.AsthaDidiGuardianContactNo || '',
+            state: null, district: null, city: member.AsthaDidiCity || '', block: member.AsthaDidiBlockName || '',
+            postOffice: member.AsthaDidiPO || '', policeStation: member.AsthaDidiPS || '', gramPanchayet: member.AsthaDidiGramPanchayet || '',
+            village: member.AsthaDidiVillage || '', pinCode: String(member.AsthaDidiPincode || ''), mobileNo: member.AsthaDidiContactNo || '',
+            email: member.AsthaDidiMailId || '',
+            userName: member.AsthaDidiSignupUserName || '',
+            password: member.AsthaDidiSignupPassword || '',
+            bankName: member.AsthaDidiBankName || '', branchName: member.AsthaDidiBranchName || '',
+            accountNo: member.AsthaDidiBankAcctNo || '', ifsCode: member.AsthaDidiIFSCode || '', panNo: member.AsthaDidiPanNo || '',
+            aadharNo: member.AsthaDidiAadharNo || '',
             deactivateConfirm: false
         }
     });
@@ -45,25 +53,25 @@ const AsthaDidiModal = ({ member, mode, onClose, onSuccess }) => {
         fetch(`${API_BASE_URL}/states`).then(res => res.json()).then(data => {
             const formattedStates = data.map(s => ({ value: s.StateId, label: s.StateName }));
             setDbStates(formattedStates);
-            if (member.StateName) {
-                const matchedState = formattedStates.find(s => s.label === member.StateName);
+            if (member.AsthaDidiStateName) {
+                const matchedState = formattedStates.find(s => s.label === member.AsthaDidiStateName);
                 if (matchedState) setValue("state", matchedState);
             }
         });
-    }, [member.StateName, setValue]);
+    }, [member.AsthaDidiStateName, setValue]);
 
     useEffect(() => {
         if (selectedState && selectedState.value) {
             fetch(`${API_BASE_URL}/districts/${selectedState.value}`).then(res => res.json()).then(data => {
                 const formattedDistricts = data.map(d => ({ value: d.DistId, label: d.DistName }));
                 setDbDistricts(formattedDistricts);
-                if (member.DistName) {
-                    const matchedDist = formattedDistricts.find(d => d.label === member.DistName);
+                if (member.AsthaDidiDistName) {
+                    const matchedDist = formattedDistricts.find(d => d.label === member.AsthaDidiDistName);
                     if (matchedDist) setValue("district", matchedDist);
                 }
             });
         } else { setDbDistricts([]); }
-    }, [selectedState, member.DistName, setValue]);
+    }, [selectedState, member.AsthaDidiDistName, setValue]);
 
     const handleUploadClick = () => {
         if (!isView && fileInputRef.current) fileInputRef.current.click();
@@ -92,30 +100,27 @@ const AsthaDidiModal = ({ member, mode, onClose, onSuccess }) => {
         const stateName = data.state ? data.state.label : "";
         const districtName = data.district ? data.district.label : "";
         const loggedInUser = getSafeUser();
+        const currentUserId = loggedInUser ? (loggedInUser.UserSignUpId || loggedInUser.id) : null;
 
         const dbPayload = {
             ...member,
-            ProfileImage: profileImage === DUMMY_AVATAR ? null : profileImage,
-            PerName: data.fullName, GuardianName: data.sdwOf || "", DOB: data.dob, GuardianContactNo: data.guardianContactNo || "",
-            StateName: stateName, DistName: districtName, City: data.city || "", BlockName: data.block || "",
-            PO: data.postOffice || "", PS: data.policeStation || "", GramPanchayet: data.gramPanchayet || "",
-            Village: data.village || "", Pincode: parseInt(data.pinCode), ContactNo: data.mobileNo, MailId: data.email,
-            userName: data.userName, // Mapped for auto-signup updating
-            password: data.password, // Mapped for auto-signup updating
-            BankName: data.bankName || "", BranchName: data.branchName || "", AcctNo: data.accountNo || "0",
-            IFSCode: data.ifsCode || "", PanNo: data.panNo || "", AadharNo: data.aadharNo,
-            JoiningAmt: parseInt(data.joiningAmount) || 5000, WalletBalance: parseInt(data.walletBalance) || 0,
-            ModifyBy: loggedInUser ? loggedInUser.email : "System"
+            AsthaDidiProfileImage: profileImage === DUMMY_AVATAR ? null : profileImage,
+            AsthaDidiUserName: data.fullName, AsthaDidiGuardianName: data.sdwOf || "", AsthaDidiDOB: data.dob, AsthaDidiGuardianContactNo: data.guardianContactNo || "",
+            AsthaDidiStateName: stateName, AsthaDidiDistName: districtName, AsthaDidiCity: data.city || "", AsthaDidiBlockName: data.block || "",
+            AsthaDidiPO: data.postOffice || "", AsthaDidiPS: data.policeStation || "", AsthaDidiGramPanchayet: data.gramPanchayet || "",
+            AsthaDidiVillage: data.village || "", AsthaDidiPincode: parseInt(data.pinCode), AsthaDidiContactNo: data.mobileNo, AsthaDidiMailId: data.email,
+            AsthaDidiSignupUserName: data.userName, AsthaDidiSignupPassword: data.password,
+            AsthaDidiBankName: data.bankName || "", AsthaDidiBranchName: data.branchName || "", AsthaDidiBankAcctNo: data.accountNo || "0",
+            AsthaDidiIFSCode: data.ifsCode || "", AsthaDidiPanNo: data.panNo || "", AsthaDidiAadharNo: data.aadharNo,
+            AsthaDidiJoiningAmt: parseInt(data.joiningAmount) || 5000, AsthaDidiWalletBalance: parseInt(data.walletBalance) || 0,
+            AsthaDidiCreatedByAutoRegId: currentUserId
         };
 
-        if (dbPayload.DOB) dbPayload.DOB = dbPayload.DOB.substring(0, 10);
-        if (dbPayload.AprovalDate && dbPayload.AprovalDate.includes('T')) {
-            dbPayload.AprovalDate = dbPayload.AprovalDate.substring(0, 10);
-        }
+        if (dbPayload.AsthaDidiDOB) dbPayload.AsthaDidiDOB = String(dbPayload.AsthaDidiDOB).substring(0, 10);
 
         try {
             toast.loading("Updating member...", { toastId: 'update' });
-            const res = await fetch(`${API_BASE_URL}/asthadidi/${member.RegInfoId}`, {
+            const res = await fetch(`${API_BASE_URL}/asthadidi/${member.AsthaDidiRegId}`, {
                 method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(dbPayload)
             });
             toast.dismiss('update');
@@ -135,9 +140,12 @@ const AsthaDidiModal = ({ member, mode, onClose, onSuccess }) => {
                     <div style={styles.profileSection}>
                         <img src={profileImage} alt="Profile Avatar" style={styles.avatar} />
                         <div>
-                            <p style={styles.hintText}><strong>Status:</strong> {member.Status === 2 ? 'Approved' : 'Pending'}</p>
-                            {member.Status === 2 && member.AprovedBy && (
-                                <p style={styles.hintText}><strong>Approved By:</strong> {member.AprovedBy}</p>
+                            <p style={styles.hintText}><strong>Status:</strong> {Number(member.AsthaDidiIsActive) === 2 ? 'Approved' : 'Pending'}</p>
+                            {Number(member.AsthaDidiIsActive) === 2 && member.AsthaDidiAprovedBy && (
+                                <>
+                                    <p style={styles.hintText}><strong>Approved By:</strong> {member.ApproverDisplayName || member.AsthaDidiAprovedBy}</p>
+                                    <p style={styles.hintText}><strong>Approval Date:</strong> {formatDisplayDate(member.AsthaDidiAprovalDate)}</p>
+                                </>
                             )}
                             {!isView && (
                                 <div style={styles.buttonGroup}>
@@ -187,13 +195,13 @@ const AsthaDidiModal = ({ member, mode, onClose, onSuccess }) => {
                         <h6 style={styles.sectionHeader}>Login & Account Setup</h6>
                         <div style={styles.formGrid}>
                             <Controller name="userName" control={control} render={({ field }) => (
-                                <FormInput label={<>User Name <span style={{ color: '#ff3e1d' }}>*</span></>} id="edit_userName" error={errors.userName} disabled={isView} type="text" {...field} />
+                                <FormInput label={<>User Name <span style={{ color: '#ff3e1d' }}>*</span></>} id="edit_userName" error={errors.userName} disabled={isView} type="text" readOnly {...field} />
                             )} />
                             <Controller name="email" control={control} render={({ field }) => (
                                 <FormInput label={<>Email ID (For Login) <span style={{ color: '#ff3e1d' }}>*</span></>} id="edit_email" error={errors.email} disabled readOnly type="email" maxLength={100} {...field} />
                             )} />
                             <Controller name="password" control={control} render={({ field }) => (
-                                <PasswordInput label={<>Set New Password <span style={{ color: '#ff3e1d' }}>*</span></>} id="edit_password" error={errors.password} disabled={isView} {...field} />
+                                <PasswordInput label={<>Set New Password <span style={{ color: '#ff3e1d' }}>* (Don't forget it!)</span></>} id="edit_password" error={errors.password} disabled={isView} {...field} />
                             )} />
                         </div>
 
@@ -221,8 +229,11 @@ const AsthaDidiModal = ({ member, mode, onClose, onSuccess }) => {
 const MembersTable = ({ refreshTrigger }) => {
     const [members, setMembers] = useState([]);
     const [loading, setLoading] = useState(true);
+
     const [userRole, setUserRole] = useState('');
     const [userName, setUserName] = useState('');
+    const [userId, setUserId] = useState('');
+
     const [currentPage, setCurrentPage] = useState(1);
     const [rowsPerPage, setRowsPerPage] = useState(5);
     const [sortConfig, setSortConfig] = useState(null);
@@ -233,9 +244,15 @@ const MembersTable = ({ refreshTrigger }) => {
     const [approveModal, setApproveModal] = useState(false);
     const [selectedRow, setSelectedRow] = useState(null);
 
+    const [approvalData, setApprovalData] = useState({ id: '', dbDate: '' });
+
     useEffect(() => {
         const user = getSafeUser();
-        if (user) { setUserRole(user.role || ''); setUserName(user.username || ''); }
+        if (user) {
+            setUserRole(user.role || '');
+            setUserName(user.username || '');
+            setUserId(user.UserSignUpId || user.id || '');
+        }
     }, []);
 
     const fetchMembers = async () => {
@@ -245,11 +262,11 @@ const MembersTable = ({ refreshTrigger }) => {
             if (!res.ok) throw new Error("Failed to fetch table data");
             let data = await res.json();
 
-            data = data.filter(member => String(member.IsActive) !== '0' && String(member.Status) !== '0');
+            data = data.filter(member => String(member.AsthaDidiIsActive) !== '0');
 
             const user = getSafeUser();
             if (user && (user.role === 'Astha Didi' || user.role === 'Supervisor')) {
-                data = data.filter(member => member.CreatedBy === user.email);
+                data = data.filter(member => String(member.AsthaDidiCreatedByAutoRegId) === String(user.id || user.UserSignUpId));
             }
             setMembers(data);
         } catch (error) { toast.error("Failed to load table data.", { position: "top-right" }); }
@@ -294,12 +311,47 @@ const MembersTable = ({ refreshTrigger }) => {
     const handlePrevPage = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
     const handleRowsChange = (e) => { setRowsPerPage(Number(e.target.value)); setCurrentPage(1); };
 
-    const openModal = (type, member) => {
+    const openModal = async (type, member) => {
         setSelectedRow({ ...member });
         if (type === 'view') setViewModal(true);
         if (type === 'edit') setEditModal(true);
         if (type === 'delete') setDeleteModal(true);
-        if (type === 'approve') setApproveModal(true);
+        if (type === 'approve') {
+            setApproveModal(true);
+            setApprovalData({ id: 'Generating...', dbDate: '' });
+
+            const d = new Date();
+            const utc = d.getTime() + (d.getTimezoneOffset() * 60000);
+            const istDate = new Date(utc + (3600000 * 5.5)); 
+            const dbDate = istDate.toISOString().split('T')[0];
+
+            let stateId = '00';
+            let distId = '00';
+
+            try {
+                const stateRes = await fetch(`${API_BASE_URL}/states`);
+                const states = await stateRes.json();
+                const stateObj = states.find(s => s.StateName === member.AsthaDidiStateName);
+
+                if (stateObj) {
+                    stateId = String(stateObj.StateId).padStart(2, '0');
+                    const distRes = await fetch(`${API_BASE_URL}/districts/${stateObj.StateId}`);
+                    const dists = await distRes.json();
+                    const distObj = dists.find(d => d.DistName === member.AsthaDidiDistName);
+
+                    if (distObj) {
+                        distId = String(distObj.DistId).padStart(2, '0');
+                    }
+                }
+            } catch (e) {
+                console.error("Error fetching state/dist IDs for approval generation:", e);
+            }
+
+            const aadhar = member.AsthaDidiAadharNo || '000000000000';
+            const finalApprovalId = `${stateId}${distId}${aadhar}`;
+
+            setApprovalData({ id: finalApprovalId, dbDate });
+        }
     };
 
     const closeModal = () => { setViewModal(false); setEditModal(false); setDeleteModal(false); setApproveModal(false); setSelectedRow(null); };
@@ -307,22 +359,16 @@ const MembersTable = ({ refreshTrigger }) => {
     const confirmDelete = async () => {
         try {
             toast.loading("Deleting...", { toastId: 'delete' });
-            const loggedInUser = getSafeUser();
 
-            const payload = {
-                ...selectedRow,
-                IsActive: "0",
-                Status: "0",
-                ModifyBy: loggedInUser ? loggedInUser.email : "System"
-            };
+            const payload = { ...selectedRow, AsthaDidiIsActive: "0" };
 
             Object.keys(payload).forEach(key => {
-                if (typeof payload[key] === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(payload[key])) {
+                if (key !== 'AsthaDidiAprovalDate' && typeof payload[key] === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(payload[key])) {
                     payload[key] = payload[key].substring(0, 10);
                 }
             });
 
-            const res = await fetch(`${API_BASE_URL}/asthadidi/${selectedRow.RegInfoId}`, {
+            const res = await fetch(`${API_BASE_URL}/asthadidi/${selectedRow.AsthaDidiRegId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
@@ -331,7 +377,7 @@ const MembersTable = ({ refreshTrigger }) => {
             toast.dismiss('delete');
             if (res.ok) {
                 toast.success("Member deleted.");
-                setMembers(prev => prev.filter(m => m.RegInfoId !== selectedRow.RegInfoId));
+                setMembers(prev => prev.filter(m => m.AsthaDidiRegId !== selectedRow.AsthaDidiRegId));
                 closeModal();
             }
             else { toast.error("Failed to delete."); }
@@ -341,23 +387,26 @@ const MembersTable = ({ refreshTrigger }) => {
     const confirmApprove = async () => {
         try {
             toast.loading("Approving...", { toastId: 'approve' });
-            const approvalId = Math.floor(100000 + Math.random() * 900000);
-            const dateStr = new Date().toISOString().split('T')[0];
-            const approverString = userName && userRole ? `${userName} (${userRole})` : 'System Admin';
 
-            const payload = { ...selectedRow, Status: 2, AprovalNumber: approvalId, AprovalDate: dateStr, AprovedBy: approverString };
+            const payload = {
+                ...selectedRow,
+                AsthaDidiIsActive: 2,
+                AsthaDidiRegNo: approvalData.id,
+                AsthaDidiAprovalDate: approvalData.dbDate,
+                AsthaDidiAprovedBy: String(userId)
+            };
 
             Object.keys(payload).forEach(key => {
-                if (typeof payload[key] === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(payload[key])) {
+                if (key !== 'AsthaDidiAprovalDate' && typeof payload[key] === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(payload[key])) {
                     payload[key] = payload[key].substring(0, 10);
                 }
             });
 
-            const res = await fetch(`${API_BASE_URL}/asthadidi/${selectedRow.RegInfoId}`, {
+            const res = await fetch(`${API_BASE_URL}/asthadidi/${selectedRow.AsthaDidiRegId}`, {
                 method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
             });
             toast.dismiss('approve');
-            if (res.ok) { toast.success(`Member Approved! ID: ${approvalId}`); closeModal(); fetchMembers(); }
+            if (res.ok) { toast.success(`Member Approved! ID: ${approvalData.id}`); closeModal(); fetchMembers(); }
             else { toast.error("Failed to approve."); }
         } catch (error) { toast.dismiss('approve'); toast.error("Network error."); }
     };
@@ -382,84 +431,87 @@ const MembersTable = ({ refreshTrigger }) => {
                             <table style={styles.table}>
                                 <thead>
                                     <tr>
-                                        {/* REMOVED ID COLUMN FROM FRONTEND */}
-                                        {renderTh('Profile', 'ProfileImage', true)}
-                                        {renderTh('Full Name', 'PerName')}
-                                        {renderTh('S/D/W Of', 'GuardianName')}
-                                        {renderTh('DOB', 'DOB')}
-                                        {renderTh('Guardian Contact', 'GuardianContactNo')}
-                                        {renderTh('Mobile No', 'ContactNo')}
-                                        {renderTh('Email ID', 'MailId')}
-                                        {renderTh('User Name', 'userName')} {/* Added User Name to Table */}
-                                        {renderTh('State', 'StateName')}
-                                        {renderTh('District', 'DistName')}
-                                        {renderTh('City', 'City')}
-                                        {renderTh('Block', 'BlockName')}
-                                        {renderTh('Post Office', 'PO')}
-                                        {renderTh('Police Station', 'PS')}
-                                        {renderTh('Gram Panchayet', 'GramPanchayet')}
-                                        {renderTh('Village', 'Village')}
-                                        {renderTh('Pin Code', 'Pincode')}
-                                        {renderTh('Bank Name', 'BankName')}
-                                        {renderTh('Branch Name', 'BranchName')}
-                                        {renderTh('Account No', 'AcctNo')}
-                                        {renderTh('IFS Code', 'IFSCode')}
-                                        {renderTh('PAN No', 'PanNo')}
-                                        {renderTh('Aadhar No', 'AadharNo')}
-                                        {renderTh('Joining Amt', 'JoiningAmt')}
-                                        {renderTh('Wallet Bal', 'WalletBalance')}
-                                        {renderTh('Status', 'Status')}
-                                        {renderTh('Approved By', 'AprovedBy')}
-                                        {renderTh('Created By', 'CreatedBy')}
+                                        {renderTh('Profile', 'AsthaDidiProfileImage', true)}
+                                        {renderTh('Full Name', 'AsthaDidiUserName')}
+                                        {renderTh('S/D/W Of', 'AsthaDidiGuardianName')}
+                                        {renderTh('DOB', 'AsthaDidiDOB')}
+                                        {renderTh('Guardian Contact', 'AsthaDidiGuardianContactNo')}
+                                        {renderTh('Mobile No', 'AsthaDidiContactNo')}
+                                        {renderTh('Email ID', 'AsthaDidiMailId')}
+                                        {renderTh('User Name', 'AsthaDidiSignupUserName')}
+                                        {renderTh('Password', 'AsthaDidiSignupPassword')}
+                                        {renderTh('State', 'AsthaDidiStateName')}
+                                        {renderTh('District', 'AsthaDidiDistName')}
+                                        {renderTh('City', 'AsthaDidiCity')}
+                                        {renderTh('Block', 'AsthaDidiBlockName')}
+                                        {renderTh('Post Office', 'AsthaDidiPO')}
+                                        {renderTh('Police Station', 'AsthaDidiPS')}
+                                        {renderTh('Gram Panchayet', 'AsthaDidiGramPanchayet')}
+                                        {renderTh('Village', 'AsthaDidiVillage')}
+                                        {renderTh('Pin Code', 'AsthaDidiPincode')}
+                                        {renderTh('Bank Name', 'AsthaDidiBankName')}
+                                        {renderTh('Branch Name', 'AsthaDidiBranchName')}
+                                        {renderTh('Account No', 'AsthaDidiBankAcctNo')}
+                                        {renderTh('IFS Code', 'AsthaDidiIFSCode')}
+                                        {renderTh('PAN No', 'AsthaDidiPanNo')}
+                                        {renderTh('Aadhar No', 'AsthaDidiAadharNo')}
+                                        {renderTh('Joining Amt', 'AsthaDidiJoiningAmt')}
+                                        {renderTh('Wallet Bal', 'AsthaDidiWalletBalance')}
+                                        {renderTh('Status', 'AsthaDidiIsActive')}
+                                        {renderTh('Approved By', 'ApproverDisplayName')}
+                                        {renderTh('Approval Date', 'AsthaDidiAprovalDate')}
+                                        {renderTh('Approval Reg No', 'AsthaDidiRegNo')}
                                         <th style={styles.stickyRightTh}>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {currentMembers.map((row) => (
-                                        <tr key={row.RegInfoId}>
+                                        <tr key={row.AsthaDidiRegId}>
                                             <td style={styles.stickyLeftTd}>
-                                                <img src={extractBase64(row.ProfileImage) || DUMMY_AVATAR} alt="User" style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} />
+                                                <img src={extractBase64(row.AsthaDidiProfileImage) || DUMMY_AVATAR} alt="User" style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} />
                                             </td>
-                                            <td style={styles.td}>{row.PerName}</td>
-                                            <td style={styles.td}>{row.GuardianName}</td>
-                                            <td style={styles.td}>{row.DOB ? row.DOB.substring(0, 10) : ''}</td>
-                                            <td style={styles.td}>{row.GuardianContactNo}</td>
-                                            <td style={styles.td}>{row.ContactNo}</td>
-                                            <td style={styles.td}>{row.MailId}</td>
-                                            <td style={styles.td}>{row.userName || '-'}</td> {/* Added User Name row */}
-                                            <td style={styles.td}>{row.StateName}</td>
-                                            <td style={styles.td}>{row.DistName}</td>
-                                            <td style={styles.td}>{row.City}</td>
-                                            <td style={styles.td}>{row.BlockName}</td>
-                                            <td style={styles.td}>{row.PO}</td>
-                                            <td style={styles.td}>{row.PS}</td>
-                                            <td style={styles.td}>{row.GramPanchayet}</td>
-                                            <td style={styles.td}>{row.Village}</td>
-                                            <td style={styles.td}>{row.Pincode}</td>
-                                            <td style={styles.td}>{row.BankName}</td>
-                                            <td style={styles.td}>{row.BranchName}</td>
-                                            <td style={styles.td}>{row.AcctNo}</td>
-                                            <td style={styles.td}>{row.IFSCode}</td>
-                                            <td style={styles.td}>{row.PanNo}</td>
-                                            <td style={styles.td}>{row.AadharNo}</td>
-                                            <td style={styles.td}>₹{row.JoiningAmt}</td>
-                                            <td style={styles.td}>₹{row.WalletBalance}</td>
-                                            <td style={{ ...styles.td, color: Number(row.Status) === 2 ? 'green' : 'orange', fontWeight: 'bold' }}>{Number(row.Status) === 2 ? 'Approved' : 'Pending'}</td>
-                                            <td style={styles.td}>{row.AprovedBy || '-'}</td>
-                                            <td style={styles.td}>{row.CreatedBy || '-'}</td>
+                                            <td style={styles.td}>{row.AsthaDidiUserName}</td>
+                                            <td style={styles.td}>{row.AsthaDidiGuardianName}</td>
+                                            <td style={styles.td}>{formatDisplayDate(row.AsthaDidiDOB)}</td>
+                                            <td style={styles.td}>{row.AsthaDidiGuardianContactNo}</td>
+                                            <td style={styles.td}>{row.AsthaDidiContactNo}</td>
+                                            <td style={styles.td}>{row.AsthaDidiMailId}</td>
+                                            <td style={styles.td}>{row.AsthaDidiSignupUserName || '-'}</td>
+                                            <td style={styles.td}>{row.AsthaDidiSignupPassword || '-'}</td>
+                                            <td style={styles.td}>{row.AsthaDidiStateName}</td>
+                                            <td style={styles.td}>{row.AsthaDidiDistName}</td>
+                                            <td style={styles.td}>{row.AsthaDidiCity}</td>
+                                            <td style={styles.td}>{row.AsthaDidiBlockName}</td>
+                                            <td style={styles.td}>{row.AsthaDidiPO}</td>
+                                            <td style={styles.td}>{row.AsthaDidiPS}</td>
+                                            <td style={styles.td}>{row.AsthaDidiGramPanchayet}</td>
+                                            <td style={styles.td}>{row.AsthaDidiVillage}</td>
+                                            <td style={styles.td}>{row.AsthaDidiPincode}</td>
+                                            <td style={styles.td}>{row.AsthaDidiBankName}</td>
+                                            <td style={styles.td}>{row.AsthaDidiBranchName}</td>
+                                            <td style={styles.td}>{row.AsthaDidiBankAcctNo}</td>
+                                            <td style={styles.td}>{row.AsthaDidiIFSCode}</td>
+                                            <td style={styles.td}>{row.AsthaDidiPanNo}</td>
+                                            <td style={styles.td}>{row.AsthaDidiAadharNo}</td>
+                                            <td style={styles.td}>₹{row.AsthaDidiJoiningAmt}</td>
+                                            <td style={styles.td}>₹{row.AsthaDidiWalletBalance}</td>
+                                            <td style={{ ...styles.td, color: Number(row.AsthaDidiIsActive) === 2 ? 'green' : 'orange', fontWeight: 'bold' }}>{Number(row.AsthaDidiIsActive) === 2 ? 'Approved' : 'Pending'}</td>
+                                            <td style={styles.td}>{row.ApproverDisplayName || row.AsthaDidiAprovedBy || '-'}</td>
+                                            <td style={styles.td}>{formatDisplayDate(row.AsthaDidiAprovalDate)}</td>
+                                            <td style={styles.td}>{row.AsthaDidiRegNo || '-'}</td>
                                             <td style={styles.stickyRightTd}>
                                                 <button onClick={() => openModal('view', row)} style={styles.actionBtn}>👁️</button>
                                                 <button onClick={() => openModal('edit', row)} style={styles.actionBtn}>✏️</button>
                                                 {userRole !== 'Astha Didi' && userRole !== 'Supervisor' && (
                                                     <button onClick={() => openModal('delete', row)} style={styles.actionBtn}>🗑️</button>
                                                 )}
-                                                {Number(row.Status) !== 2 && userRole !== 'Astha Didi' && userRole !== 'Supervisor' && (
+                                                {Number(row.AsthaDidiIsActive) !== 2 && userRole !== 'Astha Didi' && userRole !== 'Supervisor' && (
                                                     <button onClick={() => openModal('approve', row)} style={styles.actionBtn}>✅</button>
                                                 )}
                                             </td>
                                         </tr>
                                     ))}
-                                    {currentMembers.length === 0 && <tr><td colSpan="29" style={{ ...styles.td, textAlign: 'center' }}>No members found in database.</td></tr>}
+                                    {currentMembers.length === 0 && <tr><td colSpan="31" style={{ ...styles.td, textAlign: 'center' }}>No members found in database.</td></tr>}
                                 </tbody>
                             </table>
                         </div>
@@ -490,7 +542,7 @@ const MembersTable = ({ refreshTrigger }) => {
                 <div style={styles.modalOverlay}>
                     <div style={{ ...styles.modalContent, maxWidth: '400px', textAlign: 'center' }}>
                         <h4 style={{ color: '#ff3e1d' }}>Confirm Delete</h4>
-                        <p>Delete <strong>{selectedRow.PerName}</strong>?</p>
+                        <p>Delete <strong>{selectedRow.AsthaDidiUserName}</strong>?</p>
                         <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
                             <button onClick={closeModal} style={styles.btnOutline}>Cancel</button>
                             <button onClick={confirmDelete} style={styles.btnDanger}>Yes, Delete</button>
@@ -498,14 +550,24 @@ const MembersTable = ({ refreshTrigger }) => {
                     </div>
                 </div>
             )}
+
             {approveModal && selectedRow && (
                 <div style={styles.modalOverlay}>
-                    <div style={{ ...styles.modalContent, maxWidth: '400px', textAlign: 'center' }}>
-                        <h4 style={{ color: '#71dd37' }}>Approve Member</h4>
-                        <p>Approve <strong>{selectedRow.PerName}</strong>?</p>
+                    <div style={{ ...styles.modalContent, maxWidth: '450px', textAlign: 'center' }}>
+                        <h4 style={{ color: '#71dd37', marginBottom: '16px' }}>Approve Astha Didi</h4>
+
+                        <div style={{ textAlign: 'left', background: '#f8f9fa', padding: '16px', borderRadius: '8px', marginBottom: '20px', fontSize: '0.9rem', color: '#566a7f', lineHeight: '1.6' }}>
+                            <p style={{ margin: '6px 0' }}><strong>Candidate Name:</strong> {selectedRow.AsthaDidiUserName}</p>
+                            <p style={{ margin: '6px 0' }}><strong>Approval ID:</strong> <span style={{ color: '#696cff', fontWeight: 'bold' }}>{approvalData.id}</span></p>
+                            <p style={{ margin: '6px 0' }}><strong>Approval Date:</strong> {approvalData.dbDate || 'Loading...'}</p>
+                            <p style={{ margin: '6px 0' }}><strong>Authorized Approver:</strong> {userName}</p>
+                        </div>
+
+                        <p style={{ marginBottom: '20px', color: '#697a8d' }}>Do you want to confirm this approval and store this data?</p>
+
                         <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
                             <button onClick={closeModal} style={styles.btnOutline}>Cancel</button>
-                            <button onClick={confirmApprove} style={styles.btnSuccess}>Confirm</button>
+                            <button onClick={confirmApprove} style={styles.btnSuccess} disabled={approvalData.id === 'Generating...'}>Confirm Approval</button>
                         </div>
                     </div>
                 </div>

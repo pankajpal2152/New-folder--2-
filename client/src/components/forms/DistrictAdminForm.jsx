@@ -5,6 +5,7 @@ import * as z from 'zod';
 import Select from 'react-select';
 import { toast } from 'react-toastify';
 import { API_BASE_URL, indianPhoneRegex, styles, FormInput, fileToBase64 } from '../../config/constants';
+import { getSafeUser } from '../AccountSharedUtils';
 
 // ==========================================
 // 1. Validation Schema
@@ -85,7 +86,6 @@ const PasswordInput = ({ label, id, error, placeholder, disabled, ...props }) =>
     );
 };
 
-// ✅ ADDED: Helper to View Base64 PDF in a new tab (for Add Form)
 const handleViewPdf = (base64String) => {
     if (!base64String) return;
     const pdfData = base64String.startsWith('data:application/pdf;base64,') 
@@ -108,7 +108,7 @@ const DistrictAdminForm = ({ onSuccess }) => {
     const [panPdf, setPanPdf] = useState(null);
     const [darpanPdf, setDarpanPdf] = useState(null);
 
-    const { control, handleSubmit, reset, watch, formState: { errors } } = useForm({
+    const { control, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm({
         resolver: zodResolver(ngoSchema),
         mode: 'onChange',
         defaultValues: {
@@ -117,6 +117,12 @@ const DistrictAdminForm = ({ onSuccess }) => {
     });
 
     const selectedState = watch("state");
+    const ngoNameValue = watch("ngoName");
+
+    // ✅ Automatically syncs User Name to NGO Name
+    useEffect(() => {
+        setValue("userName", ngoNameValue || "", { shouldValidate: true });
+    }, [ngoNameValue, setValue]);
 
     useEffect(() => {
         fetch(`${API_BASE_URL}/states`)
@@ -134,15 +140,6 @@ const DistrictAdminForm = ({ onSuccess }) => {
         }
     }, [selectedState]);
 
-    const getCurrentUserEmail = () => {
-        try {
-            const userStr = localStorage.getItem('loggedInUser');
-            if (userStr) return JSON.parse(userStr).email || "";
-        } catch (error) { console.error(error); }
-        return "";
-    };
-
-    // Handler for PDF Uploads
     const handlePdfUpload = async (event, setPdfState) => {
         const file = event.target.files[0];
         if (file) {
@@ -165,9 +162,10 @@ const DistrictAdminForm = ({ onSuccess }) => {
     };
 
     const onSubmitDistrictAdmin = async (data) => {
-        const currentUserEmail = getCurrentUserEmail();
+        const loggedInUser = getSafeUser ? getSafeUser() : null;
+        const currentUserId = loggedInUser ? (loggedInUser.UserSignUpId || loggedInUser.id) : null;
 
-        // Exact mapping to match your database columns
+        // ✅ Exact mapping to match new database columns
         const dbPayload = {
             DistNGOName: data.ngoName,
             DistNGORegDate: data.ngoRegistrationDate,
@@ -190,16 +188,20 @@ const DistrictAdminForm = ({ onSuccess }) => {
             DistNGOIFSCode: data.ifsCode,
             DistNGOBankAdd: data.bankAddress,
 
-            // Mapped PDF state precisely to Backend Columns
             DistNGORecCertificate: regCertPdf, 
             DistNGOPanPic: panPdf, 
             DistNGODarpanPic: darpanPdf,
 
-            // Login Credentials 
-            DistNGOUserName: data.userName,
-            loginEmail: data.ngoEmail,
-            DistNGOPassword: data.password,
-            CreatedBy: currentUserEmail
+            // Account Setup mapped directly to your new columns
+            DistNGOSignupUserName: data.userName,
+            DistNGOSignupEmail: data.ngoEmail,
+            DistNGOSignupPassword: data.password,
+            DistNGOCreatedByAuthRegId: currentUserId,
+            DistNGOIsActive: 1,
+            StateNGORegId: null,
+            DistNGOAprovedBy: null,
+            DistNGOAprovedDate: null,
+            DistNGOGenRegNo: null
         };
 
         try {
@@ -313,8 +315,9 @@ const DistrictAdminForm = ({ onSuccess }) => {
 
                     <h6 style={styles.sectionHeader}>Login & Account Setup</h6>
                     <div style={styles.formGrid}>
+                        {/* ✅ Read Only and dynamically synced User Name */}
                         <Controller name="userName" control={control} render={({ field }) => (
-                            <FormInput label={<>User Name <span style={{ color: '#ff3e1d' }}>*</span></>} id="userName" error={errors.userName} type="text" {...field} />
+                            <FormInput label={<>User Name <span style={{ color: '#ff3e1d' }}>*</span></>} id="userName" error={errors.userName} type="text" readOnly disabled={true} {...field} />
                         )} />
                         <Controller name="ngoEmail" control={control} render={({ field }) => (
                             <FormInput label={<>Email ID (For Login) <span style={{ color: '#ff3e1d' }}>*</span></>} id="ngoEmail" error={errors.ngoEmail} type="email" {...field} />

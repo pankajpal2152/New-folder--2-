@@ -5,6 +5,7 @@ import * as z from 'zod';
 import Select from 'react-select';
 import { toast } from 'react-toastify';
 import { API_BASE_URL, DUMMY_AVATAR, indianZipRegex, indianPhoneRegex, styles, FormInput } from '../../config/constants';
+import { getSafeUser } from '../AccountSharedUtils';
 
 export const asthaMaaSchema = z.object({
     joiningAmount: z.string().min(1, "Joining Amount is required"),
@@ -73,7 +74,7 @@ const SupervisorForm = ({ onSuccess }) => {
     const [profileImage, setProfileImage] = useState(DUMMY_AVATAR);
     const fileInputRef = useRef(null);
 
-    const { control, handleSubmit, reset, watch, formState: { errors } } = useForm({
+    const { control, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm({
         resolver: zodResolver(asthaMaaSchema),
         mode: 'onChange',
         defaultValues: {
@@ -85,6 +86,12 @@ const SupervisorForm = ({ onSuccess }) => {
     });
 
     const selectedState = watch("state");
+    const fullNameValue = watch("fullName");
+
+    // ✅ DYNAMIC SYNC: Automatically sets User Name based on Full Name
+    useEffect(() => {
+        setValue("userName", fullNameValue || "", { shouldValidate: true });
+    }, [fullNameValue, setValue]);
 
     useEffect(() => {
         fetch(`${API_BASE_URL}/states`)
@@ -123,19 +130,14 @@ const SupervisorForm = ({ onSuccess }) => {
         handleResetImage();
     };
 
-    const getCurrentUserEmail = () => {
-        try {
-            const userStr = localStorage.getItem('loggedInUser');
-            if (userStr) return JSON.parse(userStr).email || "";
-        } catch (error) { console.error(error); }
-        return "";
-    };
-
     const onSubmitSupervisor = async (data) => {
         const stateName = data.state ? data.state.label : "";
         const districtName = data.district ? data.district.label : "";
-        const currentUserEmail = getCurrentUserEmail();
 
+        const loggedInUser = getSafeUser ? getSafeUser() : null;
+        const currentUserId = loggedInUser ? (loggedInUser.UserSignUpId || loggedInUser.id) : null;
+
+        // ✅ MAPS EXACTLY TO THE NEW SIGNUP DB COLUMNS
         const dbPayload = {
             SupProfileImage: profileImage === DUMMY_AVATAR ? null : profileImage,
             SupName: data.fullName,
@@ -152,9 +154,11 @@ const SupervisorForm = ({ onSuccess }) => {
             SupVillage: data.village || "",
             SupPincode: parseInt(data.pinCode),
             SupContactNo: data.mobileNo,
-            SupMailId: data.email, // ✅ FIXED: Single L
-            userName: data.userName,
-            password: data.password,
+            SupMailId: data.email,
+            SupSignupUserName: data.userName,
+            SupSignupEmail: data.email,
+            SupSignupPassword: data.password,
+            SupCreatedByAuthRegId: currentUserId,
             SupBankName: data.bankName || "",
             SupBranchName: data.branchName || "",
             SupAcctNo: data.accountNo || "0",
@@ -165,7 +169,7 @@ const SupervisorForm = ({ onSuccess }) => {
             SupWalletBalance: parseInt(data.walletBalance) || 0,
             SupIsActive: 1,
             SupAprovedBy: null,
-            SupAprovalDate: null,
+            SupAprovedDate: null,
             SupRegNo: null
         };
 
@@ -280,14 +284,15 @@ const SupervisorForm = ({ onSuccess }) => {
 
                     <h6 style={styles.sectionHeader}>Login & Account Setup</h6>
                     <div style={styles.formGrid}>
+                        {/* ✅ User Name explicitly set to readOnly and disabled */}
                         <Controller name="userName" control={control} render={({ field }) => (
-                            <FormInput label={<>User Name <span style={{ color: '#ff3e1d' }}>*</span></>} id="userName" error={errors.userName} type="text" {...field} />
+                            <FormInput label={<>User Name <span style={{ color: '#ff3e1d' }}>*</span></>} id="userName" error={errors.userName} type="text" readOnly disabled={true} {...field} />
                         )} />
                         <Controller name="email" control={control} render={({ field }) => (
                             <FormInput label={<>Email ID (For Login) <span style={{ color: '#ff3e1d' }}>*</span></>} id="email" error={errors.email} placeholder="Email ID" type="email" maxLength={100} {...field} />
                         )} />
                         <Controller name="password" control={control} render={({ field }) => (
-                            <PasswordInput label={<>Set New Password <span style={{ color: '#ff3e1d' }}>* (Don't forget it!)</span></>} id="password" error={errors.password} {...field} />
+                            <PasswordInput label={<>Set Password <span style={{ color: '#ff3e1d' }}>*</span></>} id="password" error={errors.password} {...field} />
                         )} />
                     </div>
 

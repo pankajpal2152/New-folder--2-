@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Select from 'react-select';
@@ -6,7 +6,25 @@ import { toast } from 'react-toastify';
 
 import { API_BASE_URL, styles, FormInput, fileToBase64 } from '../config/constants';
 import { ngoSchema } from './forms/DistrictAdminForm';
-import { getSafeUser, PasswordInput, handleViewPdf } from './AccountSharedUtils';
+import { getSafeUser, PasswordInput } from './AccountSharedUtils';
+
+const formatDisplayDate = (dbDateStr) => {
+    if (!dbDateStr) return '-';
+    return String(dbDateStr).substring(0, 10);
+};
+
+const handleViewPdf = (base64String) => {
+    if (!base64String) return;
+    const pdfData = base64String.startsWith('data:application/pdf;base64,') 
+        ? base64String 
+        : `data:application/pdf;base64,${base64String}`;
+    const pdfWindow = window.open("");
+    if (pdfWindow) {
+        pdfWindow.document.write(`<iframe width='100%' height='100%' style='border:none; margin:0; padding:0;' src='${pdfData}'></iframe>`);
+    } else {
+        toast.error("Pop-up blocked! Please allow pop-ups for this site to view documents.");
+    }
+};
 
 const DistrictAdminModal = ({ member, mode, onClose, onSuccess }) => {
     const isView = mode === 'view';
@@ -22,7 +40,7 @@ const DistrictAdminModal = ({ member, mode, onClose, onSuccess }) => {
         mode: 'onChange',
         defaultValues: {
             ngoName: member.DistNGOName || '',
-            ngoRegistrationDate: member.DistNGORegDate ? member.DistNGORegDate.substring(0, 10) : '',
+            ngoRegistrationDate: member.DistNGORegDate ? String(member.DistNGORegDate).substring(0, 10) : '',
             ngoRegistrationNo: member.DistNGORegNo || '',
             ngoPanNo: member.DistNGOPanNo || '',
             ngoDarpanId: member.DistNGODarpanId || '',
@@ -40,13 +58,20 @@ const DistrictAdminModal = ({ member, mode, onClose, onSuccess }) => {
             accountNo: member.DistNGOAcctNo || '',
             ifsCode: member.DistNGOIFSCode || '',
             bankAddress: member.DistNGOBankAdd || '',
-            userName: member.DistNGOUserName || '',
-            password: member.DistNGOPassword || '',
-            ngoEmail: member.DistNGOMailId || ''
+            userName: member.DistNGOSignupUserName || member.DistNGOName || '',
+            password: member.DistNGOSignupPassword || '',
+            ngoEmail: member.DistNGOSignupEmail || member.DistNGOMailId || ''
         }
     });
 
     const selectedState = watch("state");
+    const ngoNameValue = watch("ngoName");
+
+    useEffect(() => {
+        if (!isView) {
+            setValue("userName", ngoNameValue || "", { shouldValidate: true });
+        }
+    }, [ngoNameValue, setValue, isView]);
 
     useEffect(() => {
         fetch(`${API_BASE_URL}/states`).then(res => res.json()).then(data => {
@@ -86,22 +111,37 @@ const DistrictAdminModal = ({ member, mode, onClose, onSuccess }) => {
     const onSubmit = async (data) => {
         if (isView) { onClose(); return; }
 
-        const loggedInUser = getSafeUser();
         const dbPayload = {
             ...member,
-            DistNGOName: data.ngoName, DistNGORegDate: data.ngoRegistrationDate, DistNGORegNo: data.ngoRegistrationNo,
-            DistNGOPanNo: data.ngoPanNo, DistNGODarpanId: data.ngoDarpanId, DistNGOMailId: data.generalNgoEmail,
-            DistNGOPhoneNo: data.ngoMobile, DistNGORegAddress: data.ngoRegAddress, DistNGOWorkingAddress: data.ngoWorkingAddress,
-            DistNGOStateName: data.state ? data.state.label : "", DistNGODistName: data.district ? data.district.label : "",
+            DistNGOName: data.ngoName, 
+            DistNGORegDate: data.ngoRegistrationDate, 
+            DistNGORegNo: data.ngoRegistrationNo,
+            DistNGOPanNo: data.ngoPanNo, 
+            DistNGODarpanId: data.ngoDarpanId, 
+            DistNGOMailId: data.generalNgoEmail,
+            DistNGOPhoneNo: data.ngoMobile, 
+            DistNGORegAddress: data.ngoRegAddress, 
+            DistNGOWorkingAddress: data.ngoWorkingAddress,
+            DistNGOStateName: data.state ? data.state.label : "", 
+            DistNGODistName: data.district ? data.district.label : "",
             DistNGOBlockName: data.blockName,
-            DistNGOSDPName: data.sdpName, DistNGOSDPMailId: data.secretaryEmail,
-            DistNGOSDPPhoneNo: data.secretaryMobile, DistNGOSDPAadhaarNo: data.secretaryAadhar, DistNGOBankName: data.bankName,
-            DistNGOAcctNo: data.accountNo, DistNGOIFSCode: data.ifsCode, DistNGOBankAdd: data.bankAddress,
-            DistNGOUserName: data.userName, DistNGOPassword: data.password,
-            DistNGORecCertificate: regCertPdf, DistNGOPanPic: panPdf, DistNGODarpanPic: darpanPdf,
-            loginEmail: data.ngoEmail,
-            ModifyBy: loggedInUser ? loggedInUser.email : "System"
+            DistNGOSDPName: data.sdpName, 
+            DistNGOSDPMailId: data.secretaryEmail,
+            DistNGOSDPPhoneNo: data.secretaryMobile, 
+            DistNGOSDPAadhaarNo: data.secretaryAadhar, 
+            DistNGOBankName: data.bankName,
+            DistNGOAcctNo: data.accountNo, 
+            DistNGOIFSCode: data.ifsCode, 
+            DistNGOBankAdd: data.bankAddress,
+            DistNGOSignupUserName: data.userName, 
+            DistNGOSignupEmail: data.ngoEmail,
+            DistNGOSignupPassword: data.password,
+            DistNGORecCertificate: regCertPdf, 
+            DistNGOPanPic: panPdf, 
+            DistNGODarpanPic: darpanPdf,
         };
+
+        if (dbPayload.DistNGORegDate) dbPayload.DistNGORegDate = String(dbPayload.DistNGORegDate).substring(0, 10);
 
         try {
             toast.loading("Updating record...", { toastId: 'updateNgo' });
@@ -122,6 +162,18 @@ const DistrictAdminModal = ({ member, mode, onClose, onSuccess }) => {
                     <button style={styles.closeBtn} onClick={onClose}>×</button>
                 </div>
                 <div style={styles.cardBody}>
+                    <div style={styles.profileSection}>
+                        <div>
+                            <p style={styles.hintText}><strong>Status:</strong> {Number(member.DistNGOIsActive) === 2 ? 'Approved' : 'Pending'}</p>
+                            {Number(member.DistNGOIsActive) === 2 && member.DistNGOAprovedBy && (
+                                <>
+                                    <p style={styles.hintText}><strong>Approved By:</strong> {member.ApproverDisplayName || member.DistNGOAprovedBy}</p>
+                                    <p style={styles.hintText}><strong>Approval Date:</strong> {formatDisplayDate(member.DistNGOAprovedDate)}</p>
+                                    <p style={styles.hintText}><strong>Approval ID:</strong> {member.DistNGOGenRegNo || '-'}</p>
+                                </>
+                            )}
+                        </div>
+                    </div>
                     <form onSubmit={handleSubmit(onSubmit, () => !isView && toast.error("Check errors!"))}>
 
                         <h6 style={styles.sectionHeader}>NGO Details</h6>
@@ -173,8 +225,8 @@ const DistrictAdminModal = ({ member, mode, onClose, onSuccess }) => {
 
                         <h6 style={styles.sectionHeader}>Login & Account Setup</h6>
                         <div style={styles.formGrid}>
-                            <Controller name="userName" control={control} render={({ field }) => (<FormInput label="User Name *" id="e_user" error={errors.userName} disabled={isView} {...field} />)} />
-                            <Controller name="ngoEmail" control={control} render={({ field }) => (<FormInput label="Email ID (For Login) *" id="e_loginEmail" type="email" error={errors.ngoEmail} disabled={isView} {...field} />)} />
+                            <Controller name="userName" control={control} render={({ field }) => (<FormInput label="User Name *" id="e_user" error={errors.userName} readOnly disabled={true} {...field} />)} />
+                            <Controller name="ngoEmail" control={control} render={({ field }) => (<FormInput label="Email ID (For Login) *" id="e_loginEmail" type="email" error={errors.ngoEmail} disabled readOnly {...field} />)} />
                             <Controller name="password" control={control} render={({ field }) => (<PasswordInput label={<>Set Password <span style={{ color: '#ff3e1d' }}>*</span></>} id="e_pass" error={errors.password} disabled={isView} {...field} />)} />
                         </div>
 
@@ -240,10 +292,27 @@ const DistrictAdminModal = ({ member, mode, onClose, onSuccess }) => {
 const DistrictAdminTable = ({ refreshTrigger }) => {
     const [members, setMembers] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [userRole, setUserRole] = useState('');
+    const [userName, setUserName] = useState('');
+    const [userId, setUserId] = useState('');
 
     const [viewModal, setViewModal] = useState(false);
     const [editModal, setEditModal] = useState(false);
+    const [deleteModal, setDeleteModal] = useState(false);
+    const [approveModal, setApproveModal] = useState(false);
     const [selectedRow, setSelectedRow] = useState(null);
+
+    // Tracks dynamic approval ID and Date
+    const [approvalData, setApprovalData] = useState({ id: '', dbDate: '' });
+
+    useEffect(() => {
+        const user = getSafeUser();
+        if (user) { 
+            setUserRole(user.role || ''); 
+            setUserName(user.username || ''); 
+            setUserId(user.UserSignUpId || user.id || '');
+        }
+    }, []);
 
     const fetchMembers = async () => {
         setLoading(true);
@@ -252,7 +321,7 @@ const DistrictAdminTable = ({ refreshTrigger }) => {
             if (!res.ok) throw new Error("Failed to fetch data");
             let data = await res.json();
 
-            data = data.filter(member => String(member.IsActive) !== '0');
+            data = data.filter(member => String(member.DistNGOIsActive) !== '0');
             setMembers(data);
         } catch (error) { toast.error("Failed to load table data."); }
         finally { setLoading(false); }
@@ -260,13 +329,100 @@ const DistrictAdminTable = ({ refreshTrigger }) => {
 
     useEffect(() => { fetchMembers(); }, [refreshTrigger]);
 
-    const openModal = (type, member) => {
+    // ✅ Approval ID Logic using Secretary's Aadhar 
+    const openModal = async (type, member) => {
         setSelectedRow({ ...member });
         if (type === 'view') setViewModal(true);
         if (type === 'edit') setEditModal(true);
+        if (type === 'delete') setDeleteModal(true);
+        if (type === 'approve') {
+            setApproveModal(true);
+            setApprovalData({ id: 'Generating...', dbDate: '' });
+
+            const d = new Date();
+            const utc = d.getTime() + (d.getTimezoneOffset() * 60000);
+            const istDate = new Date(utc + (3600000 * 5.5)); 
+            const dbDate = istDate.toISOString().split('T')[0];
+
+            let stateId = '00';
+            let distId = '00';
+
+            try {
+                const stateRes = await fetch(`${API_BASE_URL}/states`);
+                const states = await stateRes.json();
+                const stateObj = states.find(s => s.StateName === member.DistNGOStateName);
+
+                if (stateObj) {
+                    stateId = String(stateObj.StateId).padStart(2, '0');
+                    const distRes = await fetch(`${API_BASE_URL}/districts/${stateObj.StateId}`);
+                    const dists = await distRes.json();
+                    const distObj = dists.find(d => d.DistName === member.DistNGODistName);
+
+                    if (distObj) {
+                        distId = String(distObj.DistId).padStart(2, '0');
+                    }
+                }
+            } catch (e) {
+                console.error("Error fetching state/dist IDs for approval generation:", e);
+            }
+
+            const aadhar = member.DistNGOSDPAadhaarNo || '000000000000';
+            const finalApprovalId = `${stateId}${distId}${aadhar}`;
+
+            setApprovalData({ id: finalApprovalId, dbDate });
+        }
     };
 
-    const closeModal = () => { setViewModal(false); setEditModal(false); setSelectedRow(null); };
+    const closeModal = () => { setViewModal(false); setEditModal(false); setDeleteModal(false); setApproveModal(false); setSelectedRow(null); };
+
+    const confirmDelete = async () => {
+        try {
+            toast.loading("Deleting...", { toastId: 'deleteNgo' });
+
+            const payload = { ...selectedRow, DistNGOIsActive: "0" };
+
+            Object.keys(payload).forEach(key => {
+                if (typeof payload[key] === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(payload[key])) {
+                    payload[key] = payload[key].substring(0, 10);
+                }
+            });
+
+            const res = await fetch(`${API_BASE_URL}/districtadmin/${selectedRow.DistNGORegId}`, {
+                method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+            });
+
+            toast.dismiss('deleteNgo');
+            if (res.ok) { toast.success("Record deleted."); setMembers(prev => prev.filter(m => m.DistNGORegId !== selectedRow.DistNGORegId)); closeModal(); }
+            else { toast.error("Failed to delete."); }
+        } catch (error) { toast.dismiss('deleteNgo'); toast.error("Network error."); }
+    };
+
+    const confirmApprove = async () => {
+        try {
+            toast.loading("Approving...", { toastId: 'approveNgo' });
+
+            const payload = { 
+                ...selectedRow, 
+                DistNGOIsActive: 2, 
+                DistNGOGenRegNo: approvalData.id, 
+                DistNGOAprovedDate: approvalData.dbDate, 
+                DistNGOAprovedBy: String(userId) 
+            };
+
+            Object.keys(payload).forEach(key => {
+                if (key !== 'DistNGOAprovedDate' && typeof payload[key] === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(payload[key])) {
+                    payload[key] = payload[key].substring(0, 10);
+                }
+            });
+
+            const res = await fetch(`${API_BASE_URL}/districtadmin/${selectedRow.DistNGORegId}`, {
+                method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+            });
+            toast.dismiss('approveNgo');
+            if (res.ok) { toast.success(`Record Approved! ID: ${approvalData.id}`); closeModal(); fetchMembers(); }
+            else { toast.error("Failed to approve."); }
+        } catch (error) { toast.dismiss('approveNgo'); toast.error("Network error."); }
+    };
 
     const renderTh = (label, isLeft = false, isRight = false) => (
         <th style={isLeft ? styles.stickyLeftTh : isRight ? styles.stickyRightTh : styles.th}>{label}</th>
@@ -304,9 +460,13 @@ const DistrictAdminTable = ({ refreshTrigger }) => {
                                     {renderTh('Account No')}
                                     {renderTh('IFS Code')}
                                     {renderTh('Bank Address')}
-                                    {renderTh('User Name')}
+                                    {renderTh('Login User Name')}
+                                    {renderTh('Login Email')}
+                                    {renderTh('Login Password')}
                                     {renderTh('Status')}
-                                    {renderTh('Created By')}
+                                    {renderTh('Approved By')}
+                                    {renderTh('Approval Date')}
+                                    {renderTh('Approval Reg No')}
                                     {renderTh('Reg Cert PDF')}
                                     {renderTh('NGO PAN PDF')}
                                     {renderTh('Darpan PDF')}
@@ -317,7 +477,7 @@ const DistrictAdminTable = ({ refreshTrigger }) => {
                                 {members.map((row) => (
                                     <tr key={row.DistNGORegId}>
                                         <td style={styles.stickyLeftTd}>{row.DistNGOName}</td>
-                                        <td style={styles.td}>{row.DistNGORegDate ? row.DistNGORegDate.substring(0, 10) : ''}</td>
+                                        <td style={styles.td}>{formatDisplayDate(row.DistNGORegDate)}</td>
                                         <td style={styles.td}>{row.DistNGORegNo}</td>
                                         <td style={styles.td}>{row.DistNGOPanNo}</td>
                                         <td style={styles.td}>{row.DistNGODarpanId}</td>
@@ -336,15 +496,23 @@ const DistrictAdminTable = ({ refreshTrigger }) => {
                                         <td style={styles.td}>{row.DistNGOAcctNo}</td>
                                         <td style={styles.td}>{row.DistNGOIFSCode}</td>
                                         <td style={styles.td}>{row.DistNGOBankAdd}</td>
-                                        <td style={styles.td}>{row.DistNGOUserName}</td>
-                                        <td style={{ ...styles.td, color: Number(row.IsActive) === 2 ? 'green' : 'orange', fontWeight: 'bold' }}>{Number(row.IsActive) === 2 ? 'Approved' : 'Pending'}</td>
-                                        <td style={styles.td}>{row.CreatedBy || '-'}</td>
+                                        <td style={styles.td}>{row.DistNGOSignupUserName || '-'}</td>
+                                        <td style={styles.td}>{row.DistNGOSignupEmail || '-'}</td>
+                                        <td style={styles.td}>{row.DistNGOSignupPassword || '-'}</td>
+                                        <td style={{ ...styles.td, color: Number(row.DistNGOIsActive) === 2 ? 'green' : 'orange', fontWeight: 'bold' }}>{Number(row.DistNGOIsActive) === 2 ? 'Approved' : 'Pending'}</td>
+                                        <td style={styles.td}>{row.ApproverDisplayName || row.DistNGOAprovedBy || '-'}</td>
+                                        <td style={styles.td}>{formatDisplayDate(row.DistNGOAprovedDate)}</td>
+                                        <td style={styles.td}>{row.DistNGOGenRegNo || '-'}</td>
                                         <td style={styles.td}>{row.DistNGORecCertificate ? '✅ Uploaded' : '❌ Missing'}</td>
                                         <td style={styles.td}>{row.DistNGOPanPic ? '✅ Uploaded' : '❌ Missing'}</td>
                                         <td style={styles.td}>{row.DistNGODarpanPic ? '✅ Uploaded' : '❌ Missing'}</td>
                                         <td style={styles.stickyRightTd}>
                                             <button onClick={() => openModal('view', row)} style={styles.actionBtn}>👁️</button>
                                             <button onClick={() => openModal('edit', row)} style={styles.actionBtn}>✏️</button>
+                                            <button onClick={() => openModal('delete', row)} style={styles.actionBtn}>🗑️</button>
+                                            {Number(row.DistNGOIsActive) !== 2 && (
+                                                <button onClick={() => openModal('approve', row)} style={styles.actionBtn}>✅</button>
+                                            )}
                                         </td>
                                     </tr>
                                 ))}
@@ -356,7 +524,42 @@ const DistrictAdminTable = ({ refreshTrigger }) => {
 
             {viewModal && selectedRow && <DistrictAdminModal member={selectedRow} mode="view" onClose={closeModal} onSuccess={closeModal} />}
             {editModal && selectedRow && <DistrictAdminModal member={selectedRow} mode="edit" onClose={closeModal} onSuccess={() => { closeModal(); fetchMembers(); }} />}
+            
+            {deleteModal && selectedRow && (
+                <div style={styles.modalOverlay}>
+                    <div style={{ ...styles.modalContent, maxWidth: '400px', textAlign: 'center' }}>
+                        <h4 style={{ color: '#ff3e1d' }}>Confirm Delete</h4>
+                        <p>Delete <strong>{selectedRow.DistNGOName}</strong>?</p>
+                        <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
+                            <button onClick={closeModal} style={styles.btnOutline}>Cancel</button>
+                            <button onClick={confirmDelete} style={styles.btnDanger}>Yes, Delete</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            
+            {/* ✅ Detailed Approval Modal */}
+            {approveModal && selectedRow && (
+                <div style={styles.modalOverlay}>
+                    <div style={{ ...styles.modalContent, maxWidth: '450px', textAlign: 'center' }}>
+                        <h4 style={{ color: '#71dd37', marginBottom: '16px' }}>Approve District Administrator</h4>
 
+                        <div style={{ textAlign: 'left', background: '#f8f9fa', padding: '16px', borderRadius: '8px', marginBottom: '20px', fontSize: '0.9rem', color: '#566a7f', lineHeight: '1.6' }}>
+                            <p style={{ margin: '6px 0' }}><strong>Candidate Name:</strong> {selectedRow.DistNGOName}</p>
+                            <p style={{ margin: '6px 0' }}><strong>Approval ID:</strong> <span style={{ color: '#696cff', fontWeight: 'bold' }}>{approvalData.id}</span></p>
+                            <p style={{ margin: '6px 0' }}><strong>Approval Date:</strong> {approvalData.dbDate || 'Loading...'}</p>
+                            <p style={{ margin: '6px 0' }}><strong>Authorized Approver:</strong> {userName}</p>
+                        </div>
+
+                        <p style={{ marginBottom: '20px', color: '#697a8d' }}>Do you want to confirm this approval and store this data?</p>
+
+                        <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
+                            <button onClick={closeModal} style={styles.btnOutline}>Cancel</button>
+                            <button onClick={confirmApprove} style={styles.btnSuccess} disabled={approvalData.id === 'Generating...'}>Confirm Approval</button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

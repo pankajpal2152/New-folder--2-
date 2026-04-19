@@ -266,30 +266,54 @@ exports.deleteAsthaMaa = (req, res) => {
 // DISTRICT ADMIN REGISTRATION (dist_ngo_reg)
 // ==========================================
 exports.getDistrictAdmin = (req, res) => {
-    db.query('SELECT * FROM dist_ngo_reg ORDER BY DistNGORegId DESC', (err, results) => {
+    // ✅ PERFECT SYNC: Maps to newly aligned schema names
+    const query = `
+        SELECT a.*, 
+               DATE_FORMAT(a.DistNGOAprovedDate, '%Y-%m-%d') AS DistNGOAprovedDateRaw,
+               DATE_FORMAT(a.DistNGORegDate, '%Y-%m-%d') AS DistNGORegDateRaw,
+               u.SignupUserName AS ApproverName, u.UserSignUpEmail AS ApproverEmail 
+        FROM \`dist_ngo_reg\` a 
+        LEFT JOIN userssignup u ON a.DistNGOAprovedBy = CAST(u.UserSignUpId AS CHAR)
+        ORDER BY a.DistNGORegId DESC
+    `;
+    db.query(query, (err, results) => {
         if (err) { console.error("❌ getDistrictAdmin DB Error:", err.message); return res.status(500).json({ error: err.message }); }
-        res.json(results);
+        
+        const mappedResults = results.map(row => {
+            let approverDisplayName = row.DistNGOAprovedBy;
+            if (row.ApproverName) { approverDisplayName = row.ApproverName; }
+            else if (row.ApproverEmail) { approverDisplayName = row.ApproverEmail.split('@')[0]; }
+            return {
+                ...row,
+                ApproverDisplayName: approverDisplayName,
+                DistNGOAprovedDate: row.DistNGOAprovedDateRaw || row.DistNGOAprovedDate,
+                DistNGORegDate: row.DistNGORegDateRaw || row.DistNGORegDate
+            };
+        });
+        
+        res.json(mappedResults);
     });
 };
 
 exports.createDistrictAdmin = (req, res) => {
     const data = req.body;
 
+    // ✅ Insert query mapped perfectly to the new exact database schema
     const insertQuery = `INSERT INTO dist_ngo_reg 
-        (DistNGOName, DistNGORegDate, DistNGORegNo, DistNGOPanNo, DistNGODarpanId, DistNGOMailId, DistNGOPhoneNo, DistNGORegAddress, DistNGOWorkingAddress, DistNGOStateName, DistNGODistName, DistNGOBlockName, DistNGOSDPName, DistNGOSDPMailId, DistNGOSDPPhoneNo, DistNGOSDPAadhaarNo, DistNGOBankName, DistNGOAcctNo, DistNGOIFSCode, DistNGOBankAdd, DistNGOUserName, DistNGOPassword, DistNGORecCertificate, DistNGOPanPic, DistNGODarpanPic, CreatedDate, CreatedBy, IsActive, IsLocked) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, 1, 0)`;
+        (DistNGOName, DistNGORegDate, DistNGORegNo, DistNGOPanNo, DistNGODarpanId, DistNGOMailId, DistNGOPhoneNo, DistNGORegAddress, DistNGOWorkingAddress, DistNGOStateName, DistNGODistName, DistNGOBlockName, DistNGOSDPName, DistNGOSDPMailId, DistNGOSDPPhoneNo, DistNGOSDPAadhaarNo, DistNGOBankName, DistNGOAcctNo, DistNGOIFSCode, DistNGOBankAdd, DistNGORecCertificate, DistNGOPanPic, DistNGODarpanPic, DistNGOSignupUserName, DistNGOSignupEmail, DistNGOSignupPassword, DistNGOCreatedByAuthRegId, DistNGOCreatedDate, StateNGORegId, DistNGOIsActive, DistNGOAprovedBy, DistNGOAprovedDate, DistNGOGenRegNo) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?, ?, ?)`;
 
     const values = [
-        data.DistNGOName, data.DistNGORegDate, data.DistNGORegNo, data.DistNGOPanNo, data.DistNGODarpanId, data.DistNGOMailId, data.DistNGOPhoneNo, data.DistNGORegAddress, data.DistNGOWorkingAddress, data.DistNGOStateName, data.DistNGODistName, data.DistNGOBlockName, data.DistNGOSDPName, data.DistNGOSDPMailId, data.DistNGOSDPPhoneNo, data.DistNGOSDPAadhaarNo, data.DistNGOBankName, data.DistNGOAcctNo, data.DistNGOIFSCode, data.DistNGOBankAdd, data.DistNGOUserName, data.DistNGOPassword, data.DistNGORecCertificate, data.DistNGOPanPic, data.DistNGODarpanPic,
-        null
+        data.DistNGOName, data.DistNGORegDate, data.DistNGORegNo, data.DistNGOPanNo, data.DistNGODarpanId, data.DistNGOMailId, data.DistNGOPhoneNo, data.DistNGORegAddress, data.DistNGOWorkingAddress, data.DistNGOStateName, data.DistNGODistName, data.DistNGOBlockName, data.DistNGOSDPName, data.DistNGOSDPMailId, data.DistNGOSDPPhoneNo, data.DistNGOSDPAadhaarNo, data.DistNGOBankName, data.DistNGOAcctNo, data.DistNGOIFSCode, data.DistNGOBankAdd, data.DistNGORecCertificate, data.DistNGOPanPic, data.DistNGODarpanPic, data.DistNGOSignupUserName, data.DistNGOSignupEmail, data.DistNGOSignupPassword, data.DistNGOCreatedByAuthRegId || null, 
+        data.StateNGORegId || null, data.DistNGOIsActive || 1, data.DistNGOAprovedBy || null, data.DistNGOAprovedDate || null, data.DistNGOGenRegNo || null
     ];
 
     db.query(insertQuery, values, (err, result) => {
         if (err) { console.error("❌ createDistrictAdmin Primary DB Error:", err.message); return res.status(500).json({ error: err.message }); }
 
-        if (data.DistNGOUserName && data.DistNGOPassword && data.loginEmail) {
+        if (data.DistNGOSignupUserName && data.DistNGOSignupPassword && data.DistNGOSignupEmail) {
             const signupQuery = `INSERT INTO userssignup (UserSignUpRole, SignupUserName, UserSignUpEmail, UserSignUpPassword, UserSignIsActive, UserAtuorizedRegId, ProfileRegId) VALUES (?, ?, ?, ?, 1, ?, ?)`;
-            const signupValues = ['District Administrator', data.DistNGOUserName, data.loginEmail, data.DistNGOPassword, data.CreatedByAutoRegId || null, result.insertId];
+            const signupValues = ['District Administrator', data.DistNGOSignupUserName, data.DistNGOSignupEmail, data.DistNGOSignupPassword, data.DistNGOCreatedByAuthRegId || null, result.insertId];
             db.query(signupQuery, signupValues, (signupErr) => {
                 if (signupErr) console.error("❌ Auto-Signup DB Error (District Admin):", signupErr.message);
             });
@@ -303,21 +327,21 @@ exports.updateDistrictAdmin = (req, res) => {
     const { id } = req.params;
     const data = req.body;
 
+    // ✅ Update query mapped perfectly to the new exact database schema
     const updateQuery = `UPDATE dist_ngo_reg SET 
-        DistNGOName=?, DistNGORegDate=?, DistNGORegNo=?, DistNGOPanNo=?, DistNGODarpanId=?, DistNGOMailId=?, DistNGOPhoneNo=?, DistNGORegAddress=?, DistNGOWorkingAddress=?, DistNGOStateName=?, DistNGODistName=?, DistNGOBlockName=?, DistNGOSDPName=?, DistNGOSDPMailId=?, DistNGOSDPPhoneNo=?, DistNGOSDPAadhaarNo=?, DistNGOBankName=?, DistNGOAcctNo=?, DistNGOIFSCode=?, DistNGOBankAdd=?, DistNGOUserName=?, DistNGOPassword=?, DistNGORecCertificate=?, DistNGOPanPic=?, DistNGODarpanPic=?, ModifyDate=NOW(), ModifyBy=?, AprovedBy=?, AprovedDate=?, GenRegNumber=?, IsActive=?, IsLocked=?
+        DistNGOName=?, DistNGORegDate=?, DistNGORegNo=?, DistNGOPanNo=?, DistNGODarpanId=?, DistNGOMailId=?, DistNGOPhoneNo=?, DistNGORegAddress=?, DistNGOWorkingAddress=?, DistNGOStateName=?, DistNGODistName=?, DistNGOBlockName=?, DistNGOSDPName=?, DistNGOSDPMailId=?, DistNGOSDPPhoneNo=?, DistNGOSDPAadhaarNo=?, DistNGOBankName=?, DistNGOAcctNo=?, DistNGOIFSCode=?, DistNGOBankAdd=?, DistNGORecCertificate=?, DistNGOPanPic=?, DistNGODarpanPic=?, DistNGOSignupUserName=?, DistNGOSignupEmail=?, DistNGOSignupPassword=?, DistNGOIsActive=?, DistNGOAprovedBy=?, DistNGOAprovedDate=?, DistNGOGenRegNo=?
         WHERE DistNGORegId=?`;
 
     const values = [
-        data.DistNGOName, data.DistNGORegDate, data.DistNGORegNo, data.DistNGOPanNo, data.DistNGODarpanId, data.DistNGOMailId, data.DistNGOPhoneNo, data.DistNGORegAddress, data.DistNGOWorkingAddress, data.DistNGOStateName, data.DistNGODistName, data.DistNGOBlockName, data.DistNGOSDPName, data.DistNGOSDPMailId, data.DistNGOSDPPhoneNo, data.DistNGOSDPAadhaarNo, data.DistNGOBankName, data.DistNGOAcctNo, data.DistNGOIFSCode, data.DistNGOBankAdd, data.DistNGOUserName, data.DistNGOPassword, data.DistNGORecCertificate, data.DistNGOPanPic, data.DistNGODarpanPic,
-        null, null, data.AprovedDate || null, data.GenRegNumber || null, data.IsActive || 1, data.IsLocked || 0, id
+        data.DistNGOName, data.DistNGORegDate, data.DistNGORegNo, data.DistNGOPanNo, data.DistNGODarpanId, data.DistNGOMailId, data.DistNGOPhoneNo, data.DistNGORegAddress, data.DistNGOWorkingAddress, data.DistNGOStateName, data.DistNGODistName, data.DistNGOBlockName, data.DistNGOSDPName, data.DistNGOSDPMailId, data.DistNGOSDPPhoneNo, data.DistNGOSDPAadhaarNo, data.DistNGOBankName, data.DistNGOAcctNo, data.DistNGOIFSCode, data.DistNGOBankAdd, data.DistNGORecCertificate, data.DistNGOPanPic, data.DistNGODarpanPic, data.DistNGOSignupUserName, data.DistNGOSignupEmail, data.DistNGOSignupPassword, data.DistNGOIsActive, data.DistNGOAprovedBy, data.DistNGOAprovedDate, data.DistNGOGenRegNo, id
     ];
 
     db.query(updateQuery, values, (err) => {
         if (err) { console.error("❌ updateDistrictAdmin Primary DB Error:", err.message); return res.status(500).json({ error: err.message }); }
 
-        if (data.DistNGOPassword && data.loginEmail) {
+        if (data.DistNGOSignupPassword && data.DistNGOSignupEmail) {
             const signupQuery = `UPDATE userssignup SET UserSignUpPassword=? WHERE UserSignUpEmail=? AND UserSignUpRole='District Administrator'`;
-            const signupValues = [data.DistNGOPassword, data.loginEmail];
+            const signupValues = [data.DistNGOSignupPassword, data.DistNGOSignupEmail];
             db.query(signupQuery, signupValues, (signupErr) => {
                 if (signupErr) console.error("❌ Auto-Update Signup DB Error (District Admin):", signupErr.message);
             });
@@ -338,9 +362,31 @@ exports.deleteDistrictAdmin = (req, res) => {
 // SUPERVISOR REGISTRATION (suvervisor_reg)
 // ==========================================
 exports.getSupervisor = (req, res) => {
-    db.query('SELECT * FROM suvervisor_reg ORDER BY SupRegId DESC', (err, results) => {
+    const query = `
+        SELECT a.*, 
+               DATE_FORMAT(a.SupAprovedDate, '%Y-%m-%d') AS SupAprovedDateRaw,
+               DATE_FORMAT(a.SupDOB, '%Y-%m-%d') AS SupDOBRaw,
+               u.SignupUserName AS ApproverName, u.UserSignUpEmail AS ApproverEmail 
+        FROM \`suvervisor_reg\` a 
+        LEFT JOIN userssignup u ON a.SupAprovedBy = CAST(u.UserSignUpId AS CHAR)
+        ORDER BY a.SupRegId DESC
+    `;
+    db.query(query, (err, results) => {
         if (err) { console.error("❌ getSupervisor DB Error:", err.message); return res.status(500).json({ error: err.message }); }
-        res.json(results);
+
+        const mappedResults = results.map(row => {
+            let approverDisplayName = row.SupAprovedBy;
+            if (row.ApproverName) { approverDisplayName = row.ApproverName; }
+            else if (row.ApproverEmail) { approverDisplayName = row.ApproverEmail.split('@')[0]; }
+            return {
+                ...row,
+                ApproverDisplayName: approverDisplayName,
+                SupAprovedDate: row.SupAprovedDateRaw || row.SupAprovedDate,
+                SupDOB: row.SupDOBRaw || row.SupDOB
+            };
+        });
+
+        res.json(mappedResults);
     });
 };
 
@@ -352,15 +398,19 @@ exports.createSupervisor = (req, res) => {
         SupStateName, SupDistName, SupCity, SupBlockName, SupPO, SupPS, 
         SupGramPanchayet, SupVillage, SupPincode, SupContactNo, SupMailId, 
         SupBankName, SupBranchName, SupAcctNo, SupIFSCode, SupPanNo, SupAadharNo, 
-        SupJoiningAmt, SupWalletBalance, SupIsActive, SupAprovedBy, SupAprovalDate, SupRegNo
-    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
+        SupJoiningAmt, SupWalletBalance, SupSignupUserName, SupSignupEmail, SupSignupPassword,
+        SupCreatedByAuthRegId, SupCreatedDate, StateNGORegId, DistNGORegId, SupIsActive, 
+        SupAprovedBy, SupAprovedDate, SupRegNo
+    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,NOW(),?,?,?,?,?,?)`;
 
     const values = [
         data.SupProfileImage, data.SupName, data.SupGuardianName, data.SupDOB, data.SupGuardianContactNo,
         data.SupStateName, data.SupDistName, data.SupCity, data.SupBlockName, data.SupPO, data.SupPS,
         data.SupGramPanchayet, data.SupVillage, data.SupPincode, data.SupContactNo, data.SupMailId,
         data.SupBankName, data.SupBranchName, data.SupAcctNo, data.SupIFSCode, data.SupPanNo, data.SupAadharNo,
-        data.SupJoiningAmt, data.SupWalletBalance, data.SupIsActive || 1, data.SupAprovedBy || null, data.SupAprovalDate || null, data.SupRegNo || null
+        data.SupJoiningAmt, data.SupWalletBalance, data.SupSignupUserName, data.SupSignupEmail, data.SupSignupPassword,
+        data.SupCreatedByAuthRegId || null, data.StateNGORegId || null, data.DistNGORegId || null,
+        data.SupIsActive || 1, data.SupAprovedBy || null, data.SupAprovedDate || null, data.SupRegNo || null
     ];
 
     db.query(insertQuery, values, (err, result) => {
@@ -372,9 +422,9 @@ exports.createSupervisor = (req, res) => {
             db.query('UPDATE suvervisor_reg SET SupProfileImage=? WHERE SupRegId=?', [taggedImage, newId], () => { });
         }
 
-        if (data.userName && data.password && data.SupMailId) {
+        if (data.SupSignupUserName && data.SupSignupPassword && data.SupSignupEmail) {
             const signupQuery = `INSERT INTO userssignup (UserSignUpRole, SignupUserName, UserSignUpEmail, UserSignUpPassword, UserSignIsActive, UserAtuorizedRegId, ProfileRegId) VALUES (?, ?, ?, ?, 1, ?, ?)`;
-            const signupValues = ['Supervisor', data.userName, data.SupMailId, data.password, data.CreatedByAutoRegId || null, newId];
+            const signupValues = ['Supervisor', data.SupSignupUserName, data.SupSignupEmail, data.SupSignupPassword, data.SupCreatedByAuthRegId || null, newId];
             db.query(signupQuery, signupValues, (signupErr) => {
                 if (signupErr) console.error("❌ Auto-Signup DB Error (Supervisor):", signupErr.message);
             });
@@ -397,7 +447,8 @@ exports.updateSupervisor = (req, res) => {
         SupStateName=?, SupDistName=?, SupCity=?, SupBlockName=?, SupPO=?, SupPS=?, 
         SupGramPanchayet=?, SupVillage=?, SupPincode=?, SupContactNo=?, SupMailId=?, 
         SupBankName=?, SupBranchName=?, SupAcctNo=?, SupIFSCode=?, SupPanNo=?, SupAadharNo=?, 
-        SupJoiningAmt=?, SupWalletBalance=?, SupIsActive=?, SupAprovedBy=?, SupAprovalDate=?, SupRegNo=?
+        SupJoiningAmt=?, SupWalletBalance=?, SupSignupUserName=?, SupSignupEmail=?, SupSignupPassword=?,
+        SupIsActive=?, SupAprovedBy=?, SupAprovedDate=?, SupRegNo=?
         WHERE SupRegId=?`;
 
     const values = [
@@ -405,15 +456,16 @@ exports.updateSupervisor = (req, res) => {
         data.SupStateName, data.SupDistName, data.SupCity, data.SupBlockName, data.SupPO, data.SupPS,
         data.SupGramPanchayet, data.SupVillage, data.SupPincode, data.SupContactNo, data.SupMailId,
         data.SupBankName, data.SupBranchName, data.SupAcctNo, data.SupIFSCode, data.SupPanNo, data.SupAadharNo,
-        data.SupJoiningAmt, data.SupWalletBalance, data.SupIsActive, data.SupAprovedBy, data.SupAprovalDate, data.SupRegNo, id
+        data.SupJoiningAmt, data.SupWalletBalance, data.SupSignupUserName, data.SupSignupEmail, data.SupSignupPassword,
+        data.SupIsActive, data.SupAprovedBy, data.SupAprovedDate, data.SupRegNo, id
     ];
 
     db.query(updateQuery, values, (err) => {
         if (err) { console.error("❌ updateSupervisor DB Error:", err.message); return res.status(500).json({ error: err.message }); }
 
-        if (data.password && data.SupMailId) {
+        if (data.SupSignupPassword && data.SupSignupEmail) {
             const signupQuery = `UPDATE userssignup SET UserSignUpPassword=? WHERE UserSignUpEmail=? AND UserSignUpRole='Supervisor'`;
-            const signupValues = [data.password, data.SupMailId];
+            const signupValues = [data.SupSignupPassword, data.SupSignupEmail];
             db.query(signupQuery, signupValues, (signupErr) => {
                 if (signupErr) console.error("❌ Auto-Update Signup DB Error (Supervisor):", signupErr.message);
             });

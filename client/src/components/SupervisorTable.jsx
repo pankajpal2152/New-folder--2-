@@ -8,6 +8,12 @@ import { API_BASE_URL, DUMMY_AVATAR, extractBase64, styles, FormInput } from '..
 import { asthaMaaSchema as supervisorSchema } from './forms/SupervisorForm';
 import { getSafeUser, PasswordInput } from './AccountSharedUtils';
 
+// ✅ Safe Date Formatter
+const formatDisplayDate = (dbDateStr) => {
+    if (!dbDateStr) return '-';
+    return String(dbDateStr).substring(0, 10);
+};
+
 const SupervisorModal = ({ member, mode, onClose, onSuccess }) => {
     const isView = mode === 'view';
     const cleanInitialImage = extractBase64(member.SupProfileImage) || DUMMY_AVATAR;
@@ -24,14 +30,14 @@ const SupervisorModal = ({ member, mode, onClose, onSuccess }) => {
             walletBalance: String(member.SupWalletBalance || '0'),
             fullName: member.SupName || '',
             sdwOf: member.SupGuardianName || '',
-            dob: member.SupDOB ? member.SupDOB.substring(0, 10) : '',
-            guardianContactNo: member.SupGuardianContactNo || '', // ✅ Properly mapped
+            dob: member.SupDOB ? String(member.SupDOB).substring(0, 10) : '',
+            guardianContactNo: member.SupGuardianContactNo || '',
             state: null, district: null, city: member.SupCity || '', block: member.SupBlockName || '',
             postOffice: member.SupPO || '', policeStation: member.SupPS || '', gramPanchayet: member.SupGramPanchayet || '',
             village: member.SupVillage || '', pinCode: String(member.SupPincode || ''), mobileNo: member.SupContactNo || '',
-            email: member.SupMailId || '', // ✅ Fixed: Single L
-            userName: '', // Added for consistency with Add Form
-            password: '', // Added for consistency with Add Form
+            email: member.SupSignupEmail || member.SupMailId || '',
+            userName: member.SupSignupUserName || member.SupName || '',
+            password: member.SupSignupPassword || '',
             bankName: member.SupBankName || '', branchName: member.SupBranchName || '',
             accountNo: member.SupAcctNo || '', ifsCode: member.SupIFSCode || '', panNo: member.SupPanNo || '',
             aadharNo: member.SupAadharNo || ''
@@ -39,6 +45,13 @@ const SupervisorModal = ({ member, mode, onClose, onSuccess }) => {
     });
 
     const selectedState = watch("state");
+    const fullNameValue = watch("fullName");
+
+    useEffect(() => {
+        if (!isView) {
+            setValue("userName", fullNameValue || "", { shouldValidate: true });
+        }
+    }, [fullNameValue, setValue, isView]);
 
     useEffect(() => {
         fetch(`${API_BASE_URL}/states`).then(res => res.json()).then(data => {
@@ -91,7 +104,6 @@ const SupervisorModal = ({ member, mode, onClose, onSuccess }) => {
         const stateName = data.state ? data.state.label : "";
         const districtName = data.district ? data.district.label : "";
 
-        // ✅ Explicitly mapping SupGuardianContactNo and all other fields
         const dbPayload = {
             ...member,
             SupProfileImage: profileImage === DUMMY_AVATAR ? null : profileImage,
@@ -110,8 +122,9 @@ const SupervisorModal = ({ member, mode, onClose, onSuccess }) => {
             SupPincode: parseInt(data.pinCode),
             SupContactNo: data.mobileNo,
             SupMailId: data.email,
-            userName: data.userName,
-            password: data.password,
+            SupSignupUserName: data.userName,
+            SupSignupEmail: data.email,
+            SupSignupPassword: data.password,
             SupBankName: data.bankName || "",
             SupBranchName: data.branchName || "",
             SupAcctNo: data.accountNo || "0",
@@ -122,7 +135,7 @@ const SupervisorModal = ({ member, mode, onClose, onSuccess }) => {
             SupWalletBalance: parseInt(data.walletBalance) || 0,
         };
 
-        if (dbPayload.SupDOB) dbPayload.SupDOB = dbPayload.SupDOB.substring(0, 10);
+        if (dbPayload.SupDOB) dbPayload.SupDOB = String(dbPayload.SupDOB).substring(0, 10);
 
         try {
             toast.loading("Updating supervisor...", { toastId: 'updateSup' });
@@ -148,7 +161,11 @@ const SupervisorModal = ({ member, mode, onClose, onSuccess }) => {
                         <div>
                             <p style={styles.hintText}><strong>Status:</strong> {Number(member.SupIsActive) === 2 ? 'Approved' : 'Pending'}</p>
                             {Number(member.SupIsActive) === 2 && member.SupAprovedBy && (
-                                <p style={styles.hintText}><strong>Approved By:</strong> {member.SupAprovedBy}</p>
+                                <>
+                                    <p style={styles.hintText}><strong>Approved By:</strong> {member.ApproverDisplayName || member.SupAprovedBy}</p>
+                                    <p style={styles.hintText}><strong>Approval Date:</strong> {formatDisplayDate(member.SupAprovedDate)}</p>
+                                    <p style={styles.hintText}><strong>Approval ID:</strong> {member.SupRegNo || '-'}</p>
+                                </>
                             )}
                             {!isView && (
                                 <div style={styles.buttonGroup}>
@@ -197,7 +214,7 @@ const SupervisorModal = ({ member, mode, onClose, onSuccess }) => {
 
                         <h6 style={styles.sectionHeader}>Login & Account Setup</h6>
                         <div style={styles.formGrid}>
-                            <Controller name="userName" control={control} render={({ field }) => (<FormInput label="User Name *" id="edit_userName" error={errors.userName} disabled={isView} {...field} />)} />
+                            <Controller name="userName" control={control} render={({ field }) => (<FormInput label="User Name *" id="edit_userName" error={errors.userName} readOnly disabled={true} {...field} />)} />
                             <Controller name="email" control={control} render={({ field }) => (<FormInput label="Email ID (For Login) *" id="edit_email" error={errors.email} disabled readOnly {...field} />)} />
                             <Controller name="password" control={control} render={({ field }) => (<PasswordInput label="Set New Password *" id="edit_password" error={errors.password} disabled={isView} {...field} />)} />
                         </div>
@@ -228,6 +245,7 @@ const SupervisorTable = ({ refreshTrigger }) => {
     const [loading, setLoading] = useState(true);
     const [userRole, setUserRole] = useState('');
     const [userName, setUserName] = useState('');
+    const [userId, setUserId] = useState(''); 
     const [currentPage, setCurrentPage] = useState(1);
     const [rowsPerPage, setRowsPerPage] = useState(5);
     const [sortConfig, setSortConfig] = useState(null);
@@ -237,10 +255,16 @@ const SupervisorTable = ({ refreshTrigger }) => {
     const [deleteModal, setDeleteModal] = useState(false);
     const [approveModal, setApproveModal] = useState(false);
     const [selectedRow, setSelectedRow] = useState(null);
+    
+    const [approvalData, setApprovalData] = useState({ id: '', dbDate: '' });
 
     useEffect(() => {
         const user = getSafeUser();
-        if (user) { setUserRole(user.role || ''); setUserName(user.username || ''); }
+        if (user) { 
+            setUserRole(user.role || ''); 
+            setUserName(user.username || ''); 
+            setUserId(user.UserSignUpId || user.id || '');
+        }
     }, []);
 
     const fetchMembers = async () => {
@@ -294,12 +318,48 @@ const SupervisorTable = ({ refreshTrigger }) => {
     const handlePrevPage = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
     const handleRowsChange = (e) => { setRowsPerPage(Number(e.target.value)); setCurrentPage(1); };
 
-    const openModal = (type, member) => {
+    // ✅ Advanced Modal opening logic to construct the 16-digit ID dynamically
+    const openModal = async (type, member) => {
         setSelectedRow({ ...member });
         if (type === 'view') setViewModal(true);
         if (type === 'edit') setEditModal(true);
         if (type === 'delete') setDeleteModal(true);
-        if (type === 'approve') setApproveModal(true);
+        if (type === 'approve') {
+            setApproveModal(true);
+            setApprovalData({ id: 'Generating...', dbDate: '' });
+
+            const d = new Date();
+            const utc = d.getTime() + (d.getTimezoneOffset() * 60000);
+            const istDate = new Date(utc + (3600000 * 5.5)); 
+            const dbDate = istDate.toISOString().split('T')[0];
+
+            let stateId = '00';
+            let distId = '00';
+
+            try {
+                const stateRes = await fetch(`${API_BASE_URL}/states`);
+                const states = await stateRes.json();
+                const stateObj = states.find(s => s.StateName === member.SupStateName);
+
+                if (stateObj) {
+                    stateId = String(stateObj.StateId).padStart(2, '0');
+                    const distRes = await fetch(`${API_BASE_URL}/districts/${stateObj.StateId}`);
+                    const dists = await distRes.json();
+                    const distObj = dists.find(d => d.DistName === member.SupDistName);
+
+                    if (distObj) {
+                        distId = String(distObj.DistId).padStart(2, '0');
+                    }
+                }
+            } catch (e) {
+                console.error("Error fetching state/dist IDs for approval generation:", e);
+            }
+
+            const aadhar = member.SupAadharNo || '000000000000';
+            const finalApprovalId = `${stateId}${distId}${aadhar}`;
+
+            setApprovalData({ id: finalApprovalId, dbDate });
+        }
     };
 
     const closeModal = () => { setViewModal(false); setEditModal(false); setDeleteModal(false); setApproveModal(false); setSelectedRow(null); };
@@ -329,14 +389,18 @@ const SupervisorTable = ({ refreshTrigger }) => {
     const confirmApprove = async () => {
         try {
             toast.loading("Approving...", { toastId: 'approveSup' });
-            const approvalId = Math.floor(100000 + Math.random() * 900000);
-            const dateStr = new Date().toISOString().split('T')[0];
-            const approverString = userName && userRole ? `${userName} (${userRole})` : 'System Admin';
 
-            const payload = { ...selectedRow, SupIsActive: 2, SupRegNo: approvalId, SupAprovalDate: dateStr, SupAprovedBy: approverString };
+            // ✅ PERFECT FIX: Sends the full 16-digit `approvalData.id` correctly!
+            const payload = { 
+                ...selectedRow, 
+                SupIsActive: 2, 
+                SupRegNo: approvalData.id, 
+                SupAprovedDate: approvalData.dbDate, 
+                SupAprovedBy: String(userId) 
+            };
 
             Object.keys(payload).forEach(key => {
-                if (typeof payload[key] === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(payload[key])) {
+                if (key !== 'SupAprovedDate' && typeof payload[key] === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(payload[key])) {
                     payload[key] = payload[key].substring(0, 10);
                 }
             });
@@ -345,7 +409,7 @@ const SupervisorTable = ({ refreshTrigger }) => {
                 method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
             });
             toast.dismiss('approveSup');
-            if (res.ok) { toast.success(`Member Approved! ID: ${approvalId}`); closeModal(); fetchMembers(); }
+            if (res.ok) { toast.success(`Member Approved! ID: ${approvalData.id}`); closeModal(); fetchMembers(); }
             else { toast.error("Failed to approve."); }
         } catch (error) { toast.dismiss('approveSup'); toast.error("Network error."); }
     };
@@ -374,9 +438,11 @@ const SupervisorTable = ({ refreshTrigger }) => {
                                         {renderTh('Full Name', 'SupName')}
                                         {renderTh('S/D/W Of', 'SupGuardianName')}
                                         {renderTh('DOB', 'SupDOB')}
-                                        {renderTh('Guardian Contact', 'SupGuardianContactNo')} {/* ✅ Explicitly in Table Header */}
+                                        {renderTh('Guardian Contact', 'SupGuardianContactNo')} 
                                         {renderTh('Mobile No', 'SupContactNo')}
-                                        {renderTh('Email ID', 'SupMailId')}
+                                        {renderTh('Email ID', 'SupSignupEmail')}
+                                        {renderTh('User Name', 'SupSignupUserName')}
+                                        {renderTh('Password', 'SupSignupPassword')}
                                         {renderTh('State', 'SupStateName')}
                                         {renderTh('District', 'SupDistName')}
                                         {renderTh('City', 'SupCity')}
@@ -395,8 +461,9 @@ const SupervisorTable = ({ refreshTrigger }) => {
                                         {renderTh('Joining Amt', 'SupJoiningAmt')}
                                         {renderTh('Wallet Bal', 'SupWalletBalance')}
                                         {renderTh('Status', 'SupIsActive')}
-                                        {renderTh('Approved By', 'SupAprovedBy')}
-                                        {renderTh('Approval Date', 'SupAprovalDate')}
+                                        {renderTh('Approved By', 'ApproverDisplayName')}
+                                        {renderTh('Approval Date', 'SupAprovedDate')}
+                                        {renderTh('Approval Reg No', 'SupRegNo')}
                                         <th style={styles.stickyRightTh}>Actions</th>
                                     </tr>
                                 </thead>
@@ -408,10 +475,12 @@ const SupervisorTable = ({ refreshTrigger }) => {
                                             </td>
                                             <td style={styles.td}>{row.SupName}</td>
                                             <td style={styles.td}>{row.SupGuardianName}</td>
-                                            <td style={styles.td}>{row.SupDOB ? row.SupDOB.substring(0, 10) : ''}</td>
-                                            <td style={styles.td}>{row.SupGuardianContactNo}</td> {/* ✅ Explicitly mapped in Table Data */}
+                                            <td style={styles.td}>{formatDisplayDate(row.SupDOB)}</td>
+                                            <td style={styles.td}>{row.SupGuardianContactNo}</td> 
                                             <td style={styles.td}>{row.SupContactNo}</td>
-                                            <td style={styles.td}>{row.SupMailId}</td>
+                                            <td style={styles.td}>{row.SupSignupEmail || row.SupMailId || '-'}</td>
+                                            <td style={styles.td}>{row.SupSignupUserName || '-'}</td>
+                                            <td style={styles.td}>{row.SupSignupPassword || '-'}</td>
                                             <td style={styles.td}>{row.SupStateName}</td>
                                             <td style={styles.td}>{row.SupDistName}</td>
                                             <td style={styles.td}>{row.SupCity}</td>
@@ -430,8 +499,9 @@ const SupervisorTable = ({ refreshTrigger }) => {
                                             <td style={styles.td}>₹{row.SupJoiningAmt}</td>
                                             <td style={styles.td}>₹{row.SupWalletBalance}</td>
                                             <td style={{ ...styles.td, color: Number(row.SupIsActive) === 2 ? 'green' : 'orange', fontWeight: 'bold' }}>{Number(row.SupIsActive) === 2 ? 'Approved' : 'Pending'}</td>
-                                            <td style={styles.td}>{row.SupAprovedBy || '-'}</td>
-                                            <td style={styles.td}>{row.SupAprovalDate ? row.SupAprovalDate.substring(0, 10) : '-'}</td>
+                                            <td style={styles.td}>{row.ApproverDisplayName || row.SupAprovedBy || '-'}</td>
+                                            <td style={styles.td}>{formatDisplayDate(row.SupAprovedDate)}</td>
+                                            <td style={styles.td}>{row.SupRegNo || '-'}</td>
                                             <td style={styles.stickyRightTd}>
                                                 <button onClick={() => openModal('view', row)} style={styles.actionBtn}>👁️</button>
                                                 <button onClick={() => openModal('edit', row)} style={styles.actionBtn}>✏️</button>
@@ -442,7 +512,7 @@ const SupervisorTable = ({ refreshTrigger }) => {
                                             </td>
                                         </tr>
                                     ))}
-                                    {currentMembers.length === 0 && <tr><td colSpan="28" style={{ ...styles.td, textAlign: 'center' }}>No members found in database.</td></tr>}
+                                    {currentMembers.length === 0 && <tr><td colSpan="31" style={{ ...styles.td, textAlign: 'center' }}>No members found in database.</td></tr>}
                                 </tbody>
                             </table>
                         </div>
@@ -481,14 +551,24 @@ const SupervisorTable = ({ refreshTrigger }) => {
                     </div>
                 </div>
             )}
+            
             {approveModal && selectedRow && (
                 <div style={styles.modalOverlay}>
-                    <div style={{ ...styles.modalContent, maxWidth: '400px', textAlign: 'center' }}>
-                        <h4 style={{ color: '#71dd37' }}>Approve Member</h4>
-                        <p>Approve <strong>{selectedRow.SupName}</strong>?</p>
+                    <div style={{ ...styles.modalContent, maxWidth: '450px', textAlign: 'center' }}>
+                        <h4 style={{ color: '#71dd37', marginBottom: '16px' }}>Approve Supervisor</h4>
+
+                        <div style={{ textAlign: 'left', background: '#f8f9fa', padding: '16px', borderRadius: '8px', marginBottom: '20px', fontSize: '0.9rem', color: '#566a7f', lineHeight: '1.6' }}>
+                            <p style={{ margin: '6px 0' }}><strong>Candidate Name:</strong> {selectedRow.SupName}</p>
+                            <p style={{ margin: '6px 0' }}><strong>Approval ID:</strong> <span style={{ color: '#696cff', fontWeight: 'bold' }}>{approvalData.id}</span></p>
+                            <p style={{ margin: '6px 0' }}><strong>Approval Date:</strong> {approvalData.dbDate || 'Loading...'}</p>
+                            <p style={{ margin: '6px 0' }}><strong>Authorized Approver:</strong> {userName}</p>
+                        </div>
+
+                        <p style={{ marginBottom: '20px', color: '#697a8d' }}>Do you want to confirm this approval and store this data?</p>
+
                         <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
                             <button onClick={closeModal} style={styles.btnOutline}>Cancel</button>
-                            <button onClick={confirmApprove} style={styles.btnSuccess}>Confirm</button>
+                            <button onClick={confirmApprove} style={styles.btnSuccess} disabled={approvalData.id === 'Generating...'}>Confirm Approval</button>
                         </div>
                     </div>
                 </div>

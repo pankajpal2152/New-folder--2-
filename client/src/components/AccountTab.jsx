@@ -57,8 +57,8 @@ const AccountTab = () => {
     if (appUserRole === 'State Super Administrator') {
         adminOptions = [
             { value: 'District Administrator', label: 'District Administrator' },
-            { value: 'Supervisor', label: 'Supervisor' },
-            { value: 'Astha Didi', label: 'Astha Didi' }
+            // { value: 'Supervisor', label: 'Supervisor' },
+            // { value: 'Astha Didi', label: 'Astha Didi' }
         ];
     } else if (appUserRole.toLowerCase() === 'developer') {
         adminOptions = [

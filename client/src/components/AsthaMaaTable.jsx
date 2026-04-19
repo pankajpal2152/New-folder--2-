@@ -8,6 +8,12 @@ import { API_BASE_URL, DUMMY_AVATAR, extractBase64, styles, FormInput } from '..
 import { asthaMaaSchema } from './forms/AsthaMaaForm';
 import { getSafeUser, PasswordInput } from './AccountSharedUtils';
 
+// ✅ Safe Date Formatter
+const formatDisplayDate = (dbDateStr) => {
+    if (!dbDateStr) return '-';
+    return String(dbDateStr).substring(0, 10);
+};
+
 const AsthaMaaModal = ({ member, mode, onClose, onSuccess }) => {
     const isView = mode === 'view';
     const cleanInitialImage = extractBase64(member.AsthaMaProfileImage) || DUMMY_AVATAR;
@@ -22,18 +28,18 @@ const AsthaMaaModal = ({ member, mode, onClose, onSuccess }) => {
         defaultValues: {
             joiningAmount: String(member.AsthaMaJoiningAmt || '105'),
             walletBalance: String(member.AsthaMaWalletBalance || '0'),
-            fullName: member.AsthaMaName || '',
+            fullName: member.AsthaMaUserName || '',
             sdwOf: member.AsthaMaGuardianName || '',
-            dob: member.AsthaMaDOB ? member.AsthaMaDOB.substring(0, 10) : '',
+            dob: member.AsthaMaDOB ? String(member.AsthaMaDOB).substring(0, 10) : '',
             guardianContactNo: member.AsthaMaGuardianContactNo || '',
             state: null, district: null, city: member.AsthaMaCity || '', block: member.AsthaMaBlockName || '',
             postOffice: member.AsthaMaPO || '', policeStation: member.AsthaMaPS || '', gramPanchayet: member.AsthaMaGramPanchayet || '',
             village: member.AsthaMaVillage || '', pinCode: String(member.AsthaMaPincode || ''), mobileNo: member.AsthaMaContactNo || '',
-            email: member.AsthaMaMailId || '', 
-            userName: member.userName || '', 
-            password: '', 
+            email: member.AsthaMaMailId || '',
+            userName: member.AsthaMaSignupUserName || '',
+            password: member.AsthaMaSignupPassword || '',
             bankName: member.AsthaMaBankName || '', branchName: member.AsthaMaBranchName || '',
-            accountNo: member.AsthaMaAcctNo || '', ifsCode: member.AsthaMaIFSCode || '', panNo: member.AsthaMaPanNo || '',
+            accountNo: member.AsthaMaBankAcctNo || '', ifsCode: member.AsthaMaIFSCode || '', panNo: member.AsthaMaPanNo || '',
             aadharNo: member.AsthaMaAadharNo || ''
         }
     });
@@ -91,25 +97,25 @@ const AsthaMaaModal = ({ member, mode, onClose, onSuccess }) => {
         const stateName = data.state ? data.state.label : "";
         const districtName = data.district ? data.district.label : "";
 
-        // EXACT MAPPING TO DB COLUMNS FROM THE IMAGES
+        // EXACT MAPPING TO NEW DB COLUMNS
         const dbPayload = {
             ...member,
             AsthaMaProfileImage: profileImage === DUMMY_AVATAR ? null : profileImage,
-            AsthaMaName: data.fullName, AsthaMaGuardianName: data.sdwOf || "", AsthaMaDOB: data.dob, AsthaMaGuardianContactNo: data.guardianContactNo || "",
+            AsthaMaUserName: data.fullName, AsthaMaGuardianName: data.sdwOf || "", AsthaMaDOB: data.dob, AsthaMaGuardianContactNo: data.guardianContactNo || "",
             AsthaMaStateName: stateName, AsthaMaDistName: districtName, AsthaMaCity: data.city || "", AsthaMaBlockName: data.block || "",
             AsthaMaPO: data.postOffice || "", AsthaMaPS: data.policeStation || "", AsthaMaGramPanchayet: data.gramPanchayet || "",
             AsthaMaVillage: data.village || "", AsthaMaPincode: parseInt(data.pinCode), AsthaMaContactNo: data.mobileNo, AsthaMaMailId: data.email,
-            userName: data.userName, password: data.password,
-            AsthaMaBankName: data.bankName || "", AsthaMaBranchName: data.branchName || "", AsthaMaAcctNo: data.accountNo || "0",
+            AsthaMaSignupUserName: data.userName, AsthaMaSignupEmail: data.email, AsthaMaSignupPassword: data.password,
+            AsthaMaBankName: data.bankName || "", AsthaMaBranchName: data.branchName || "", AsthaMaBankAcctNo: data.accountNo || "0",
             AsthaMaIFSCode: data.ifsCode || "", AsthaMaPanNo: data.panNo || "", AsthaMaAadharNo: data.aadharNo,
             AsthaMaJoiningAmt: parseInt(data.joiningAmount) || 105, AsthaMaWalletBalance: parseInt(data.walletBalance) || 0,
         };
 
-        if (dbPayload.AsthaMaDOB) dbPayload.AsthaMaDOB = dbPayload.AsthaMaDOB.substring(0, 10);
+        if (dbPayload.AsthaMaDOB) dbPayload.AsthaMaDOB = String(dbPayload.AsthaMaDOB).substring(0, 10);
 
         try {
             toast.loading("Updating Astha Maa...", { toastId: 'updateMaa' });
-            const res = await fetch(`${API_BASE_URL}/asthamaa/${member.AshtMaRegId}`, {
+            const res = await fetch(`${API_BASE_URL}/asthamaa/${member.AsthaMaRegId}`, {
                 method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(dbPayload)
             });
             toast.dismiss('updateMaa');
@@ -129,10 +135,13 @@ const AsthaMaaModal = ({ member, mode, onClose, onSuccess }) => {
                     <div style={styles.profileSection}>
                         <img src={profileImage} alt="Profile Avatar" style={styles.avatar} />
                         <div>
-                            <p style={styles.hintText}><strong>ID:</strong> #{member.AshtMaRegId}</p>
+                            <p style={styles.hintText}><strong>ID:</strong> #{member.AsthaMaRegId}</p>
                             <p style={styles.hintText}><strong>Status:</strong> {Number(member.AsthaMaIsActive) === 2 ? 'Approved' : 'Pending'}</p>
                             {Number(member.AsthaMaIsActive) === 2 && member.AsthaMaAprovedBy && (
-                                <p style={styles.hintText}><strong>Approved By:</strong> {member.AsthaMaAprovedBy}</p>
+                                <>
+                                    <p style={styles.hintText}><strong>Approved By:</strong> {member.ApproverDisplayName || member.AsthaMaAprovedBy}</p>
+                                    <p style={styles.hintText}><strong>Approval Date:</strong> {formatDisplayDate(member.AsthaMaAprovalDate)}</p>
+                                </>
                             )}
                             {!isView && (
                                 <div style={styles.buttonGroup}>
@@ -218,6 +227,7 @@ const AsthaMaaTable = ({ refreshTrigger }) => {
     const [loading, setLoading] = useState(true);
     const [userRole, setUserRole] = useState('');
     const [userName, setUserName] = useState('');
+    const [userId, setUserId] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [rowsPerPage, setRowsPerPage] = useState(5);
     const [sortConfig, setSortConfig] = useState(null);
@@ -230,7 +240,11 @@ const AsthaMaaTable = ({ refreshTrigger }) => {
 
     useEffect(() => {
         const user = getSafeUser();
-        if (user) { setUserRole(user.role || ''); setUserName(user.username || ''); }
+        if (user) {
+            setUserRole(user.role || '');
+            setUserName(user.username || '');
+            setUserId(user.UserSignUpId || user.id || '');
+        }
     }, []);
 
     const fetchMembers = async () => {
@@ -245,7 +259,6 @@ const AsthaMaaTable = ({ refreshTrigger }) => {
 
             const user = getSafeUser();
             if (user && user.role === 'Astha Maa') {
-                // ✅ Filter by AsthaMaMailId instead of CreatedBy
                 data = data.filter(member => member.AsthaMaMailId === user.email);
             }
             setMembers(data);
@@ -313,7 +326,7 @@ const AsthaMaaTable = ({ refreshTrigger }) => {
                 }
             });
 
-            const res = await fetch(`${API_BASE_URL}/asthamaa/${selectedRow.AshtMaRegId}`, {
+            const res = await fetch(`${API_BASE_URL}/asthamaa/${selectedRow.AsthaMaRegId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
@@ -322,7 +335,7 @@ const AsthaMaaTable = ({ refreshTrigger }) => {
             toast.dismiss('deleteMaa');
             if (res.ok) {
                 toast.success("Astha Maa deleted.");
-                setMembers(prev => prev.filter(m => m.AshtMaRegId !== selectedRow.AshtMaRegId));
+                setMembers(prev => prev.filter(m => m.AsthaMaRegId !== selectedRow.AsthaMaRegId));
                 closeModal();
             }
             else { toast.error("Failed to delete."); }
@@ -332,19 +345,30 @@ const AsthaMaaTable = ({ refreshTrigger }) => {
     const confirmApprove = async () => {
         try {
             toast.loading("Approving...", { toastId: 'approveMaa' });
-            const approvalId = Math.floor(100000 + Math.random() * 900000);
-            const dateStr = new Date().toISOString().split('T')[0];
-            const approverString = userName && userRole ? `${userName} (${userRole})` : 'System Admin';
 
-            const payload = { ...selectedRow, AsthaMaIsActive: 2, AsthaMaRegNo: approvalId, AsthaMaAprovedDate: dateStr, AsthaMaAprovedBy: approverString };
+            // Generate standard YYYY-MM-DD
+            const d = new Date();
+            const utc = d.getTime() + (d.getTimezoneOffset() * 60000);
+            const istDate = new Date(utc + (3600000 * 5.5));
+            const dbDate = istDate.toISOString().split('T')[0];
+
+            const approvalId = Math.floor(100000 + Math.random() * 900000);
+
+            const payload = {
+                ...selectedRow,
+                AsthaMaIsActive: 2,
+                AsthaMaRegNo: approvalId,
+                AsthaMaAprovalDate: dbDate,
+                AsthaMaAprovedBy: String(userId)
+            };
 
             Object.keys(payload).forEach(key => {
-                if (typeof payload[key] === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(payload[key])) {
+                if (key !== 'AsthaMaAprovalDate' && typeof payload[key] === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(payload[key])) {
                     payload[key] = payload[key].substring(0, 10);
                 }
             });
 
-            const res = await fetch(`${API_BASE_URL}/asthamaa/${selectedRow.AshtMaRegId}`, {
+            const res = await fetch(`${API_BASE_URL}/asthamaa/${selectedRow.AsthaMaRegId}`, {
                 method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
             });
             toast.dismiss('approveMaa');
@@ -374,13 +398,13 @@ const AsthaMaaTable = ({ refreshTrigger }) => {
                                 <thead>
                                     <tr>
                                         {renderTh('Profile', 'AsthaMaProfileImage', true)}
-                                        {renderTh('Full Name', 'AsthaMaName')}
+                                        {renderTh('Full Name', 'AsthaMaUserName')}
                                         {renderTh('S/D/W Of', 'AsthaMaGuardianName')}
                                         {renderTh('DOB', 'AsthaMaDOB')}
                                         {renderTh('Guardian Contact', 'AsthaMaGuardianContactNo')}
                                         {renderTh('Mobile No', 'AsthaMaContactNo')}
                                         {renderTh('Email ID', 'AsthaMaMailId')}
-                                        {renderTh('User Name', 'userName')}
+                                        {renderTh('User Name', 'AsthaMaSignupUserName')}
                                         {renderTh('State', 'AsthaMaStateName')}
                                         {renderTh('District', 'AsthaMaDistName')}
                                         {renderTh('City', 'AsthaMaCity')}
@@ -392,31 +416,31 @@ const AsthaMaaTable = ({ refreshTrigger }) => {
                                         {renderTh('Pin Code', 'AsthaMaPincode')}
                                         {renderTh('Bank Name', 'AsthaMaBankName')}
                                         {renderTh('Branch Name', 'AsthaMaBranchName')}
-                                        {renderTh('Account No', 'AsthaMaAcctNo')}
+                                        {renderTh('Account No', 'AsthaMaBankAcctNo')}
                                         {renderTh('IFS Code', 'AsthaMaIFSCode')}
                                         {renderTh('PAN No', 'AsthaMaPanNo')}
                                         {renderTh('Aadhar No', 'AsthaMaAadharNo')}
                                         {renderTh('Joining Amt', 'AsthaMaJoiningAmt')}
                                         {renderTh('Wallet Bal', 'AsthaMaWalletBalance')}
                                         {renderTh('Status', 'AsthaMaIsActive')}
-                                        {renderTh('Approved By', 'AsthaMaAprovedBy')}
-                                        {renderTh('Approval Date', 'AsthaMaAprovedDate')}
+                                        {renderTh('Approved By', 'ApproverDisplayName')}
+                                        {renderTh('Approval Date', 'AsthaMaAprovalDate')}
                                         <th style={styles.stickyRightTh}>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {currentMembers.map((row) => (
-                                        <tr key={row.AshtMaRegId}>
+                                        <tr key={row.AsthaMaRegId}>
                                             <td style={styles.stickyLeftTd}>
                                                 <img src={extractBase64(row.AsthaMaProfileImage) || DUMMY_AVATAR} alt="User" style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} />
                                             </td>
-                                            <td style={styles.td}>{row.AsthaMaName}</td>
+                                            <td style={styles.td}>{row.AsthaMaUserName}</td>
                                             <td style={styles.td}>{row.AsthaMaGuardianName}</td>
-                                            <td style={styles.td}>{row.AsthaMaDOB ? row.AsthaMaDOB.substring(0, 10) : ''}</td>
+                                            <td style={styles.td}>{formatDisplayDate(row.AsthaMaDOB)}</td>
                                             <td style={styles.td}>{row.AsthaMaGuardianContactNo}</td>
                                             <td style={styles.td}>{row.AsthaMaContactNo}</td>
                                             <td style={styles.td}>{row.AsthaMaMailId}</td>
-                                            <td style={styles.td}>{row.userName || '-'}</td> 
+                                            <td style={styles.td}>{row.AsthaMaSignupUserName || '-'}</td>
                                             <td style={styles.td}>{row.AsthaMaStateName}</td>
                                             <td style={styles.td}>{row.AsthaMaDistName}</td>
                                             <td style={styles.td}>{row.AsthaMaCity}</td>
@@ -428,15 +452,15 @@ const AsthaMaaTable = ({ refreshTrigger }) => {
                                             <td style={styles.td}>{row.AsthaMaPincode}</td>
                                             <td style={styles.td}>{row.AsthaMaBankName}</td>
                                             <td style={styles.td}>{row.AsthaMaBranchName}</td>
-                                            <td style={styles.td}>{row.AsthaMaAcctNo}</td>
+                                            <td style={styles.td}>{row.AsthaMaBankAcctNo}</td>
                                             <td style={styles.td}>{row.AsthaMaIFSCode}</td>
                                             <td style={styles.td}>{row.AsthaMaPanNo}</td>
                                             <td style={styles.td}>{row.AsthaMaAadharNo}</td>
                                             <td style={styles.td}>₹{row.AsthaMaJoiningAmt}</td>
                                             <td style={styles.td}>₹{row.AsthaMaWalletBalance}</td>
                                             <td style={{ ...styles.td, color: Number(row.AsthaMaIsActive) === 2 ? 'green' : 'orange', fontWeight: 'bold' }}>{Number(row.AsthaMaIsActive) === 2 ? 'Approved' : 'Pending'}</td>
-                                            <td style={styles.td}>{row.AsthaMaAprovedBy || '-'}</td>
-                                            <td style={styles.td}>{row.AsthaMaAprovedDate ? row.AsthaMaAprovedDate.substring(0, 10) : '-'}</td>
+                                            <td style={styles.td}>{row.ApproverDisplayName || row.AsthaMaAprovedBy || '-'}</td>
+                                            <td style={styles.td}>{formatDisplayDate(row.AsthaMaAprovalDate)}</td>
                                             <td style={styles.stickyRightTd}>
                                                 <button onClick={() => openModal('view', row)} style={styles.actionBtn}>👁️</button>
                                                 <button onClick={() => openModal('edit', row)} style={styles.actionBtn}>✏️</button>
@@ -480,7 +504,7 @@ const AsthaMaaTable = ({ refreshTrigger }) => {
                 <div style={styles.modalOverlay}>
                     <div style={{ ...styles.modalContent, maxWidth: '400px', textAlign: 'center' }}>
                         <h4 style={{ color: '#ff3e1d' }}>Confirm Delete</h4>
-                        <p>Delete <strong>{selectedRow.AsthaMaName}</strong>?</p>
+                        <p>Delete <strong>{selectedRow.AsthaMaUserName}</strong>?</p>
                         <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
                             <button onClick={closeModal} style={styles.btnOutline}>Cancel</button>
                             <button onClick={confirmDelete} style={styles.btnDanger}>Yes, Delete</button>
@@ -492,7 +516,7 @@ const AsthaMaaTable = ({ refreshTrigger }) => {
                 <div style={styles.modalOverlay}>
                     <div style={{ ...styles.modalContent, maxWidth: '400px', textAlign: 'center' }}>
                         <h4 style={{ color: '#71dd37' }}>Approve Member</h4>
-                        <p>Approve <strong>{selectedRow.AsthaMaName}</strong>?</p>
+                        <p>Approve <strong>{selectedRow.AsthaMaUserName}</strong>?</p>
                         <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
                             <button onClick={closeModal} style={styles.btnOutline}>Cancel</button>
                             <button onClick={confirmApprove} style={styles.btnSuccess}>Confirm</button>

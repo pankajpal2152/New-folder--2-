@@ -5,6 +5,7 @@ import * as z from 'zod';
 import Select from 'react-select';
 import { toast } from 'react-toastify';
 import { API_BASE_URL, DUMMY_AVATAR, indianZipRegex, indianPhoneRegex, styles, FormInput } from '../../config/constants';
+import { getSafeUser } from '../AccountSharedUtils';
 
 export const asthaMaaSchema = z.object({
     joiningAmount: z.string().min(1, "Joining Amount is required"),
@@ -94,11 +95,13 @@ const AsthaMaaForm = ({ onSuccess }) => {
     const onSubmitAsthaMaa = async (data) => {
         const stateName = data.state ? data.state.label : "";
         const districtName = data.district ? data.district.label : "";
+        const loggedInUser = getSafeUser ? getSafeUser() : null;
+        const currentUserId = loggedInUser ? (loggedInUser.UserSignUpId || loggedInUser.id) : null;
 
-        // ✅ EXACT MAPPING TO DB COLUMNS FROM THE IMAGES (Removed CreatedBy)
+        // EXACT MAPPING TO NEW DB COLUMNS
         const dbPayload = {
             AsthaMaProfileImage: profileImage === DUMMY_AVATAR ? null : profileImage,
-            AsthaMaName: data.fullName,
+            AsthaMaUserName: data.fullName,
             AsthaMaGuardianName: data.sdwOf || "",
             AsthaMaDOB: data.dob,
             AsthaMaGuardianContactNo: data.guardianContactNo || "",
@@ -112,12 +115,14 @@ const AsthaMaaForm = ({ onSuccess }) => {
             AsthaMaVillage: data.village || "",
             AsthaMaPincode: parseInt(data.pinCode),
             AsthaMaContactNo: data.mobileNo,
-            AsthaMaMailId: data.email, 
-            userName: data.userName, 
-            password: data.password, 
+            AsthaMaMailId: data.email,
+            AsthaMaSignupUserName: data.userName,
+            AsthaMaSignupEmail: data.email,
+            AsthaMaSignupPassword: data.password,
+            AsthaMaCreatedByAuthRegId: currentUserId,
             AsthaMaBankName: data.bankName || "",
             AsthaMaBranchName: data.branchName || "",
-            AsthaMaAcctNo: data.accountNo || "0",
+            AsthaMaBankAcctNo: data.accountNo || "0",
             AsthaMaIFSCode: data.ifsCode || "",
             AsthaMaPanNo: data.panNo || "",
             AsthaMaAadharNo: data.aadharNo,
@@ -125,7 +130,7 @@ const AsthaMaaForm = ({ onSuccess }) => {
             AsthaMaWalletBalance: parseInt(data.walletBalance) || 0,
             AsthaMaIsActive: 1,
             AsthaMaAprovedBy: null,
-            AsthaMaAprovedDate: null,
+            AsthaMaAprovalDate: null,
             AsthaMaRegNo: null
         };
 

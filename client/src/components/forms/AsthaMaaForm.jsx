@@ -32,8 +32,38 @@ export const asthaMaaSchema = z.object({
     accountNo: z.string().optional(),
     ifsCode: z.string().optional(),
     panNo: z.string().optional(),
-    aadharNo: z.string().optional()
+    aadharNo: z.string().length(12, "Must be exactly 12 digits").regex(/^\d+$/, "Numbers only").optional().or(z.literal(''))
 });
+
+const PasswordInput = ({ label, id, error, placeholder, disabled, ...props }) => {
+    const [showPassword, setShowPassword] = useState(false);
+    const togglePasswordVisibility = () => setShowPassword(!showPassword);
+
+    return (
+        <div style={styles.inputGroup}>
+            <label htmlFor={id} style={styles.label}>{label}</label>
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                <input
+                    id={id}
+                    type={showPassword ? "text" : "password"}
+                    style={disabled ? styles.inputDisabled : { ...styles.input(!!error), paddingRight: '40px' }}
+                    placeholder={placeholder}
+                    disabled={disabled}
+                    {...props}
+                />
+                <button
+                    type="button"
+                    onClick={togglePasswordVisibility}
+                    style={{ position: 'absolute', right: '10px', background: 'transparent', border: 'none', cursor: 'pointer', color: '#697a8d', fontSize: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}
+                    title={showPassword ? "Hide password" : "Show password"}
+                >
+                    {showPassword ? '👁️‍🗨️' : '👁️'}
+                </button>
+            </div>
+            {error && <p style={styles.errorText}>{error.message}</p>}
+        </div>
+    );
+};
 
 const AsthaMaaForm = ({ onSuccess }) => {
     const [dbStates, setDbStates] = useState([]);
@@ -41,12 +71,11 @@ const AsthaMaaForm = ({ onSuccess }) => {
     const [profileImage, setProfileImage] = useState(DUMMY_AVATAR);
     const fileInputRef = useRef(null);
 
-    const { control, handleSubmit, reset, watch, formState: { errors } } = useForm({
+    const { control, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm({
         resolver: zodResolver(asthaMaaSchema),
         mode: 'onChange',
         defaultValues: {
-            joiningAmount: '105',
-            walletBalance: '27000',
+            joiningAmount: '105', walletBalance: '27000',
             fullName: '', sdwOf: '', dob: '', guardianContactNo: '',
             state: null, district: null, city: '', block: '', postOffice: '', policeStation: '', gramPanchayet: '', village: '', pinCode: '', mobileNo: '', email: '', userName: '', password: '',
             bankName: '', branchName: '', accountNo: '', ifsCode: '', panNo: '', aadharNo: ''
@@ -54,6 +83,12 @@ const AsthaMaaForm = ({ onSuccess }) => {
     });
 
     const selectedState = watch("state");
+    const fullNameValue = watch("fullName");
+
+    // ✅ Dynamic auto-sync User Name to Full Name
+    useEffect(() => {
+        setValue("userName", fullNameValue || "", { shouldValidate: true });
+    }, [fullNameValue, setValue]);
 
     useEffect(() => {
         fetch(`${API_BASE_URL}/states`)
@@ -95,6 +130,7 @@ const AsthaMaaForm = ({ onSuccess }) => {
     const onSubmitAsthaMaa = async (data) => {
         const stateName = data.state ? data.state.label : "";
         const districtName = data.district ? data.district.label : "";
+
         const loggedInUser = getSafeUser ? getSafeUser() : null;
         const currentUserId = loggedInUser ? (loggedInUser.UserSignUpId || loggedInUser.id) : null;
 
@@ -116,18 +152,26 @@ const AsthaMaaForm = ({ onSuccess }) => {
             AsthaMaPincode: parseInt(data.pinCode),
             AsthaMaContactNo: data.mobileNo,
             AsthaMaMailId: data.email,
+
+            // ✅ Signup & Tracking Fields explicitly mapped
             AsthaMaSignupUserName: data.userName,
             AsthaMaSignupEmail: data.email,
             AsthaMaSignupPassword: data.password,
             AsthaMaCreatedByAuthRegId: currentUserId,
+
             AsthaMaBankName: data.bankName || "",
             AsthaMaBranchName: data.branchName || "",
             AsthaMaBankAcctNo: data.accountNo || "0",
             AsthaMaIFSCode: data.ifsCode || "",
             AsthaMaPanNo: data.panNo || "",
-            AsthaMaAadharNo: data.aadharNo,
+            AsthaMaAadharNo: data.aadharNo || "",
             AsthaMaJoiningAmt: parseInt(data.joiningAmount) || 105,
             AsthaMaWalletBalance: parseInt(data.walletBalance) || 0,
+
+            StateNGORegId: null,
+            DistNGORegId: null,
+            SupRegId: null,
+            AsthaDidiRegId: null,
             AsthaMaIsActive: 1,
             AsthaMaAprovedBy: null,
             AsthaMaAprovalDate: null,
@@ -246,35 +290,35 @@ const AsthaMaaForm = ({ onSuccess }) => {
                     <h6 style={styles.sectionHeader}>Login & Account Setup</h6>
                     <div style={styles.formGrid}>
                         <Controller name="userName" control={control} render={({ field }) => (
-                            <FormInput label={<>User Name <span style={{ color: '#ff3e1d' }}>*</span></>} id="userName" error={errors.userName} type="text" {...field} />
+                            <FormInput label={<>User Name <span style={{ color: '#ff3e1d' }}>*</span></>} id="userName" error={errors.userName} type="text" readOnly disabled={true} {...field} />
                         )} />
                         <Controller name="email" control={control} render={({ field }) => (
                             <FormInput label={<>Email ID (For Login) <span style={{ color: '#ff3e1d' }}>*</span></>} id="email" error={errors.email} placeholder="Email ID" type="email" maxLength={100} {...field} />
                         )} />
                         <Controller name="password" control={control} render={({ field }) => (
-                            <FormInput label={<>Set Password <span style={{ color: '#ff3e1d' }}>*</span></>} id="password" error={errors.password} type="text" {...field} />
+                            <PasswordInput label={<>Set Password <span style={{ color: '#ff3e1d' }}>*</span></>} id="password" error={errors.password} {...field} />
                         )} />
                     </div>
 
                     <h6 style={styles.sectionHeader}>Banking & Payment Details</h6>
                     <div style={styles.formGrid}>
                         <Controller name="bankName" control={control} render={({ field }) => (
-                            <FormInput label="Bank Name" id="bankName" error={errors.bankName} placeholder="Read Only" type="text" maxLength={100} disabled readOnly {...field} />
+                            <FormInput label="Bank Name" id="bankName" error={errors.bankName} placeholder="Bank Name" type="text" maxLength={100} {...field} />
                         )} />
                         <Controller name="branchName" control={control} render={({ field }) => (
-                            <FormInput label="Branch Name" id="branchName" error={errors.branchName} placeholder="Read Only" type="text" maxLength={100} disabled readOnly {...field} />
+                            <FormInput label="Branch Name" id="branchName" error={errors.branchName} placeholder="Branch Name" type="text" maxLength={100} {...field} />
                         )} />
                         <Controller name="accountNo" control={control} render={({ field }) => (
-                            <FormInput label="Account No" id="accountNo" error={errors.accountNo} placeholder="Read Only" type="text" maxLength={30} disabled readOnly {...field} />
+                            <FormInput label="Account No" id="accountNo" error={errors.accountNo} placeholder="Account No" type="text" maxLength={30} {...field} />
                         )} />
                         <Controller name="ifsCode" control={control} render={({ field }) => (
-                            <FormInput label="IFS Code" id="ifsCode" error={errors.ifsCode} placeholder="Read Only" type="text" maxLength={20} disabled readOnly {...field} />
+                            <FormInput label="IFS Code" id="ifsCode" error={errors.ifsCode} placeholder="IFS Code" type="text" maxLength={20} {...field} />
                         )} />
                         <Controller name="panNo" control={control} render={({ field }) => (
-                            <FormInput label="PAN No" id="panNo" error={errors.panNo} placeholder="Read Only" type="text" maxLength={10} disabled readOnly {...field} />
+                            <FormInput label="PAN No" id="panNo" error={errors.panNo} placeholder="Pan No" type="text" maxLength={10} {...field} />
                         )} />
                         <Controller name="aadharNo" control={control} render={({ field }) => (
-                            <FormInput label={<>Aadhar No.</>} id="aadharNo" error={errors.aadharNo} placeholder="Read Only" type="text" maxLength={12} disabled readOnly {...field} />
+                            <FormInput label={<>Aadhar No.</>} id="aadharNo" error={errors.aadharNo} placeholder="Aadhar No" type="text" maxLength={12} {...field} />
                         )} />
                     </div>
 

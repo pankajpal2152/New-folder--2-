@@ -35,8 +35,8 @@ const AsthaMaaModal = ({ member, mode, onClose, onSuccess }) => {
             state: null, district: null, city: member.AsthaMaCity || '', block: member.AsthaMaBlockName || '',
             postOffice: member.AsthaMaPO || '', policeStation: member.AsthaMaPS || '', gramPanchayet: member.AsthaMaGramPanchayet || '',
             village: member.AsthaMaVillage || '', pinCode: String(member.AsthaMaPincode || ''), mobileNo: member.AsthaMaContactNo || '',
-            email: member.AsthaMaMailId || '',
-            userName: member.AsthaMaSignupUserName || '',
+            email: member.AsthaMaSignupEmail || member.AsthaMaMailId || '',
+            userName: member.AsthaMaSignupUserName || member.AsthaMaUserName || '',
             password: member.AsthaMaSignupPassword || '',
             bankName: member.AsthaMaBankName || '', branchName: member.AsthaMaBranchName || '',
             accountNo: member.AsthaMaBankAcctNo || '', ifsCode: member.AsthaMaIFSCode || '', panNo: member.AsthaMaPanNo || '',
@@ -45,6 +45,13 @@ const AsthaMaaModal = ({ member, mode, onClose, onSuccess }) => {
     });
 
     const selectedState = watch("state");
+    const fullNameValue = watch("fullName");
+
+    useEffect(() => {
+        if (!isView) {
+            setValue("userName", fullNameValue || "", { shouldValidate: true });
+        }
+    }, [fullNameValue, setValue, isView]);
 
     useEffect(() => {
         fetch(`${API_BASE_URL}/states`).then(res => res.json()).then(data => {
@@ -97,7 +104,7 @@ const AsthaMaaModal = ({ member, mode, onClose, onSuccess }) => {
         const stateName = data.state ? data.state.label : "";
         const districtName = data.district ? data.district.label : "";
 
-        // EXACT MAPPING TO NEW DB COLUMNS
+        // ✅ PERFECTLY MAPPED UPDATE PAYLOAD
         const dbPayload = {
             ...member,
             AsthaMaProfileImage: profileImage === DUMMY_AVATAR ? null : profileImage,
@@ -135,12 +142,12 @@ const AsthaMaaModal = ({ member, mode, onClose, onSuccess }) => {
                     <div style={styles.profileSection}>
                         <img src={profileImage} alt="Profile Avatar" style={styles.avatar} />
                         <div>
-                            <p style={styles.hintText}><strong>ID:</strong> #{member.AsthaMaRegId}</p>
                             <p style={styles.hintText}><strong>Status:</strong> {Number(member.AsthaMaIsActive) === 2 ? 'Approved' : 'Pending'}</p>
                             {Number(member.AsthaMaIsActive) === 2 && member.AsthaMaAprovedBy && (
                                 <>
                                     <p style={styles.hintText}><strong>Approved By:</strong> {member.ApproverDisplayName || member.AsthaMaAprovedBy}</p>
                                     <p style={styles.hintText}><strong>Approval Date:</strong> {formatDisplayDate(member.AsthaMaAprovalDate)}</p>
+                                    <p style={styles.hintText}><strong>Approval ID:</strong> {member.AsthaMaRegNo || '-'}</p>
                                 </>
                             )}
                             {!isView && (
@@ -191,7 +198,7 @@ const AsthaMaaModal = ({ member, mode, onClose, onSuccess }) => {
                         <h6 style={styles.sectionHeader}>Login & Account Setup</h6>
                         <div style={styles.formGrid}>
                             <Controller name="userName" control={control} render={({ field }) => (
-                                <FormInput label={<>User Name <span style={{ color: '#ff3e1d' }}>*</span></>} id="edit_userName" error={errors.userName} disabled={isView} type="text" {...field} />
+                                <FormInput label={<>User Name <span style={{ color: '#ff3e1d' }}>*</span></>} id="edit_userName" error={errors.userName} disabled={isView} type="text" readOnly {...field} />
                             )} />
                             <Controller name="email" control={control} render={({ field }) => (
                                 <FormInput label={<>Email ID (For Login) <span style={{ color: '#ff3e1d' }}>*</span></>} id="edit_email" error={errors.email} disabled readOnly type="email" maxLength={100} {...field} />
@@ -238,6 +245,9 @@ const AsthaMaaTable = ({ refreshTrigger }) => {
     const [approveModal, setApproveModal] = useState(false);
     const [selectedRow, setSelectedRow] = useState(null);
 
+    // Tracks dynamic approval ID and Date
+    const [approvalData, setApprovalData] = useState({ id: '', dbDate: '' });
+
     useEffect(() => {
         const user = getSafeUser();
         if (user) {
@@ -259,7 +269,7 @@ const AsthaMaaTable = ({ refreshTrigger }) => {
 
             const user = getSafeUser();
             if (user && user.role === 'Astha Maa') {
-                data = data.filter(member => member.AsthaMaMailId === user.email);
+                data = data.filter(member => member.AsthaMaSignupEmail === user.email || member.AsthaMaMailId === user.email);
             }
             setMembers(data);
         } catch (error) { toast.error("Failed to load Astha Maa table data.", { position: "top-right" }); }
@@ -304,12 +314,48 @@ const AsthaMaaTable = ({ refreshTrigger }) => {
     const handlePrevPage = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
     const handleRowsChange = (e) => { setRowsPerPage(Number(e.target.value)); setCurrentPage(1); };
 
-    const openModal = (type, member) => {
+    // ✅ Dynamic Approval ID Logic (State + District + Aadhar)
+    const openModal = async (type, member) => {
         setSelectedRow({ ...member });
         if (type === 'view') setViewModal(true);
         if (type === 'edit') setEditModal(true);
         if (type === 'delete') setDeleteModal(true);
-        if (type === 'approve') setApproveModal(true);
+        if (type === 'approve') {
+            setApproveModal(true);
+            setApprovalData({ id: 'Generating...', dbDate: '' });
+
+            const d = new Date();
+            const utc = d.getTime() + (d.getTimezoneOffset() * 60000);
+            const istDate = new Date(utc + (3600000 * 5.5));
+            const dbDate = istDate.toISOString().split('T')[0];
+
+            let stateId = '00';
+            let distId = '00';
+
+            try {
+                const stateRes = await fetch(`${API_BASE_URL}/states`);
+                const states = await stateRes.json();
+                const stateObj = states.find(s => s.StateName === member.AsthaMaStateName);
+
+                if (stateObj) {
+                    stateId = String(stateObj.StateId).padStart(2, '0');
+                    const distRes = await fetch(`${API_BASE_URL}/districts/${stateObj.StateId}`);
+                    const dists = await distRes.json();
+                    const distObj = dists.find(d => d.DistName === member.AsthaMaDistName);
+
+                    if (distObj) {
+                        distId = String(distObj.DistId).padStart(2, '0');
+                    }
+                }
+            } catch (e) {
+                console.error("Error fetching state/dist IDs for approval generation:", e);
+            }
+
+            const aadhar = member.AsthaMaAadharNo || '000000000000';
+            const finalApprovalId = `${stateId}${distId}${aadhar}`;
+
+            setApprovalData({ id: finalApprovalId, dbDate });
+        }
     };
 
     const closeModal = () => { setViewModal(false); setEditModal(false); setDeleteModal(false); setApproveModal(false); setSelectedRow(null); };
@@ -346,19 +392,11 @@ const AsthaMaaTable = ({ refreshTrigger }) => {
         try {
             toast.loading("Approving...", { toastId: 'approveMaa' });
 
-            // Generate standard YYYY-MM-DD
-            const d = new Date();
-            const utc = d.getTime() + (d.getTimezoneOffset() * 60000);
-            const istDate = new Date(utc + (3600000 * 5.5));
-            const dbDate = istDate.toISOString().split('T')[0];
-
-            const approvalId = Math.floor(100000 + Math.random() * 900000);
-
             const payload = {
                 ...selectedRow,
                 AsthaMaIsActive: 2,
-                AsthaMaRegNo: approvalId,
-                AsthaMaAprovalDate: dbDate,
+                AsthaMaRegNo: approvalData.id,
+                AsthaMaAprovalDate: approvalData.dbDate,
                 AsthaMaAprovedBy: String(userId)
             };
 
@@ -372,7 +410,7 @@ const AsthaMaaTable = ({ refreshTrigger }) => {
                 method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
             });
             toast.dismiss('approveMaa');
-            if (res.ok) { toast.success(`Member Approved! ID: ${approvalId}`); closeModal(); fetchMembers(); }
+            if (res.ok) { toast.success(`Member Approved! ID: ${approvalData.id}`); closeModal(); fetchMembers(); }
             else { toast.error("Failed to approve."); }
         } catch (error) { toast.dismiss('approveMaa'); toast.error("Network error."); }
     };
@@ -403,8 +441,10 @@ const AsthaMaaTable = ({ refreshTrigger }) => {
                                         {renderTh('DOB', 'AsthaMaDOB')}
                                         {renderTh('Guardian Contact', 'AsthaMaGuardianContactNo')}
                                         {renderTh('Mobile No', 'AsthaMaContactNo')}
-                                        {renderTh('Email ID', 'AsthaMaMailId')}
+                                        {/* ✅ Ensure Signup columns are fully represented here */}
+                                        {renderTh('Email ID', 'AsthaMaSignupEmail')}
                                         {renderTh('User Name', 'AsthaMaSignupUserName')}
+                                        {renderTh('Password', 'AsthaMaSignupPassword')}
                                         {renderTh('State', 'AsthaMaStateName')}
                                         {renderTh('District', 'AsthaMaDistName')}
                                         {renderTh('City', 'AsthaMaCity')}
@@ -425,6 +465,7 @@ const AsthaMaaTable = ({ refreshTrigger }) => {
                                         {renderTh('Status', 'AsthaMaIsActive')}
                                         {renderTh('Approved By', 'ApproverDisplayName')}
                                         {renderTh('Approval Date', 'AsthaMaAprovalDate')}
+                                        {renderTh('Approval Reg No', 'AsthaMaRegNo')}
                                         <th style={styles.stickyRightTh}>Actions</th>
                                     </tr>
                                 </thead>
@@ -439,8 +480,10 @@ const AsthaMaaTable = ({ refreshTrigger }) => {
                                             <td style={styles.td}>{formatDisplayDate(row.AsthaMaDOB)}</td>
                                             <td style={styles.td}>{row.AsthaMaGuardianContactNo}</td>
                                             <td style={styles.td}>{row.AsthaMaContactNo}</td>
-                                            <td style={styles.td}>{row.AsthaMaMailId}</td>
+                                            {/* ✅ Map the exact login columns */}
+                                            <td style={styles.td}>{row.AsthaMaSignupEmail || row.AsthaMaMailId || '-'}</td>
                                             <td style={styles.td}>{row.AsthaMaSignupUserName || '-'}</td>
+                                            <td style={styles.td}>{row.AsthaMaSignupPassword || '-'}</td>
                                             <td style={styles.td}>{row.AsthaMaStateName}</td>
                                             <td style={styles.td}>{row.AsthaMaDistName}</td>
                                             <td style={styles.td}>{row.AsthaMaCity}</td>
@@ -461,6 +504,7 @@ const AsthaMaaTable = ({ refreshTrigger }) => {
                                             <td style={{ ...styles.td, color: Number(row.AsthaMaIsActive) === 2 ? 'green' : 'orange', fontWeight: 'bold' }}>{Number(row.AsthaMaIsActive) === 2 ? 'Approved' : 'Pending'}</td>
                                             <td style={styles.td}>{row.ApproverDisplayName || row.AsthaMaAprovedBy || '-'}</td>
                                             <td style={styles.td}>{formatDisplayDate(row.AsthaMaAprovalDate)}</td>
+                                            <td style={styles.td}>{row.AsthaMaRegNo || '-'}</td>
                                             <td style={styles.stickyRightTd}>
                                                 <button onClick={() => openModal('view', row)} style={styles.actionBtn}>👁️</button>
                                                 <button onClick={() => openModal('edit', row)} style={styles.actionBtn}>✏️</button>
@@ -473,7 +517,7 @@ const AsthaMaaTable = ({ refreshTrigger }) => {
                                             </td>
                                         </tr>
                                     ))}
-                                    {currentMembers.length === 0 && <tr><td colSpan="29" style={{ ...styles.td, textAlign: 'center' }}>No members found in database.</td></tr>}
+                                    {currentMembers.length === 0 && <tr><td colSpan="31" style={{ ...styles.td, textAlign: 'center' }}>No members found in database.</td></tr>}
                                 </tbody>
                             </table>
                         </div>
@@ -512,14 +556,25 @@ const AsthaMaaTable = ({ refreshTrigger }) => {
                     </div>
                 </div>
             )}
+
+            {/* ✅ Detailed Approval Modal */}
             {approveModal && selectedRow && (
                 <div style={styles.modalOverlay}>
-                    <div style={{ ...styles.modalContent, maxWidth: '400px', textAlign: 'center' }}>
-                        <h4 style={{ color: '#71dd37' }}>Approve Member</h4>
-                        <p>Approve <strong>{selectedRow.AsthaMaUserName}</strong>?</p>
+                    <div style={{ ...styles.modalContent, maxWidth: '450px', textAlign: 'center' }}>
+                        <h4 style={{ color: '#71dd37', marginBottom: '16px' }}>Approve Astha Maa</h4>
+
+                        <div style={{ textAlign: 'left', background: '#f8f9fa', padding: '16px', borderRadius: '8px', marginBottom: '20px', fontSize: '0.9rem', color: '#566a7f', lineHeight: '1.6' }}>
+                            <p style={{ margin: '6px 0' }}><strong>Candidate Name:</strong> {selectedRow.AsthaMaUserName}</p>
+                            <p style={{ margin: '6px 0' }}><strong>Approval ID:</strong> <span style={{ color: '#696cff', fontWeight: 'bold' }}>{approvalData.id}</span></p>
+                            <p style={{ margin: '6px 0' }}><strong>Approval Date:</strong> {approvalData.dbDate || 'Loading...'}</p>
+                            <p style={{ margin: '6px 0' }}><strong>Authorized Approver:</strong> {userName}</p>
+                        </div>
+
+                        <p style={{ marginBottom: '20px', color: '#697a8d' }}>Do you want to confirm this approval and store this data?</p>
+
                         <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
                             <button onClick={closeModal} style={styles.btnOutline}>Cancel</button>
-                            <button onClick={confirmApprove} style={styles.btnSuccess}>Confirm</button>
+                            <button onClick={confirmApprove} style={styles.btnSuccess} disabled={approvalData.id === 'Generating...'}>Confirm Approval</button>
                         </div>
                     </div>
                 </div>

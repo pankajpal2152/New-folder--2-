@@ -173,6 +173,8 @@ exports.getAsthaMaa = (req, res) => {
 
 exports.createAsthaMaa = (req, res) => {
     const data = req.body;
+
+    // ✅ Insert mapped specifically to the exact columns in the table structure
     const insertQuery = `INSERT INTO asthama_reg (
         AsthaMaProfileImage, AsthaMaUserName, AsthaMaGuardianName, AsthaMaDOB, AsthaMaGuardianContactNo, 
         AsthaMaStateName, AsthaMaDistName, AsthaMaCity, AsthaMaBlockName, AsthaMaPO, AsthaMaPS, 
@@ -266,7 +268,6 @@ exports.deleteAsthaMaa = (req, res) => {
 // DISTRICT ADMIN REGISTRATION (dist_ngo_reg)
 // ==========================================
 exports.getDistrictAdmin = (req, res) => {
-    // ✅ PERFECT SYNC: Maps to newly aligned schema names
     const query = `
         SELECT a.*, 
                DATE_FORMAT(a.DistNGOAprovedDate, '%Y-%m-%d') AS DistNGOAprovedDateRaw,
@@ -278,7 +279,7 @@ exports.getDistrictAdmin = (req, res) => {
     `;
     db.query(query, (err, results) => {
         if (err) { console.error("❌ getDistrictAdmin DB Error:", err.message); return res.status(500).json({ error: err.message }); }
-        
+
         const mappedResults = results.map(row => {
             let approverDisplayName = row.DistNGOAprovedBy;
             if (row.ApproverName) { approverDisplayName = row.ApproverName; }
@@ -290,7 +291,7 @@ exports.getDistrictAdmin = (req, res) => {
                 DistNGORegDate: row.DistNGORegDateRaw || row.DistNGORegDate
             };
         });
-        
+
         res.json(mappedResults);
     });
 };
@@ -298,13 +299,12 @@ exports.getDistrictAdmin = (req, res) => {
 exports.createDistrictAdmin = (req, res) => {
     const data = req.body;
 
-    // ✅ Insert query mapped perfectly to the new exact database schema
     const insertQuery = `INSERT INTO dist_ngo_reg 
         (DistNGOName, DistNGORegDate, DistNGORegNo, DistNGOPanNo, DistNGODarpanId, DistNGOMailId, DistNGOPhoneNo, DistNGORegAddress, DistNGOWorkingAddress, DistNGOStateName, DistNGODistName, DistNGOBlockName, DistNGOSDPName, DistNGOSDPMailId, DistNGOSDPPhoneNo, DistNGOSDPAadhaarNo, DistNGOBankName, DistNGOAcctNo, DistNGOIFSCode, DistNGOBankAdd, DistNGORecCertificate, DistNGOPanPic, DistNGODarpanPic, DistNGOSignupUserName, DistNGOSignupEmail, DistNGOSignupPassword, DistNGOCreatedByAuthRegId, DistNGOCreatedDate, StateNGORegId, DistNGOIsActive, DistNGOAprovedBy, DistNGOAprovedDate, DistNGOGenRegNo) 
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?, ?, ?)`;
 
     const values = [
-        data.DistNGOName, data.DistNGORegDate, data.DistNGORegNo, data.DistNGOPanNo, data.DistNGODarpanId, data.DistNGOMailId, data.DistNGOPhoneNo, data.DistNGORegAddress, data.DistNGOWorkingAddress, data.DistNGOStateName, data.DistNGODistName, data.DistNGOBlockName, data.DistNGOSDPName, data.DistNGOSDPMailId, data.DistNGOSDPPhoneNo, data.DistNGOSDPAadhaarNo, data.DistNGOBankName, data.DistNGOAcctNo, data.DistNGOIFSCode, data.DistNGOBankAdd, data.DistNGORecCertificate, data.DistNGOPanPic, data.DistNGODarpanPic, data.DistNGOSignupUserName, data.DistNGOSignupEmail, data.DistNGOSignupPassword, data.DistNGOCreatedByAuthRegId || null, 
+        data.DistNGOName, data.DistNGORegDate, data.DistNGORegNo, data.DistNGOPanNo, data.DistNGODarpanId, data.DistNGOMailId, data.DistNGOPhoneNo, data.DistNGORegAddress, data.DistNGOWorkingAddress, data.DistNGOStateName, data.DistNGODistName, data.DistNGOBlockName, data.DistNGOSDPName, data.DistNGOSDPMailId, data.DistNGOSDPPhoneNo, data.DistNGOSDPAadhaarNo, data.DistNGOBankName, data.DistNGOAcctNo, data.DistNGOIFSCode, data.DistNGOBankAdd, data.DistNGORecCertificate, data.DistNGOPanPic, data.DistNGODarpanPic, data.DistNGOSignupUserName, data.DistNGOSignupEmail, data.DistNGOSignupPassword, data.DistNGOCreatedByAuthRegId || null,
         data.StateNGORegId || null, data.DistNGOIsActive || 1, data.DistNGOAprovedBy || null, data.DistNGOAprovedDate || null, data.DistNGOGenRegNo || null
     ];
 
@@ -327,7 +327,6 @@ exports.updateDistrictAdmin = (req, res) => {
     const { id } = req.params;
     const data = req.body;
 
-    // ✅ Update query mapped perfectly to the new exact database schema
     const updateQuery = `UPDATE dist_ngo_reg SET 
         DistNGOName=?, DistNGORegDate=?, DistNGORegNo=?, DistNGOPanNo=?, DistNGODarpanId=?, DistNGOMailId=?, DistNGOPhoneNo=?, DistNGORegAddress=?, DistNGOWorkingAddress=?, DistNGOStateName=?, DistNGODistName=?, DistNGOBlockName=?, DistNGOSDPName=?, DistNGOSDPMailId=?, DistNGOSDPPhoneNo=?, DistNGOSDPAadhaarNo=?, DistNGOBankName=?, DistNGOAcctNo=?, DistNGOIFSCode=?, DistNGOBankAdd=?, DistNGORecCertificate=?, DistNGOPanPic=?, DistNGODarpanPic=?, DistNGOSignupUserName=?, DistNGOSignupEmail=?, DistNGOSignupPassword=?, DistNGOIsActive=?, DistNGOAprovedBy=?, DistNGOAprovedDate=?, DistNGOGenRegNo=?
         WHERE DistNGORegId=?`;

@@ -15,8 +15,8 @@ const formatDisplayDate = (dbDateStr) => {
 
 const handleViewPdf = (base64String) => {
     if (!base64String) return;
-    const pdfData = base64String.startsWith('data:application/pdf;base64,') 
-        ? base64String 
+    const pdfData = base64String.startsWith('data:application/pdf;base64,')
+        ? base64String
         : `data:application/pdf;base64,${base64String}`;
     const pdfWindow = window.open("");
     if (pdfWindow) {
@@ -114,31 +114,31 @@ const DistrictAdminModal = ({ member, mode, onClose, onSuccess }) => {
 
         const dbPayload = {
             ...member,
-            DistNGOName: data.ngoName, 
-            DistNGORegDate: data.ngoRegistrationDate, 
+            DistNGOName: data.ngoName,
+            DistNGORegDate: data.ngoRegistrationDate,
             DistNGORegNo: data.ngoRegistrationNo,
-            DistNGOPanNo: data.ngoPanNo, 
-            DistNGODarpanId: data.ngoDarpanId, 
+            DistNGOPanNo: data.ngoPanNo,
+            DistNGODarpanId: data.ngoDarpanId,
             DistNGOMailId: data.generalNgoEmail,
-            DistNGOPhoneNo: data.ngoMobile, 
-            DistNGORegAddress: data.ngoRegAddress, 
+            DistNGOPhoneNo: data.ngoMobile,
+            DistNGORegAddress: data.ngoRegAddress,
             DistNGOWorkingAddress: data.ngoWorkingAddress,
-            DistNGOStateName: data.state ? data.state.label : "", 
+            DistNGOStateName: data.state ? data.state.label : "",
             DistNGODistName: data.district ? data.district.label : "",
             DistNGOBlockName: data.blockName,
-            DistNGOSDPName: data.sdpName, 
+            DistNGOSDPName: data.sdpName,
             DistNGOSDPMailId: data.secretaryEmail,
-            DistNGOSDPPhoneNo: data.secretaryMobile, 
-            DistNGOSDPAadhaarNo: data.secretaryAadhar, 
+            DistNGOSDPPhoneNo: data.secretaryMobile,
+            DistNGOSDPAadhaarNo: data.secretaryAadhar,
             DistNGOBankName: data.bankName,
-            DistNGOAcctNo: data.accountNo, 
-            DistNGOIFSCode: data.ifsCode, 
+            DistNGOAcctNo: data.accountNo,
+            DistNGOIFSCode: data.ifsCode,
             DistNGOBankAdd: data.bankAddress,
-            DistNGOSignupUserName: data.userName, 
+            DistNGOSignupUserName: data.userName,
             DistNGOSignupEmail: data.ngoEmail,
             DistNGOSignupPassword: data.password,
-            DistNGORecCertificate: regCertPdf, 
-            DistNGOPanPic: panPdf, 
+            DistNGORecCertificate: regCertPdf,
+            DistNGOPanPic: panPdf,
             DistNGODarpanPic: darpanPdf,
         };
 
@@ -297,6 +297,9 @@ const DistrictAdminTable = ({ refreshTrigger }) => {
     const [userName, setUserName] = useState('');
     const [userId, setUserId] = useState('');
 
+    // Search State added
+    const [globalSearch, setGlobalSearch] = useState('');
+
     const [viewModal, setViewModal] = useState(false);
     const [editModal, setEditModal] = useState(false);
     const [deleteModal, setDeleteModal] = useState(false);
@@ -308,9 +311,9 @@ const DistrictAdminTable = ({ refreshTrigger }) => {
 
     useEffect(() => {
         const user = getSafeUser();
-        if (user) { 
-            setUserRole(user.role || ''); 
-            setUserName(user.username || ''); 
+        if (user) {
+            setUserRole(user.role || '');
+            setUserName(user.username || '');
             setUserId(user.UserSignUpId || user.id || '');
         }
     }, []);
@@ -330,6 +333,17 @@ const DistrictAdminTable = ({ refreshTrigger }) => {
 
     useEffect(() => { fetchMembers(); }, [refreshTrigger]);
 
+    // Live search filter logic added
+    const filteredMembers = useMemo(() => {
+        if (!globalSearch) return members;
+        const searchLower = globalSearch.toLowerCase();
+        return members.filter((member) =>
+            Object.values(member).some(
+                val => val && String(val).toLowerCase().includes(searchLower)
+            )
+        );
+    }, [members, globalSearch]);
+
     // ✅ Approval ID Logic using Secretary's Aadhar 
     const openModal = async (type, member) => {
         setSelectedRow({ ...member });
@@ -342,7 +356,7 @@ const DistrictAdminTable = ({ refreshTrigger }) => {
 
             const d = new Date();
             const utc = d.getTime() + (d.getTimezoneOffset() * 60000);
-            const istDate = new Date(utc + (3600000 * 5.5)); 
+            const istDate = new Date(utc + (3600000 * 5.5));
             const dbDate = istDate.toISOString().split('T')[0];
 
             let stateId = '00';
@@ -403,12 +417,12 @@ const DistrictAdminTable = ({ refreshTrigger }) => {
             toast.loading("Approving...", { toastId: 'approveNgo' });
 
             // ✅ Map directly to the new 16 digit ID column
-            const payload = { 
-                ...selectedRow, 
-                DistNGOIsActive: 2, 
-                DistNGOGenRegNo: approvalData.id, 
-                DistNGOAprovedDate: approvalData.dbDate, 
-                DistNGOAprovedBy: String(userId) 
+            const payload = {
+                ...selectedRow,
+                DistNGOIsActive: 2,
+                DistNGOGenRegNo: approvalData.id,
+                DistNGOAprovedDate: approvalData.dbDate,
+                DistNGOAprovedBy: String(userId)
             };
 
             Object.keys(payload).forEach(key => {
@@ -437,6 +451,20 @@ const DistrictAdminTable = ({ refreshTrigger }) => {
                 <button onClick={fetchMembers} style={styles.btnOutline}>Refresh Data</button>
             </div>
             <div style={styles.cardBody}>
+                {/* Real-time search input bar */}
+                <div style={{ marginBottom: '20px', paddingBottom: '20px', borderBottom: '1px solid #e0e0e0' }}>
+                    <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+                        <input
+                            type="text"
+                            placeholder="🔍 Search entire table..."
+                            value={globalSearch}
+                            onChange={(e) => setGlobalSearch(e.target.value)}
+                            style={{ ...styles.input(false), flex: 1, padding: '8px 12px' }}
+                        />
+                        {/* <button>Filter</button> - Commented out filter button as requested */}
+                    </div>
+                </div>
+
                 {loading ? <p>Loading data...</p> : (
                     <div style={styles.tableContainer}>
                         <table style={styles.table}>
@@ -478,7 +506,8 @@ const DistrictAdminTable = ({ refreshTrigger }) => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {members.map((row) => (
+                                {/* Mapping over filteredMembers instead of members */}
+                                {filteredMembers.map((row) => (
                                     <tr key={row.DistNGORegId}>
                                         <td style={styles.stickyLeftTd}>{row.DistNGOName}</td>
                                         <td style={styles.td}>{formatDisplayDate(row.DistNGORegDate)}</td>
@@ -522,6 +551,7 @@ const DistrictAdminTable = ({ refreshTrigger }) => {
                                         </td>
                                     </tr>
                                 ))}
+                                {filteredMembers.length === 0 && <tr><td colSpan="31" style={{ ...styles.td, textAlign: 'center' }}>No members found.</td></tr>}
                             </tbody>
                         </table>
                     </div>
@@ -530,7 +560,7 @@ const DistrictAdminTable = ({ refreshTrigger }) => {
 
             {viewModal && selectedRow && <DistrictAdminModal member={selectedRow} mode="view" onClose={closeModal} onSuccess={closeModal} />}
             {editModal && selectedRow && <DistrictAdminModal member={selectedRow} mode="edit" onClose={closeModal} onSuccess={() => { closeModal(); fetchMembers(); }} />}
-            
+
             {deleteModal && selectedRow && (
                 <div style={styles.modalOverlay}>
                     <div style={{ ...styles.modalContent, maxWidth: '400px', textAlign: 'center' }}>
@@ -543,7 +573,7 @@ const DistrictAdminTable = ({ refreshTrigger }) => {
                     </div>
                 </div>
             )}
-            
+
             {/* ✅ Detailed Approval Modal */}
             {approveModal && selectedRow && (
                 <div style={styles.modalOverlay}>

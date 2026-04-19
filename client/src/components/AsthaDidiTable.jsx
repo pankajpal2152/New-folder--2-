@@ -8,6 +8,7 @@ import { API_BASE_URL, DUMMY_AVATAR, extractBase64, styles, FormInput } from '..
 import { accountSchema } from './forms/AsthaDidiForm';
 import { getSafeUser, PasswordInput } from './AccountSharedUtils';
 
+// ✅ PERFECT FIX: Safe Date Formatter (DATE ONLY, STRICT STRING EXTRACTION)
 const formatDisplayDate = (dbDateStr) => {
     if (!dbDateStr) return '-';
     return String(dbDateStr).substring(0, 10);
@@ -154,11 +155,13 @@ const AsthaDidiModal = ({ member, mode, onClose, onSuccess }) => {
                         </div>
                     </div>
                     <form onSubmit={handleSubmit(onSubmit, () => !isView && toast.error("Check red fields!"))}>
+
                         <h6 style={styles.sectionHeader}>Astha Didi Information</h6>
                         <div style={styles.formGrid}>
                             <Controller name="joiningAmount" control={control} render={({ field }) => (<FormInput label="Joining Amount *" id="edit_joiningAmount" error={errors.joiningAmount} disabled={true} {...field} />)} />
                             <Controller name="walletBalance" control={control} render={({ field }) => (<FormInput label="Wallet Balance *" id="edit_walletBalance" error={errors.walletBalance} disabled={true} {...field} />)} />
                         </div>
+
                         <h6 style={styles.sectionHeader}>Personal Details</h6>
                         <div style={styles.formGrid}>
                             <Controller name="fullName" control={control} render={({ field }) => (<FormInput label="Full Name *" id="edit_fullName" error={errors.fullName} disabled={isView} {...field} />)} />
@@ -166,6 +169,7 @@ const AsthaDidiModal = ({ member, mode, onClose, onSuccess }) => {
                             <Controller name="dob" control={control} render={({ field }) => (<FormInput label="Date of Birth *" id="edit_dob" error={errors.dob} type="date" disabled={isView} {...field} />)} />
                             <Controller name="guardianContactNo" control={control} render={({ field }) => (<FormInput label="Guardian Contact no" id="edit_guardianContactNo" error={errors.guardianContactNo} disabled={isView} {...field} />)} />
                         </div>
+
                         <h6 style={styles.sectionHeader}>Postal Address Information</h6>
                         <div style={styles.formGrid}>
                             <div style={styles.inputGroup}>
@@ -185,12 +189,20 @@ const AsthaDidiModal = ({ member, mode, onClose, onSuccess }) => {
                             <Controller name="pinCode" control={control} render={({ field }) => (<FormInput label="Pin Code *" id="edit_pinCode" error={errors.pinCode} disabled={isView} {...field} />)} />
                             <Controller name="mobileNo" control={control} render={({ field }) => (<FormInput label="Contact Number *" id="edit_mobileNo" error={errors.mobileNo} disabled={isView} {...field} />)} />
                         </div>
+
                         <h6 style={styles.sectionHeader}>Login & Account Setup</h6>
                         <div style={styles.formGrid}>
-                            <Controller name="userName" control={control} render={({ field }) => (<FormInput label={<>User Name <span style={{ color: '#ff3e1d' }}>*</span></>} id="edit_userName" error={errors.userName} disabled={isView} type="text" readOnly {...field} />)} />
-                            <Controller name="email" control={control} render={({ field }) => (<FormInput label={<>Email ID (For Login) <span style={{ color: '#ff3e1d' }}>*</span></>} id="edit_email" error={errors.email} disabled readOnly type="email" maxLength={100} {...field} />)} />
-                            <Controller name="password" control={control} render={({ field }) => (<PasswordInput label={<>Set New Password <span style={{ color: '#ff3e1d' }}>* (Don't forget it!)</span></>} id="edit_password" error={errors.password} disabled={isView} {...field} />)} />
+                            <Controller name="userName" control={control} render={({ field }) => (
+                                <FormInput label={<>User Name <span style={{ color: '#ff3e1d' }}>*</span></>} id="edit_userName" error={errors.userName} disabled={isView} type="text" readOnly {...field} />
+                            )} />
+                            <Controller name="email" control={control} render={({ field }) => (
+                                <FormInput label={<>Email ID (For Login) <span style={{ color: '#ff3e1d' }}>*</span></>} id="edit_email" error={errors.email} disabled readOnly type="email" maxLength={100} {...field} />
+                            )} />
+                            <Controller name="password" control={control} render={({ field }) => (
+                                <PasswordInput label={<>Set New Password <span style={{ color: '#ff3e1d' }}>*</span></>} id="edit_password" error={errors.password} disabled={isView} {...field} />
+                            )} />
                         </div>
+
                         <h6 style={styles.sectionHeader}>Banking & Payment Details</h6>
                         <div style={styles.formGrid}>
                             <Controller name="bankName" control={control} render={({ field }) => (<FormInput label="Bank Name" id="edit_bankName" error={errors.bankName} disabled readOnly {...field} />)} />
@@ -200,6 +212,7 @@ const AsthaDidiModal = ({ member, mode, onClose, onSuccess }) => {
                             <Controller name="panNo" control={control} render={({ field }) => (<FormInput label="PAN No" id="edit_panNo" error={errors.panNo} disabled readOnly {...field} />)} />
                             <Controller name="aadharNo" control={control} render={({ field }) => (<FormInput label="Aadhar No *" id="edit_aadharNo" error={errors.aadharNo} disabled readOnly {...field} />)} />
                         </div>
+
                         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '32px', gap: '10px' }}>
                             <button type="button" style={styles.btnOutline} onClick={onClose}>{isView ? 'Close' : 'Cancel'}</button>
                             {!isView && <button type="submit" style={styles.btnPrimary}>Save Changes</button>}
@@ -214,6 +227,7 @@ const AsthaDidiModal = ({ member, mode, onClose, onSuccess }) => {
 const MembersTable = ({ refreshTrigger }) => {
     const [members, setMembers] = useState([]);
     const [loading, setLoading] = useState(true);
+
     const [userRole, setUserRole] = useState('');
     const [userName, setUserName] = useState('');
     const [userId, setUserId] = useState('');
@@ -222,12 +236,10 @@ const MembersTable = ({ refreshTrigger }) => {
     const [rowsPerPage, setRowsPerPage] = useState(5);
     const [sortConfig, setSortConfig] = useState(null);
 
-    // ✅ LIVE SEARCH STATE
+    // ✅ Search and Filter States
     const [globalSearch, setGlobalSearch] = useState('');
-
-    // ❌ FILTER STATES COMMENTED OUT
-    // const [showFilters, setShowFilters] = useState(false);
-    // const [filters, setFilters] = useState({ state: '', district: '', status: '' });
+    const [showFilters, setShowFilters] = useState(false);
+    const [filters, setFilters] = useState({ state: '', district: '', status: '' });
 
     const [viewModal, setViewModal] = useState(false);
     const [editModal, setEditModal] = useState(false);
@@ -266,19 +278,34 @@ const MembersTable = ({ refreshTrigger }) => {
 
     useEffect(() => { fetchMembers(); }, [refreshTrigger]);
 
-    // ✅ LIVE SEARCH LOGIC (Filters every column simultaneously)
+    // ✅ Dynamic Filter Options directly from fetched data
+    const uniqueStates = [...new Set(members.map(m => m.AsthaDidiStateName).filter(Boolean))];
+    const uniqueDistricts = [...new Set(members.map(m => m.AsthaDidiDistName).filter(Boolean))];
+
+    // ✅ Apply Search & Dropdown Filters
     const filteredMembers = useMemo(() => {
-        if (!globalSearch.trim()) return members;
-        const searchLower = globalSearch.toLowerCase();
-
         return members.filter((member) => {
-            return Object.values(member).some((val) =>
-                val !== null && val !== undefined && String(val).toLowerCase().includes(searchLower)
-            );
-        });
-    }, [members, globalSearch]);
+            // 1. Global Search
+            let matchesSearch = true;
+            if (globalSearch) {
+                const searchLower = globalSearch.toLowerCase();
+                matchesSearch = Object.values(member).some(
+                    val => val && String(val).toLowerCase().includes(searchLower)
+                );
+            }
 
-    // ✅ SORTING APPLIED TO FILTERED DATA
+            // 2. Dropdown Filters
+            const matchesState = filters.state ? member.AsthaDidiStateName === filters.state : true;
+            const matchesDistrict = filters.district ? member.AsthaDidiDistName === filters.district : true;
+
+            const statusStr = Number(member.AsthaDidiIsActive) === 2 ? 'Approved' : 'Pending';
+            const matchesStatus = filters.status ? statusStr === filters.status : true;
+
+            return matchesSearch && matchesState && matchesDistrict && matchesStatus;
+        });
+    }, [members, globalSearch, filters]);
+
+    // ✅ Sort the ALREADY FILTERED members
     const sortedMembers = useMemo(() => {
         let sortableItems = [...filteredMembers];
         if (sortConfig !== null) {
@@ -311,7 +338,6 @@ const MembersTable = ({ refreshTrigger }) => {
     const indexOfLastMember = currentPage * rowsPerPage;
     const indexOfFirstMember = indexOfLastMember - rowsPerPage;
     const currentMembers = sortedMembers.slice(indexOfFirstMember, indexOfLastMember);
-
     const handleNextPage = () => setCurrentPage((prev) => Math.min(prev + 1, totalPages));
     const handlePrevPage = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
     const handleRowsChange = (e) => { setRowsPerPage(Number(e.target.value)); setCurrentPage(1); };
@@ -364,17 +390,27 @@ const MembersTable = ({ refreshTrigger }) => {
     const confirmDelete = async () => {
         try {
             toast.loading("Deleting...", { toastId: 'delete' });
+
             const payload = { ...selectedRow, AsthaDidiIsActive: "0" };
+
             Object.keys(payload).forEach(key => {
                 if (key !== 'AsthaDidiAprovalDate' && typeof payload[key] === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(payload[key])) {
                     payload[key] = payload[key].substring(0, 10);
                 }
             });
+
             const res = await fetch(`${API_BASE_URL}/asthadidi/${selectedRow.AsthaDidiRegId}`, {
-                method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
             });
+
             toast.dismiss('delete');
-            if (res.ok) { toast.success("Member deleted."); setMembers(prev => prev.filter(m => m.AsthaDidiRegId !== selectedRow.AsthaDidiRegId)); closeModal(); }
+            if (res.ok) {
+                toast.success("Member deleted.");
+                setMembers(prev => prev.filter(m => m.AsthaDidiRegId !== selectedRow.AsthaDidiRegId));
+                closeModal();
+            }
             else { toast.error("Failed to delete."); }
         } catch (error) { toast.dismiss('delete'); toast.error("Network error."); }
     };
@@ -382,6 +418,7 @@ const MembersTable = ({ refreshTrigger }) => {
     const confirmApprove = async () => {
         try {
             toast.loading("Approving...", { toastId: 'approve' });
+
             const payload = {
                 ...selectedRow,
                 AsthaDidiIsActive: 2,
@@ -389,11 +426,13 @@ const MembersTable = ({ refreshTrigger }) => {
                 AsthaDidiAprovalDate: approvalData.dbDate,
                 AsthaDidiAprovedBy: String(userId)
             };
+
             Object.keys(payload).forEach(key => {
                 if (key !== 'AsthaDidiAprovalDate' && typeof payload[key] === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(payload[key])) {
                     payload[key] = payload[key].substring(0, 10);
                 }
             });
+
             const res = await fetch(`${API_BASE_URL}/asthadidi/${selectedRow.AsthaDidiRegId}`, {
                 method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
             });
@@ -416,22 +455,28 @@ const MembersTable = ({ refreshTrigger }) => {
                 <h5 style={styles.cardHeader}>Profile Details & Activity:</h5>
                 <button onClick={fetchMembers} style={styles.btnOutline}>Refresh Data</button>
             </div>
-
             <div style={styles.cardBody}>
-                {/* ✅ LIVE SEARCH BAR IMPLEMENTATION */}
-                <div style={{ display: 'flex', gap: '16px', marginBottom: '20px' }}>
-                    <input
-                        type="text"
-                        placeholder="🔍 Search entire table..."
-                        value={globalSearch}
-                        onChange={(e) => setGlobalSearch(e.target.value)}
-                        style={{ ...styles.input(false), flex: 1, padding: '10px 14px', borderRadius: '6px', border: '1px solid #d9dee3' }}
-                    />
 
-                    {/* ❌ FILTERS BUTTON COMMENTED OUT 
-                    <button onClick={() => setShowFilters(!showFilters)} style={{...styles.btnOutline, padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '8px'}}>
-                        {showFilters ? 'Hide Filters' : '🔍 Advanced Filters'}
-                    </button>
+                {/* ✅ GLOBAL SEARCH (Filter button commented out as requested) */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '20px', paddingBottom: '20px', borderBottom: '1px solid #e0e0e0' }}>
+                    <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+                        <input
+                            type="text"
+                            placeholder="🔍 Search entire table..."
+                            value={globalSearch}
+                            onChange={(e) => setGlobalSearch(e.target.value)}
+                            style={{ ...styles.input(false), flex: 1, padding: '8px 12px' }}
+                        />
+                        {/* Filter Button Commented out 
+                        <button onClick={() => setShowFilters(!showFilters)} style={{...styles.btnOutline, padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                            {showFilters ? 'Hide Filters' : '🔍 Advanced Filters'}
+                        </button>
+                        */}
+                    </div>
+                    {/* Advanced filter section commented out
+                    {showFilters && (
+                        ... advanced dropdowns logic ...
+                    )}
                     */}
                 </div>
 
@@ -521,7 +566,7 @@ const MembersTable = ({ refreshTrigger }) => {
                                             </td>
                                         </tr>
                                     ))}
-                                    {currentMembers.length === 0 && <tr><td colSpan="31" style={{ ...styles.td, textAlign: 'center' }}>No matching records found.</td></tr>}
+                                    {currentMembers.length === 0 && <tr><td colSpan="31" style={{ ...styles.td, textAlign: 'center' }}>No members found. Try clearing your search filters!</td></tr>}
                                 </tbody>
                             </table>
                         </div>
@@ -565,13 +610,16 @@ const MembersTable = ({ refreshTrigger }) => {
                 <div style={styles.modalOverlay}>
                     <div style={{ ...styles.modalContent, maxWidth: '450px', textAlign: 'center' }}>
                         <h4 style={{ color: '#71dd37', marginBottom: '16px' }}>Approve Astha Didi</h4>
+
                         <div style={{ textAlign: 'left', background: '#f8f9fa', padding: '16px', borderRadius: '8px', marginBottom: '20px', fontSize: '0.9rem', color: '#566a7f', lineHeight: '1.6' }}>
                             <p style={{ margin: '6px 0' }}><strong>Candidate Name:</strong> {selectedRow.AsthaDidiUserName}</p>
                             <p style={{ margin: '6px 0' }}><strong>Approval ID:</strong> <span style={{ color: '#696cff', fontWeight: 'bold' }}>{approvalData.id}</span></p>
                             <p style={{ margin: '6px 0' }}><strong>Approval Date:</strong> {approvalData.dbDate || 'Loading...'}</p>
                             <p style={{ margin: '6px 0' }}><strong>Authorized Approver:</strong> {userName}</p>
                         </div>
+
                         <p style={{ marginBottom: '20px', color: '#697a8d' }}>Do you want to confirm this approval and store this data?</p>
+
                         <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
                             <button onClick={closeModal} style={styles.btnOutline}>Cancel</button>
                             <button onClick={confirmApprove} style={styles.btnSuccess} disabled={approvalData.id === 'Generating...'}>Confirm Approval</button>

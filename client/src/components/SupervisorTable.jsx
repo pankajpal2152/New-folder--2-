@@ -249,6 +249,9 @@ const SupervisorTable = ({ refreshTrigger }) => {
     const [currentPage, setCurrentPage] = useState(1);
     const [rowsPerPage, setRowsPerPage] = useState(5);
     const [sortConfig, setSortConfig] = useState(null);
+    
+    // Search State added
+    const [globalSearch, setGlobalSearch] = useState('');
 
     const [viewModal, setViewModal] = useState(false);
     const [editModal, setEditModal] = useState(false);
@@ -282,8 +285,20 @@ const SupervisorTable = ({ refreshTrigger }) => {
 
     useEffect(() => { fetchMembers(); }, [refreshTrigger]);
 
+    // Live search filter logic added
+    const filteredMembers = useMemo(() => {
+        if (!globalSearch) return members;
+        const searchLower = globalSearch.toLowerCase();
+        return members.filter((member) =>
+            Object.values(member).some(
+                val => val && String(val).toLowerCase().includes(searchLower)
+            )
+        );
+    }, [members, globalSearch]);
+
+    // Ensure sorted members applies AFTER filtering
     const sortedMembers = useMemo(() => {
-        let sortableItems = [...members];
+        let sortableItems = [...filteredMembers];
         if (sortConfig !== null) {
             sortableItems.sort((a, b) => {
                 let aVal = a[sortConfig.key] || ''; let bVal = b[sortConfig.key] || '';
@@ -295,7 +310,7 @@ const SupervisorTable = ({ refreshTrigger }) => {
             });
         }
         return sortableItems;
-    }, [members, sortConfig]);
+    }, [filteredMembers, sortConfig]);
 
     const requestSort = (key) => {
         let direction = 'ascending';
@@ -428,6 +443,20 @@ const SupervisorTable = ({ refreshTrigger }) => {
                 <button onClick={fetchMembers} style={styles.btnOutline}>Refresh Data</button>
             </div>
             <div style={styles.cardBody}>
+                {/* Real-time search input bar */}
+                <div style={{ marginBottom: '20px', paddingBottom: '20px', borderBottom: '1px solid #e0e0e0' }}>
+                    <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+                        <input 
+                            type="text" 
+                            placeholder="🔍 Search entire table..." 
+                            value={globalSearch} 
+                            onChange={(e) => setGlobalSearch(e.target.value)}
+                            style={{ ...styles.input(false), flex: 1, padding: '8px 12px' }}
+                        />
+                        {/* <button>Filter</button> - Commented out filter button as requested */}
+                    </div>
+                </div>
+
                 {loading ? <p>Loading data...</p> : (
                     <>
                         <div style={styles.tableContainer}>

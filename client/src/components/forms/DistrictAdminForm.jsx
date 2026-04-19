@@ -63,19 +63,7 @@ const PasswordInput = ({ label, id, error, placeholder, disabled, ...props }) =>
                 <button
                     type="button"
                     onClick={togglePasswordVisibility}
-                    style={{
-                        position: 'absolute',
-                        right: '10px',
-                        background: 'transparent',
-                        border: 'none',
-                        cursor: 'pointer',
-                        color: '#697a8d',
-                        fontSize: '1.2rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        padding: 0
-                    }}
+                    style={{ position: 'absolute', right: '10px', background: 'transparent', border: 'none', cursor: 'pointer', color: '#697a8d', fontSize: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}
                     title={showPassword ? "Hide password" : "Show password"}
                 >
                     {showPassword ? '👁️‍🗨️' : '👁️'}
@@ -88,8 +76,8 @@ const PasswordInput = ({ label, id, error, placeholder, disabled, ...props }) =>
 
 const handleViewPdf = (base64String) => {
     if (!base64String) return;
-    const pdfData = base64String.startsWith('data:application/pdf;base64,') 
-        ? base64String 
+    const pdfData = base64String.startsWith('data:application/pdf;base64,')
+        ? base64String
         : `data:application/pdf;base64,${base64String}`;
     const pdfWindow = window.open("");
     if (pdfWindow) {
@@ -102,7 +90,7 @@ const handleViewPdf = (base64String) => {
 const DistrictAdminForm = ({ onSuccess }) => {
     const [dbStates, setDbStates] = useState([]);
     const [dbDistricts, setDbDistricts] = useState([]);
-    
+
     // State for PDF Document Uploads
     const [regCertPdf, setRegCertPdf] = useState(null);
     const [panPdf, setPanPdf] = useState(null);
@@ -145,11 +133,11 @@ const DistrictAdminForm = ({ onSuccess }) => {
         if (file) {
             if (file.type !== 'application/pdf') return toast.warning("Only PDF files are allowed.");
             if (file.size > 5000000) return toast.warning("File size exceeds the 5MB limit.");
-            try { 
-                const b64 = await fileToBase64(file); 
-                setPdfState(b64); 
-            } catch (err) { 
-                toast.error("Error reading the file."); 
+            try {
+                const b64 = await fileToBase64(file);
+                setPdfState(b64);
+            } catch (err) {
+                toast.error("Error reading the file.");
             }
         }
     };
@@ -162,6 +150,7 @@ const DistrictAdminForm = ({ onSuccess }) => {
     };
 
     const onSubmitDistrictAdmin = async (data) => {
+        // Extact logged in User ID
         const loggedInUser = getSafeUser ? getSafeUser() : null;
         const currentUserId = loggedInUser ? (loggedInUser.UserSignUpId || loggedInUser.id) : null;
 
@@ -188,11 +177,11 @@ const DistrictAdminForm = ({ onSuccess }) => {
             DistNGOIFSCode: data.ifsCode,
             DistNGOBankAdd: data.bankAddress,
 
-            DistNGORecCertificate: regCertPdf, 
-            DistNGOPanPic: panPdf, 
+            DistNGORecCertificate: regCertPdf,
+            DistNGOPanPic: panPdf,
             DistNGODarpanPic: darpanPdf,
 
-            // Account Setup mapped directly to your new columns
+            // ✅ Login Credentials mapped dynamically
             DistNGOSignupUserName: data.userName,
             DistNGOSignupEmail: data.ngoEmail,
             DistNGOSignupPassword: data.password,
@@ -218,7 +207,7 @@ const DistrictAdminForm = ({ onSuccess }) => {
             if (response.ok) {
                 toast.success("Success: Data saved to Database!", { position: "top-right" });
                 handleCancel();
-                if (onSuccess) onSuccess(); // Triggers table refresh
+                if (onSuccess) onSuccess();
             } else {
                 toast.error("Failed to save data. Check backend logs.", { position: "top-right" });
             }
@@ -350,8 +339,8 @@ const DistrictAdminForm = ({ onSuccess }) => {
                             <input type="file" accept="application/pdf" onChange={(e) => handlePdfUpload(e, setRegCertPdf)} style={styles.input(false)} />
                             {regCertPdf && (
                                 <div style={{ display: 'flex', alignItems: 'center', marginTop: '8px' }}>
-                                    <button type="button" onClick={() => handleViewPdf(regCertPdf)} style={{...styles.btnOutline, padding: '4px 8px', fontSize: '0.85rem'}}>👁️ Preview PDF</button>
-                                    <span style={{...styles.hintText, color: '#71dd37', marginLeft: '10px', marginBottom: 0}}>✅ Ready</span>
+                                    <button type="button" onClick={() => handleViewPdf(regCertPdf)} style={{ ...styles.btnOutline, padding: '4px 8px', fontSize: '0.85rem' }}>👁️ Preview PDF</button>
+                                    <span style={{ ...styles.hintText, color: '#71dd37', marginLeft: '10px', marginBottom: 0 }}>✅ Ready</span>
                                 </div>
                             )}
                         </div>
@@ -360,8 +349,8 @@ const DistrictAdminForm = ({ onSuccess }) => {
                             <input type="file" accept="application/pdf" onChange={(e) => handlePdfUpload(e, setPanPdf)} style={styles.input(false)} />
                             {panPdf && (
                                 <div style={{ display: 'flex', alignItems: 'center', marginTop: '8px' }}>
-                                    <button type="button" onClick={() => handleViewPdf(panPdf)} style={{...styles.btnOutline, padding: '4px 8px', fontSize: '0.85rem'}}>👁️ Preview PDF</button>
-                                    <span style={{...styles.hintText, color: '#71dd37', marginLeft: '10px', marginBottom: 0}}>✅ Ready</span>
+                                    <button type="button" onClick={() => handleViewPdf(panPdf)} style={{ ...styles.btnOutline, padding: '4px 8px', fontSize: '0.85rem' }}>👁️ Preview PDF</button>
+                                    <span style={{ ...styles.hintText, color: '#71dd37', marginLeft: '10px', marginBottom: 0 }}>✅ Ready</span>
                                 </div>
                             )}
                         </div>
@@ -370,8 +359,8 @@ const DistrictAdminForm = ({ onSuccess }) => {
                             <input type="file" accept="application/pdf" onChange={(e) => handlePdfUpload(e, setDarpanPdf)} style={styles.input(false)} />
                             {darpanPdf && (
                                 <div style={{ display: 'flex', alignItems: 'center', marginTop: '8px' }}>
-                                    <button type="button" onClick={() => handleViewPdf(darpanPdf)} style={{...styles.btnOutline, padding: '4px 8px', fontSize: '0.85rem'}}>👁️ Preview PDF</button>
-                                    <span style={{...styles.hintText, color: '#71dd37', marginLeft: '10px', marginBottom: 0}}>✅ Ready</span>
+                                    <button type="button" onClick={() => handleViewPdf(darpanPdf)} style={{ ...styles.btnOutline, padding: '4px 8px', fontSize: '0.85rem' }}>👁️ Preview PDF</button>
+                                    <span style={{ ...styles.hintText, color: '#71dd37', marginLeft: '10px', marginBottom: 0 }}>✅ Ready</span>
                                 </div>
                             )}
                         </div>

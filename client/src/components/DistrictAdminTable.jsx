@@ -67,6 +67,7 @@ const DistrictAdminModal = ({ member, mode, onClose, onSuccess }) => {
     const selectedState = watch("state");
     const ngoNameValue = watch("ngoName");
 
+    // Automatically syncs User Name to Full Name in the edit modal as well
     useEffect(() => {
         if (!isView) {
             setValue("userName", ngoNameValue || "", { shouldValidate: true });
@@ -401,6 +402,7 @@ const DistrictAdminTable = ({ refreshTrigger }) => {
         try {
             toast.loading("Approving...", { toastId: 'approveNgo' });
 
+            // ✅ Map directly to the new 16 digit ID column
             const payload = { 
                 ...selectedRow, 
                 DistNGOIsActive: 2, 
@@ -460,10 +462,12 @@ const DistrictAdminTable = ({ refreshTrigger }) => {
                                     {renderTh('Account No')}
                                     {renderTh('IFS Code')}
                                     {renderTh('Bank Address')}
+                                    {/* ✅ Added Signup Table Headers */}
                                     {renderTh('Login User Name')}
                                     {renderTh('Login Email')}
                                     {renderTh('Login Password')}
                                     {renderTh('Status')}
+                                    {/* ✅ Added fully mapped Table Headers for Approval tracking */}
                                     {renderTh('Approved By')}
                                     {renderTh('Approval Date')}
                                     {renderTh('Approval Reg No')}
@@ -496,10 +500,12 @@ const DistrictAdminTable = ({ refreshTrigger }) => {
                                         <td style={styles.td}>{row.DistNGOAcctNo}</td>
                                         <td style={styles.td}>{row.DistNGOIFSCode}</td>
                                         <td style={styles.td}>{row.DistNGOBankAdd}</td>
+                                        {/* ✅ Shows the strictly mapped database values visually */}
                                         <td style={styles.td}>{row.DistNGOSignupUserName || '-'}</td>
                                         <td style={styles.td}>{row.DistNGOSignupEmail || '-'}</td>
                                         <td style={styles.td}>{row.DistNGOSignupPassword || '-'}</td>
                                         <td style={{ ...styles.td, color: Number(row.DistNGOIsActive) === 2 ? 'green' : 'orange', fontWeight: 'bold' }}>{Number(row.DistNGOIsActive) === 2 ? 'Approved' : 'Pending'}</td>
+                                        {/* ✅ Correctly uses the mapped Display Name from the Backend */}
                                         <td style={styles.td}>{row.ApproverDisplayName || row.DistNGOAprovedBy || '-'}</td>
                                         <td style={styles.td}>{formatDisplayDate(row.DistNGOAprovedDate)}</td>
                                         <td style={styles.td}>{row.DistNGOGenRegNo || '-'}</td>

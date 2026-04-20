@@ -137,7 +137,7 @@ const AsthaDidiForm = ({ onSuccess }) => {
         const userStr = localStorage.getItem('loggedInUser');
         const loggedInUser = userStr ? JSON.parse(userStr) : null;
         
-        // ✅ Safely extract UserSignUpId from local storage
+        // Extracting UserSignUpId safely from LocalStorage
         const currentUserId = loggedInUser ? (loggedInUser.UserSignUpId || loggedInUser.id) : null;
 
         const dbPayload = {
@@ -168,7 +168,7 @@ const AsthaDidiForm = ({ onSuccess }) => {
             AsthaDidiSignupUserName: data.userName, 
             AsthaDidiSignupEmail: data.email, 
             AsthaDidiSignupPassword: data.password, 
-            AsthaDidiCreatedByAutoRegId: currentUserId, // ✅ Passing the exact Creator ID
+            AsthaDidiCreatedByAuthRegId: currentUserId, // Mapped perfectly
             StateNGORegId: null,
             DistNGORegId: null,
             SupRegId: null,

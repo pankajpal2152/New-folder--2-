@@ -110,7 +110,8 @@ const AsthaDidiModal = ({ member, mode, onClose, onSuccess }) => {
             AsthaDidiBankName: data.bankName || "", AsthaDidiBranchName: data.branchName || "", AsthaDidiBankAcctNo: data.accountNo || "0",
             AsthaDidiIFSCode: data.ifsCode || "", AsthaDidiPanNo: data.panNo || "", AsthaDidiAadharNo: data.aadharNo,
             AsthaDidiJoiningAmt: parseInt(data.joiningAmount) || 5000, AsthaDidiWalletBalance: parseInt(data.walletBalance) || 0,
-            AsthaDidiCreatedByAuthRegId: currentUserId // FIXED: Changed from Auto to Auth
+            // Fixed: changed to match database schema and updated backend
+            AsthaDidiCreatedByAuthRegId: currentUserId
         };
 
         if (dbPayload.AsthaDidiDOB) dbPayload.AsthaDidiDOB = String(dbPayload.AsthaDidiDOB).substring(0, 10);
@@ -267,6 +268,7 @@ const MembersTable = ({ refreshTrigger }) => {
 
             const user = getSafeUser();
             if (user && (user.role === 'Astha Didi' || user.role === 'Supervisor')) {
+                // Fixed column mapping here as well
                 data = data.filter(member => String(member.AsthaDidiCreatedByAuthRegId) === String(user.id || user.UserSignUpId));
             }
             setMembers(data);

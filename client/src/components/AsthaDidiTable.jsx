@@ -110,7 +110,6 @@ const AsthaDidiModal = ({ member, mode, onClose, onSuccess }) => {
             AsthaDidiBankName: data.bankName || "", AsthaDidiBranchName: data.branchName || "", AsthaDidiBankAcctNo: data.accountNo || "0",
             AsthaDidiIFSCode: data.ifsCode || "", AsthaDidiPanNo: data.panNo || "", AsthaDidiAadharNo: data.aadharNo,
             AsthaDidiJoiningAmt: parseInt(data.joiningAmount) || 5000, AsthaDidiWalletBalance: parseInt(data.walletBalance) || 0,
-            // Fixed: changed to match database schema and updated backend
             AsthaDidiCreatedByAuthRegId: currentUserId
         };
 
@@ -251,7 +250,8 @@ const MembersTable = ({ refreshTrigger }) => {
     useEffect(() => {
         const user = getSafeUser();
         if (user) {
-            setUserRole(user.role || '');
+            // FIX 1: Safely check for either user.role OR user.UserSignUpRole to set userRole correctly
+            setUserRole(user.role || user.UserSignUpRole || '');
             setUserName(user.username || '');
             setUserId(user.UserSignUpId || user.id || '');
         }
@@ -541,10 +541,14 @@ const MembersTable = ({ refreshTrigger }) => {
                                             <td style={styles.stickyRightTd}>
                                                 <button onClick={() => openModal('view', row)} style={styles.actionBtn}>👁️</button>
                                                 <button onClick={() => openModal('edit', row)} style={styles.actionBtn}>✏️</button>
-                                                {userRole !== 'Astha Didi' && userRole !== 'Supervisor' && (
+
+                                                {/* FIX 2: Modified logic so anyone who is NOT 'Astha Didi' can see the delete button */}
+                                                {userRole !== 'Astha Didi' && (
                                                     <button onClick={() => openModal('delete', row)} style={styles.actionBtn}>🗑️</button>
                                                 )}
-                                                {Number(row.AsthaDidiIsActive) !== 2 && userRole !== 'Astha Didi' && userRole !== 'Supervisor' && (
+
+                                                {/* FIX 3: Modified logic so anyone who is NOT 'Astha Didi' can see the approve button (if member is pending) */}
+                                                {Number(row.AsthaDidiIsActive) !== 2 && userRole !== 'Astha Didi' && (
                                                     <button onClick={() => openModal('approve', row)} style={styles.actionBtn}>✅</button>
                                                 )}
                                             </td>

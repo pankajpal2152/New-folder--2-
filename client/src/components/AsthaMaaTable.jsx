@@ -174,11 +174,37 @@ const AsthaMaaModal = ({ member, mode, onClose, onSuccess }) => {
                         <div style={styles.formGrid}>
                             <div style={styles.inputGroup}>
                                 <label style={styles.label}>Select State *</label>
-                                <Controller name="state" control={control} render={({ field }) => (<Select {...field} options={dbStates} styles={styles.selectStyles(!!errors.state)} isDisabled={isView} menuPortalTarget={document.body} />)} />
+                                <Controller name="state" control={control} render={({ field }) => (
+                                    <Select 
+                                        {...field} 
+                                        options={dbStates} 
+                                        styles={{
+                                            ...styles.selectStyles(!!errors.state),
+                                            menuPortal: base => ({ ...base, zIndex: 99999 }),
+                                            menu: base => ({ ...base, zIndex: 99999 })
+                                        }} 
+                                        isDisabled={isView} 
+                                        menuPortalTarget={document.body}
+                                        menuPosition="fixed"
+                                    />
+                                )} />
                             </div>
                             <div style={styles.inputGroup}>
                                 <label style={styles.label}>District *</label>
-                                <Controller name="district" control={control} render={({ field }) => (<Select {...field} options={dbDistricts} styles={styles.selectStyles(!!errors.district)} isDisabled={isView || !selectedState} menuPortalTarget={document.body} />)} />
+                                <Controller name="district" control={control} render={({ field }) => (
+                                    <Select 
+                                        {...field} 
+                                        options={dbDistricts} 
+                                        styles={{
+                                            ...styles.selectStyles(!!errors.district),
+                                            menuPortal: base => ({ ...base, zIndex: 99999 }),
+                                            menu: base => ({ ...base, zIndex: 99999 })
+                                        }} 
+                                        isDisabled={isView || !selectedState} 
+                                        menuPortalTarget={document.body}
+                                        menuPosition="fixed"
+                                    />
+                                )} />
                             </div>
                             <Controller name="city" control={control} render={({ field }) => (<FormInput label="City" id="edit_city" error={errors.city} disabled={isView} {...field} />)} />
                             <Controller name="block" control={control} render={({ field }) => (<FormInput label="Block" id="edit_block" error={errors.block} disabled={isView} {...field} />)} />
@@ -538,13 +564,13 @@ const AsthaMaaTable = ({ refreshTrigger }) => {
                                                 <button onClick={() => openModal('view', row)} style={styles.actionBtn}>👁️</button>
                                                 <button onClick={() => openModal('edit', row)} style={styles.actionBtn}>✏️</button>
                                                 
-                                                {/* IMPLEMENTED RBAC FIX: Delete button hidden if role is Astha Didi */}
-                                                {userRole !== 'Astha Didi' && (
+                                                {/* IMPLEMENTED RBAC FIX: Delete button hidden if role is Astha Didi OR Astha Maa */}
+                                                {userRole !== 'Astha Didi' && userRole !== 'Astha Maa' && (
                                                     <button onClick={() => openModal('delete', row)} style={styles.actionBtn}>🗑️</button>
                                                 )}
                                                 
-                                                {/* IMPLEMENTED RBAC FIX: Approve button hidden if role is Astha Didi */}
-                                                {Number(row.AsthaMaIsActive) !== 2 && userRole !== 'Astha Didi' && (
+                                                {/* IMPLEMENTED RBAC FIX: Approve button hidden if role is Astha Didi OR Astha Maa */}
+                                                {Number(row.AsthaMaIsActive) !== 2 && userRole !== 'Astha Didi' && userRole !== 'Astha Maa' && (
                                                     <button onClick={() => openModal('approve', row)} style={styles.actionBtn}>✅</button>
                                                 )}
                                             </td>

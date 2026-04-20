@@ -34,7 +34,7 @@ const AsthaDidiModal = ({ member, mode, onClose, onSuccess }) => {
             state: null, district: null, city: member.AsthaDidiCity || '', block: member.AsthaDidiBlockName || '',
             postOffice: member.AsthaDidiPO || '', policeStation: member.AsthaDidiPS || '', gramPanchayet: member.AsthaDidiGramPanchayet || '',
             village: member.AsthaDidiVillage || '', pinCode: String(member.AsthaDidiPincode || ''), mobileNo: member.AsthaDidiContactNo || '',
-            email: member.AsthaDidiMailId || '',
+            email: member.AsthaDidiSignupEmail || member.AsthaDidiMailId || '',
             userName: member.AsthaDidiSignupUserName || '',
             password: member.AsthaDidiSignupPassword || '',
             bankName: member.AsthaDidiBankName || '', branchName: member.AsthaDidiBranchName || '',
@@ -106,7 +106,12 @@ const AsthaDidiModal = ({ member, mode, onClose, onSuccess }) => {
             AsthaDidiStateName: stateName, AsthaDidiDistName: districtName, AsthaDidiCity: data.city || "", AsthaDidiBlockName: data.block || "",
             AsthaDidiPO: data.postOffice || "", AsthaDidiPS: data.policeStation || "", AsthaDidiGramPanchayet: data.gramPanchayet || "",
             AsthaDidiVillage: data.village || "", AsthaDidiPincode: parseInt(data.pinCode), AsthaDidiContactNo: data.mobileNo, AsthaDidiMailId: data.email,
-            AsthaDidiSignupUserName: data.userName, AsthaDidiSignupPassword: data.password,
+            
+            // FIX: Added AsthaDidiSignupEmail so it aligns completely with database & backend
+            AsthaDidiSignupUserName: data.userName, 
+            AsthaDidiSignupEmail: data.email, 
+            AsthaDidiSignupPassword: data.password,
+            
             AsthaDidiBankName: data.bankName || "", AsthaDidiBranchName: data.branchName || "", AsthaDidiBankAcctNo: data.accountNo || "0",
             AsthaDidiIFSCode: data.ifsCode || "", AsthaDidiPanNo: data.panNo || "", AsthaDidiAadharNo: data.aadharNo,
             AsthaDidiJoiningAmt: parseInt(data.joiningAmount) || 5000, AsthaDidiWalletBalance: parseInt(data.walletBalance) || 0,
@@ -250,7 +255,6 @@ const MembersTable = ({ refreshTrigger }) => {
     useEffect(() => {
         const user = getSafeUser();
         if (user) {
-            // FIX 1: Safely check for either user.role OR user.UserSignUpRole to set userRole correctly
             setUserRole(user.role || user.UserSignUpRole || '');
             setUserName(user.username || '');
             setUserId(user.UserSignUpId || user.id || '');
@@ -264,13 +268,23 @@ const MembersTable = ({ refreshTrigger }) => {
             if (!res.ok) throw new Error("Failed to fetch table data");
             let data = await res.json();
 
+            // Filter out deactivated rows
             data = data.filter(member => String(member.AsthaDidiIsActive) !== '0');
 
             const user = getSafeUser();
-            if (user && (user.role === 'Astha Didi' || user.role === 'Supervisor')) {
-                // Fixed column mapping here as well
-                data = data.filter(member => String(member.AsthaDidiCreatedByAuthRegId) === String(user.id || user.UserSignUpId));
+            if (user) {
+                const currentRole = user.role || user.UserSignUpRole || '';
+                
+                // FIX: Astha Didi logic correctly identifies their own row using ProfileRegId
+                if (currentRole === 'Astha Didi') {
+                    data = data.filter(member => String(member.AsthaDidiRegId) === String(user.ProfileRegId));
+                } 
+                // Supervisor logic remains unchanged
+                else if (currentRole === 'Supervisor') {
+                    data = data.filter(member => String(member.AsthaDidiCreatedByAuthRegId) === String(user.id || user.UserSignUpId));
+                }
             }
+            
             setMembers(data);
         } catch (error) { toast.error("Failed to load table data.", { position: "top-right" }); }
         finally { setLoading(false); }

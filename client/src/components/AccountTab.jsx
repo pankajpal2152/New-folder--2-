@@ -74,8 +74,8 @@ const AccountTab = () => {
         ];
     } else if (appUserRole === 'Supervisor' || appUserRole === 'Astha Didi') {
         adminOptions = [
-            // { value: 'Astha Didi', label: 'Astha Didi' },
-            { value: 'Astha Maa', label: 'Astha Maa' }
+            { value: 'Astha Didi', label: 'Astha Didi' },
+            // { value: 'Astha Maa', label: 'Astha Maa' }
         ];
     }
 

@@ -74,10 +74,15 @@ const AccountTab = () => {
             { value: 'Supervisor', label: 'Supervisor' },
             { value: 'Astha Didi', label: 'Astha Didi' }
         ];
-    } else if (appUserRole === 'Supervisor' || appUserRole === 'Astha Didi') {
+    } else if (appUserRole === 'Supervisor') {
         adminOptions = [
             { value: 'Astha Didi', label: 'Astha Didi' },
             // { value: 'Astha Maa', label: 'Astha Maa' }
+        ];
+    } else if (appUserRole === 'Astha Didi') {
+        adminOptions = [
+            // { value: 'Astha Didi', label: 'Astha Didi' },
+            { value: 'Astha Maa', label: 'Astha Maa' }
         ];
     }
 

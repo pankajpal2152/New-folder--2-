@@ -8,7 +8,6 @@ import { API_BASE_URL, DUMMY_AVATAR, extractBase64, styles, FormInput } from '..
 import { accountSchema } from './forms/AsthaDidiForm';
 import { getSafeUser, PasswordInput } from './AccountSharedUtils';
 
-// ✅ PERFECT FIX: Safe Date Formatter (DATE ONLY, STRICT STRING EXTRACTION)
 const formatDisplayDate = (dbDateStr) => {
     if (!dbDateStr) return '-';
     return String(dbDateStr).substring(0, 10);
@@ -111,7 +110,8 @@ const AsthaDidiModal = ({ member, mode, onClose, onSuccess }) => {
             AsthaDidiBankName: data.bankName || "", AsthaDidiBranchName: data.branchName || "", AsthaDidiBankAcctNo: data.accountNo || "0",
             AsthaDidiIFSCode: data.ifsCode || "", AsthaDidiPanNo: data.panNo || "", AsthaDidiAadharNo: data.aadharNo,
             AsthaDidiJoiningAmt: parseInt(data.joiningAmount) || 5000, AsthaDidiWalletBalance: parseInt(data.walletBalance) || 0,
-            AsthaDidiCreatedByAutoRegId: currentUserId
+            // Fixed: changed to match database schema and updated backend
+            AsthaDidiCreatedByAuthRegId: currentUserId
         };
 
         if (dbPayload.AsthaDidiDOB) dbPayload.AsthaDidiDOB = String(dbPayload.AsthaDidiDOB).substring(0, 10);
@@ -236,7 +236,6 @@ const MembersTable = ({ refreshTrigger }) => {
     const [rowsPerPage, setRowsPerPage] = useState(5);
     const [sortConfig, setSortConfig] = useState(null);
 
-    // ✅ Search and Filter States
     const [globalSearch, setGlobalSearch] = useState('');
     const [showFilters, setShowFilters] = useState(false);
     const [filters, setFilters] = useState({ state: '', district: '', status: '' });
@@ -269,7 +268,8 @@ const MembersTable = ({ refreshTrigger }) => {
 
             const user = getSafeUser();
             if (user && (user.role === 'Astha Didi' || user.role === 'Supervisor')) {
-                data = data.filter(member => String(member.AsthaDidiCreatedByAutoRegId) === String(user.id || user.UserSignUpId));
+                // Fixed column mapping here as well
+                data = data.filter(member => String(member.AsthaDidiCreatedByAuthRegId) === String(user.id || user.UserSignUpId));
             }
             setMembers(data);
         } catch (error) { toast.error("Failed to load table data.", { position: "top-right" }); }
@@ -278,14 +278,11 @@ const MembersTable = ({ refreshTrigger }) => {
 
     useEffect(() => { fetchMembers(); }, [refreshTrigger]);
 
-    // ✅ Dynamic Filter Options directly from fetched data
     const uniqueStates = [...new Set(members.map(m => m.AsthaDidiStateName).filter(Boolean))];
     const uniqueDistricts = [...new Set(members.map(m => m.AsthaDidiDistName).filter(Boolean))];
 
-    // ✅ Apply Search & Dropdown Filters
     const filteredMembers = useMemo(() => {
         return members.filter((member) => {
-            // 1. Global Search
             let matchesSearch = true;
             if (globalSearch) {
                 const searchLower = globalSearch.toLowerCase();
@@ -294,7 +291,6 @@ const MembersTable = ({ refreshTrigger }) => {
                 );
             }
 
-            // 2. Dropdown Filters
             const matchesState = filters.state ? member.AsthaDidiStateName === filters.state : true;
             const matchesDistrict = filters.district ? member.AsthaDidiDistName === filters.district : true;
 
@@ -305,7 +301,6 @@ const MembersTable = ({ refreshTrigger }) => {
         });
     }, [members, globalSearch, filters]);
 
-    // ✅ Sort the ALREADY FILTERED members
     const sortedMembers = useMemo(() => {
         let sortableItems = [...filteredMembers];
         if (sortConfig !== null) {
@@ -457,7 +452,6 @@ const MembersTable = ({ refreshTrigger }) => {
             </div>
             <div style={styles.cardBody}>
 
-                {/* ✅ GLOBAL SEARCH (Filter button commented out as requested) */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '20px', paddingBottom: '20px', borderBottom: '1px solid #e0e0e0' }}>
                     <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
                         <input
@@ -467,17 +461,7 @@ const MembersTable = ({ refreshTrigger }) => {
                             onChange={(e) => setGlobalSearch(e.target.value)}
                             style={{ ...styles.input(false), flex: 1, padding: '8px 12px' }}
                         />
-                        {/* Filter Button Commented out 
-                        <button onClick={() => setShowFilters(!showFilters)} style={{...styles.btnOutline, padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '8px'}}>
-                            {showFilters ? 'Hide Filters' : '🔍 Advanced Filters'}
-                        </button>
-                        */}
                     </div>
-                    {/* Advanced filter section commented out
-                    {showFilters && (
-                        ... advanced dropdowns logic ...
-                    )}
-                    */}
                 </div>
 
                 {loading ? <p>Loading data...</p> : (

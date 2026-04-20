@@ -106,12 +106,7 @@ const AsthaDidiModal = ({ member, mode, onClose, onSuccess }) => {
             AsthaDidiStateName: stateName, AsthaDidiDistName: districtName, AsthaDidiCity: data.city || "", AsthaDidiBlockName: data.block || "",
             AsthaDidiPO: data.postOffice || "", AsthaDidiPS: data.policeStation || "", AsthaDidiGramPanchayet: data.gramPanchayet || "",
             AsthaDidiVillage: data.village || "", AsthaDidiPincode: parseInt(data.pinCode), AsthaDidiContactNo: data.mobileNo, AsthaDidiMailId: data.email,
-            
-            // FIX: Added AsthaDidiSignupEmail so it aligns completely with database & backend
-            AsthaDidiSignupUserName: data.userName, 
-            AsthaDidiSignupEmail: data.email, 
-            AsthaDidiSignupPassword: data.password,
-            
+            AsthaDidiSignupUserName: data.userName, AsthaDidiSignupEmail: data.email, AsthaDidiSignupPassword: data.password,
             AsthaDidiBankName: data.bankName || "", AsthaDidiBranchName: data.branchName || "", AsthaDidiBankAcctNo: data.accountNo || "0",
             AsthaDidiIFSCode: data.ifsCode || "", AsthaDidiPanNo: data.panNo || "", AsthaDidiAadharNo: data.aadharNo,
             AsthaDidiJoiningAmt: parseInt(data.joiningAmount) || 5000, AsthaDidiWalletBalance: parseInt(data.walletBalance) || 0,
@@ -178,11 +173,37 @@ const AsthaDidiModal = ({ member, mode, onClose, onSuccess }) => {
                         <div style={styles.formGrid}>
                             <div style={styles.inputGroup}>
                                 <label style={styles.label}>Select State *</label>
-                                <Controller name="state" control={control} render={({ field }) => (<Select {...field} options={dbStates} styles={styles.selectStyles(!!errors.state)} isDisabled={isView} menuPortalTarget={document.body} />)} />
+                                <Controller name="state" control={control} render={({ field }) => (
+                                    <Select 
+                                        {...field} 
+                                        options={dbStates} 
+                                        styles={{
+                                            ...styles.selectStyles(!!errors.state),
+                                            menuPortal: base => ({ ...base, zIndex: 99999 }),
+                                            menu: base => ({ ...base, zIndex: 99999 })
+                                        }} 
+                                        isDisabled={isView} 
+                                        menuPortalTarget={document.body}
+                                        menuPosition="fixed"
+                                    />
+                                )} />
                             </div>
                             <div style={styles.inputGroup}>
                                 <label style={styles.label}>District *</label>
-                                <Controller name="district" control={control} render={({ field }) => (<Select {...field} options={dbDistricts} styles={styles.selectStyles(!!errors.district)} isDisabled={isView || !selectedState} menuPortalTarget={document.body} />)} />
+                                <Controller name="district" control={control} render={({ field }) => (
+                                    <Select 
+                                        {...field} 
+                                        options={dbDistricts} 
+                                        styles={{
+                                            ...styles.selectStyles(!!errors.district),
+                                            menuPortal: base => ({ ...base, zIndex: 99999 }),
+                                            menu: base => ({ ...base, zIndex: 99999 })
+                                        }} 
+                                        isDisabled={isView || !selectedState} 
+                                        menuPortalTarget={document.body}
+                                        menuPosition="fixed"
+                                    />
+                                )} />
                             </div>
                             <Controller name="city" control={control} render={({ field }) => (<FormInput label="City" id="edit_city" error={errors.city} disabled={isView} {...field} />)} />
                             <Controller name="block" control={control} render={({ field }) => (<FormInput label="Block" id="edit_block" error={errors.block} disabled={isView} {...field} />)} />

@@ -5,8 +5,8 @@ import Select from 'react-select';
 import { toast } from 'react-toastify';
 
 import { API_BASE_URL, DUMMY_AVATAR, extractBase64, styles, FormInput } from '../config/constants';
-// Adjust the import path below to point to your AsthaMaaForm file where asthaMaaSchema is exported
-import { asthaMaaSchema } from './AsthaMaaForm'; 
+// Fix: Updated the import path to match the 'forms' directory pattern
+import { asthaMaaSchema } from './forms/AsthaMaaForm'; 
 import { getSafeUser, PasswordInput } from './AccountSharedUtils';
 
 const formatDisplayDate = (dbDateStr) => {

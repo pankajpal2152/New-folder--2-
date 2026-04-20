@@ -70,7 +70,7 @@ const AccountTab = () => {
     } else if (appUserRole === 'District Administrator') {
         adminOptions = [
             { value: 'Supervisor', label: 'Supervisor' },
-            { value: 'Astha Didi', label: 'Astha Didi' }
+            // { value: 'Astha Didi', label: 'Astha Didi' }
         ];
     } else if (appUserRole === 'Supervisor' || appUserRole === 'Astha Didi') {
         adminOptions = [

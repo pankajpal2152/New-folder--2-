@@ -134,11 +134,18 @@ const AsthaDidiForm = ({ onSuccess }) => {
     const onSubmitAsthaDidi = async (data) => {
         const stateName = data.state ? data.state.label : "";
         const districtName = data.district ? data.district.label : "";
+
+        // Extract logged-in user ID securely from local storage
+        let currentUserId = null;
         const userStr = localStorage.getItem('loggedInUser');
-        const loggedInUser = userStr ? JSON.parse(userStr) : null;
-        
-        // Extracting UserSignUpId safely from LocalStorage
-        const currentUserId = loggedInUser ? (loggedInUser.UserSignUpId || loggedInUser.id) : null;
+        if (userStr) {
+            try {
+                const loggedInUser = JSON.parse(userStr);
+                currentUserId = loggedInUser?.UserSignUpId || loggedInUser?.id || null;
+            } catch (e) {
+                console.error("Error parsing loggedInUser from localStorage", e);
+            }
+        }
 
         const dbPayload = {
             AsthaDidiProfileImage: profileImage === DUMMY_AVATAR ? null : profileImage,
@@ -165,10 +172,10 @@ const AsthaDidiForm = ({ onSuccess }) => {
             AsthaDidiAadharNo: data.aadharNo,
             AsthaDidiJoiningAmt: parseInt(data.joiningAmount) || 5000,
             AsthaDidiWalletBalance: parseInt(data.walletBalance) || 0,
-            AsthaDidiSignupUserName: data.userName, 
-            AsthaDidiSignupEmail: data.email, 
-            AsthaDidiSignupPassword: data.password, 
-            AsthaDidiCreatedByAuthRegId: currentUserId, // Mapped perfectly
+            AsthaDidiSignupUserName: data.userName,
+            AsthaDidiSignupEmail: data.email,
+            AsthaDidiSignupPassword: data.password,
+            AsthaDidiCreatedByAuthRegId: currentUserId, // Perfectly mapped to database column
             StateNGORegId: null,
             DistNGORegId: null,
             SupRegId: null,
@@ -190,7 +197,7 @@ const AsthaDidiForm = ({ onSuccess }) => {
             if (response.ok) {
                 toast.success("Success: Data saved to Database!", { position: "top-right" });
                 handleCancelAsthaDidi();
-                onSuccess(); 
+                onSuccess();
             } else {
                 toast.error("Failed to save data. Check backend logs.", { position: "top-right" });
             }

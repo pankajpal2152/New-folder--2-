@@ -53,7 +53,8 @@ export const styles = {
         control: (base) => ({ ...base, borderColor: hasError ? '#ff3e1d' : '#d9dee3', minHeight: '42px', borderRadius: '4px', boxShadow: 'none', '&:hover': { borderColor: '#2b84b8' } }),
         singleValue: (base) => ({ ...base, color: '#697a8d', fontSize: '0.9375rem' }),
         placeholder: (base) => ({ ...base, color: '#b4bdc6', fontSize: '0.9375rem' }),
-        menu: (base) => ({ ...base, zIndex: 9999 })
+        // FIX: Increased from 9999 to 99999 globally to always beat the modal overlay (10000)
+        menu: (base) => ({ ...base, zIndex: 99999 }) 
     }),
     sectionHeader: { fontSize: '1rem', fontWeight: '500', color: '#566a7f', textTransform: 'uppercase', marginBottom: '20px', marginTop: '32px', borderBottom: '2px solid #2b84b8', paddingBottom: '8px' },
     tableContainer: { width: '100%', maxWidth: '100%', overflowX: 'auto', display: 'block', WebkitOverflowScrolling: 'touch' },

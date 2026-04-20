@@ -134,18 +134,10 @@ const AsthaDidiForm = ({ onSuccess }) => {
     const onSubmitAsthaDidi = async (data) => {
         const stateName = data.state ? data.state.label : "";
         const districtName = data.district ? data.district.label : "";
-
-        // Extract logged-in user ID securely from local storage
-        let currentUserId = null;
         const userStr = localStorage.getItem('loggedInUser');
-        if (userStr) {
-            try {
-                const loggedInUser = JSON.parse(userStr);
-                currentUserId = loggedInUser?.UserSignUpId || loggedInUser?.id || null;
-            } catch (e) {
-                console.error("Error parsing loggedInUser from localStorage", e);
-            }
-        }
+        const loggedInUser = userStr ? JSON.parse(userStr) : null;
+
+        const currentUserId = loggedInUser ? (loggedInUser.UserSignUpId || loggedInUser.id) : null;
 
         const dbPayload = {
             AsthaDidiProfileImage: profileImage === DUMMY_AVATAR ? null : profileImage,
@@ -175,7 +167,7 @@ const AsthaDidiForm = ({ onSuccess }) => {
             AsthaDidiSignupUserName: data.userName,
             AsthaDidiSignupEmail: data.email,
             AsthaDidiSignupPassword: data.password,
-            AsthaDidiCreatedByAuthRegId: currentUserId, // Perfectly mapped to database column
+            AsthaDidiCreatedByAuthRegId: currentUserId, // FIXED: Changed from Auto to Auth
             StateNGORegId: null,
             DistNGORegId: null,
             SupRegId: null,

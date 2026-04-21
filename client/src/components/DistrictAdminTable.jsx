@@ -54,6 +54,9 @@ const DistrictAdminModal = ({ member, mode, onClose, onSuccess }) => {
             secretaryEmail: member.DistNGOSDPMailId || '',
             secretaryMobile: member.DistNGOSDPPhoneNo || '',
             secretaryAadhar: member.DistNGOSDPAadhaarNo || '',
+            
+            // ✅ Initializing New Acct Holder Name mapping
+            bankAccountHolderName: member.DistNGOBankAcctHolderName || '',
             bankName: member.DistNGOBankName || '',
             accountNo: member.DistNGOAcctNo || '',
             ifsCode: member.DistNGOIFSCode || '',
@@ -67,7 +70,6 @@ const DistrictAdminModal = ({ member, mode, onClose, onSuccess }) => {
     const selectedState = watch("state");
     const ngoNameValue = watch("ngoName");
 
-    // Automatically syncs User Name to Full Name in the edit modal as well
     useEffect(() => {
         if (!isView) {
             setValue("userName", ngoNameValue || "", { shouldValidate: true });
@@ -130,6 +132,9 @@ const DistrictAdminModal = ({ member, mode, onClose, onSuccess }) => {
             DistNGOSDPMailId: data.secretaryEmail,
             DistNGOSDPPhoneNo: data.secretaryMobile,
             DistNGOSDPAadhaarNo: data.secretaryAadhar,
+            
+            // ✅ Connecting the new Acct Holder Name to db variable
+            DistNGOBankAcctHolderName: data.bankAccountHolderName,
             DistNGOBankName: data.bankName,
             DistNGOAcctNo: data.accountNo,
             DistNGOIFSCode: data.ifsCode,
@@ -192,11 +197,39 @@ const DistrictAdminModal = ({ member, mode, onClose, onSuccess }) => {
                         <div style={styles.formGrid}>
                             <div style={styles.inputGroup}>
                                 <label style={styles.label}>State *</label>
-                                <Controller name="state" control={control} render={({ field }) => (<Select {...field} options={dbStates} styles={styles.selectStyles(!!errors.state)} isDisabled={isView} menuPortalTarget={document.body} />)} />
+                                {/* ✅ Fix: Z-index adjusted perfectly to overlay above modal */}
+                                <Controller name="state" control={control} render={({ field }) => (
+                                    <Select 
+                                        {...field} 
+                                        options={dbStates} 
+                                        styles={{
+                                            ...styles.selectStyles(!!errors.state),
+                                            menuPortal: base => ({ ...base, zIndex: 99999 }),
+                                            menu: base => ({ ...base, zIndex: 99999 })
+                                        }} 
+                                        isDisabled={isView} 
+                                        menuPortalTarget={document.body}
+                                        menuPosition="fixed"
+                                    />
+                                )} />
                             </div>
                             <div style={styles.inputGroup}>
                                 <label style={styles.label}>District *</label>
-                                <Controller name="district" control={control} render={({ field }) => (<Select {...field} options={dbDistricts} styles={styles.selectStyles(!!errors.district)} isDisabled={isView || !selectedState} menuPortalTarget={document.body} />)} />
+                                {/* ✅ Fix: Z-index adjusted perfectly to overlay above modal */}
+                                <Controller name="district" control={control} render={({ field }) => (
+                                    <Select 
+                                        {...field} 
+                                        options={dbDistricts} 
+                                        styles={{
+                                            ...styles.selectStyles(!!errors.district),
+                                            menuPortal: base => ({ ...base, zIndex: 99999 }),
+                                            menu: base => ({ ...base, zIndex: 99999 })
+                                        }} 
+                                        isDisabled={isView || !selectedState} 
+                                        menuPortalTarget={document.body}
+                                        menuPosition="fixed"
+                                    />
+                                )} />
                             </div>
                             <Controller name="blockName" control={control} render={({ field }) => (<FormInput label="Block Name *" id="e_block" error={errors.blockName} disabled={isView} {...field} />)} />
 
@@ -233,6 +266,8 @@ const DistrictAdminModal = ({ member, mode, onClose, onSuccess }) => {
 
                         <h6 style={styles.sectionHeader}>Banking & Account Setup</h6>
                         <div style={styles.formGrid}>
+                            {/* ✅ Added the new field to the Edit view section */}
+                            <Controller name="bankAccountHolderName" control={control} render={({ field }) => (<FormInput label="Account Holder Name *" id="e_acctHolder" error={errors.bankAccountHolderName} disabled={isView} {...field} />)} />
                             <Controller name="bankName" control={control} render={({ field }) => (<FormInput label="Bank Name *" id="e_bank" error={errors.bankName} disabled={isView} {...field} />)} />
                             <Controller name="accountNo" control={control} render={({ field }) => (<FormInput label="Account Number *" id="e_acct" error={errors.accountNo} disabled={isView} {...field} />)} />
                             <Controller name="ifsCode" control={control} render={({ field }) => (<FormInput label="IFS Code *" id="e_ifs" error={errors.ifsCode} disabled={isView} {...field} />)} />
@@ -297,7 +332,6 @@ const DistrictAdminTable = ({ refreshTrigger }) => {
     const [userName, setUserName] = useState('');
     const [userId, setUserId] = useState('');
 
-    // Search State added
     const [globalSearch, setGlobalSearch] = useState('');
 
     const [viewModal, setViewModal] = useState(false);
@@ -306,7 +340,6 @@ const DistrictAdminTable = ({ refreshTrigger }) => {
     const [approveModal, setApproveModal] = useState(false);
     const [selectedRow, setSelectedRow] = useState(null);
 
-    // Tracks dynamic approval ID and Date
     const [approvalData, setApprovalData] = useState({ id: '', dbDate: '' });
 
     useEffect(() => {
@@ -333,7 +366,6 @@ const DistrictAdminTable = ({ refreshTrigger }) => {
 
     useEffect(() => { fetchMembers(); }, [refreshTrigger]);
 
-    // Live search filter logic added
     const filteredMembers = useMemo(() => {
         if (!globalSearch) return members;
         const searchLower = globalSearch.toLowerCase();
@@ -344,7 +376,6 @@ const DistrictAdminTable = ({ refreshTrigger }) => {
         );
     }, [members, globalSearch]);
 
-    // ✅ Approval ID Logic using Secretary's Aadhar 
     const openModal = async (type, member) => {
         setSelectedRow({ ...member });
         if (type === 'view') setViewModal(true);
@@ -416,7 +447,6 @@ const DistrictAdminTable = ({ refreshTrigger }) => {
         try {
             toast.loading("Approving...", { toastId: 'approveNgo' });
 
-            // ✅ Map directly to the new 16 digit ID column
             const payload = {
                 ...selectedRow,
                 DistNGOIsActive: 2,
@@ -451,7 +481,6 @@ const DistrictAdminTable = ({ refreshTrigger }) => {
                 <button onClick={fetchMembers} style={styles.btnOutline}>Refresh Data</button>
             </div>
             <div style={styles.cardBody}>
-                {/* Real-time search input bar */}
                 <div style={{ marginBottom: '20px', paddingBottom: '20px', borderBottom: '1px solid #e0e0e0' }}>
                     <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
                         <input
@@ -461,7 +490,6 @@ const DistrictAdminTable = ({ refreshTrigger }) => {
                             onChange={(e) => setGlobalSearch(e.target.value)}
                             style={{ ...styles.input(false), flex: 1, padding: '8px 12px' }}
                         />
-                        {/* <button>Filter</button> - Commented out filter button as requested */}
                     </div>
                 </div>
 
@@ -486,16 +514,16 @@ const DistrictAdminTable = ({ refreshTrigger }) => {
                                     {renderTh('Sec Email')}
                                     {renderTh('Sec Mobile')}
                                     {renderTh('Sec Aadhar')}
+                                    {/* ✅ Added Acct Holder Name to Table Header */}
+                                    {renderTh('Acct Holder Name')}
                                     {renderTh('Bank Name')}
                                     {renderTh('Account No')}
                                     {renderTh('IFS Code')}
                                     {renderTh('Bank Address')}
-                                    {/* ✅ Added Signup Table Headers */}
                                     {renderTh('Login User Name')}
                                     {renderTh('Login Email')}
                                     {renderTh('Login Password')}
                                     {renderTh('Status')}
-                                    {/* ✅ Added fully mapped Table Headers for Approval tracking */}
                                     {renderTh('Approved By')}
                                     {renderTh('Approval Date')}
                                     {renderTh('Approval Reg No')}
@@ -506,7 +534,6 @@ const DistrictAdminTable = ({ refreshTrigger }) => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {/* Mapping over filteredMembers instead of members */}
                                 {filteredMembers.map((row) => (
                                     <tr key={row.DistNGORegId}>
                                         <td style={styles.stickyLeftTd}>{row.DistNGOName}</td>
@@ -525,16 +552,18 @@ const DistrictAdminTable = ({ refreshTrigger }) => {
                                         <td style={styles.td}>{row.DistNGOSDPMailId}</td>
                                         <td style={styles.td}>{row.DistNGOSDPPhoneNo}</td>
                                         <td style={styles.td}>{row.DistNGOSDPAadhaarNo}</td>
+                                        
+                                        {/* ✅ Added the actual Acct Holder Name database data block */}
+                                        <td style={styles.td}>{row.DistNGOBankAcctHolderName || '-'}</td>
+                                        
                                         <td style={styles.td}>{row.DistNGOBankName}</td>
                                         <td style={styles.td}>{row.DistNGOAcctNo}</td>
                                         <td style={styles.td}>{row.DistNGOIFSCode}</td>
                                         <td style={styles.td}>{row.DistNGOBankAdd}</td>
-                                        {/* ✅ Shows the strictly mapped database values visually */}
                                         <td style={styles.td}>{row.DistNGOSignupUserName || '-'}</td>
                                         <td style={styles.td}>{row.DistNGOSignupEmail || '-'}</td>
                                         <td style={styles.td}>{row.DistNGOSignupPassword || '-'}</td>
                                         <td style={{ ...styles.td, color: Number(row.DistNGOIsActive) === 2 ? 'green' : 'orange', fontWeight: 'bold' }}>{Number(row.DistNGOIsActive) === 2 ? 'Approved' : 'Pending'}</td>
-                                        {/* ✅ Correctly uses the mapped Display Name from the Backend */}
                                         <td style={styles.td}>{row.ApproverDisplayName || row.DistNGOAprovedBy || '-'}</td>
                                         <td style={styles.td}>{formatDisplayDate(row.DistNGOAprovedDate)}</td>
                                         <td style={styles.td}>{row.DistNGOGenRegNo || '-'}</td>
@@ -551,7 +580,7 @@ const DistrictAdminTable = ({ refreshTrigger }) => {
                                         </td>
                                     </tr>
                                 ))}
-                                {filteredMembers.length === 0 && <tr><td colSpan="31" style={{ ...styles.td, textAlign: 'center' }}>No members found.</td></tr>}
+                                {filteredMembers.length === 0 && <tr><td colSpan="32" style={{ ...styles.td, textAlign: 'center' }}>No members found.</td></tr>}
                             </tbody>
                         </table>
                     </div>
@@ -574,7 +603,6 @@ const DistrictAdminTable = ({ refreshTrigger }) => {
                 </div>
             )}
 
-            {/* ✅ Detailed Approval Modal */}
             {approveModal && selectedRow && (
                 <div style={styles.modalOverlay}>
                     <div style={{ ...styles.modalContent, maxWidth: '450px', textAlign: 'center' }}>

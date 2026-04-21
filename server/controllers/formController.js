@@ -52,7 +52,6 @@ exports.getAsthaDidi = (req, res) => {
 
 exports.createAsthaDidi = (req, res) => {
     const data = req.body;
-    // Fixed: AsthaDidiCreatedByAuthRegId correctly matches the database column
     const insertQuery = `INSERT INTO \`asthadidi_reg\` (
         AsthaDidiProfileImage, AsthaDidiUserName, AsthaDidiGuardianName, AsthaDidiDOB, AsthaDidiGuardianContactNo, 
         AsthaDidiStateName, AsthaDidiDistName, AsthaDidiCity, AsthaDidiBlockName, AsthaDidiPO, AsthaDidiPS, 
@@ -134,7 +133,7 @@ exports.updateAsthaDidi = (req, res) => {
 };
 
 exports.deleteAsthaDidi = (req, res) => {
-    db.query('DELETE FROM `asthadidi_reg` WHERE AsthaDidiRegId = ?', [req.params.id], (err) => {
+    db.query('DELETE FROM \`asthadidi_reg\` WHERE AsthaDidiRegId = ?', [req.params.id], (err) => {
         if (err) { console.error("❌ deleteAsthaDidi DB Error:", err.message); return res.status(500).json({ error: err.message }); }
         res.json({ message: 'Record deleted successfully' });
     });
@@ -299,12 +298,14 @@ exports.getDistrictAdmin = (req, res) => {
 exports.createDistrictAdmin = (req, res) => {
     const data = req.body;
 
+    // ✅ Insert Query updated directly mapping to DistNGOBankAcctHolderName column. Placeholders adjusted.
     const insertQuery = `INSERT INTO dist_ngo_reg 
-        (DistNGOName, DistNGORegDate, DistNGORegNo, DistNGOPanNo, DistNGODarpanId, DistNGOMailId, DistNGOPhoneNo, DistNGORegAddress, DistNGOWorkingAddress, DistNGOStateName, DistNGODistName, DistNGOBlockName, DistNGOSDPName, DistNGOSDPMailId, DistNGOSDPPhoneNo, DistNGOSDPAadhaarNo, DistNGOBankName, DistNGOAcctNo, DistNGOIFSCode, DistNGOBankAdd, DistNGORecCertificate, DistNGOPanPic, DistNGODarpanPic, DistNGOSignupUserName, DistNGOSignupEmail, DistNGOSignupPassword, DistNGOCreatedByAuthRegId, DistNGOCreatedDate, StateNGORegId, DistNGOIsActive, DistNGOAprovedBy, DistNGOAprovedDate, DistNGOGenRegNo) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?, ?, ?)`;
+        (DistNGOName, DistNGORegDate, DistNGORegNo, DistNGOPanNo, DistNGODarpanId, DistNGOMailId, DistNGOPhoneNo, DistNGORegAddress, DistNGOWorkingAddress, DistNGOStateName, DistNGODistName, DistNGOBlockName, DistNGOSDPName, DistNGOSDPMailId, DistNGOSDPPhoneNo, DistNGOSDPAadhaarNo, DistNGOBankAcctHolderName, DistNGOBankName, DistNGOAcctNo, DistNGOIFSCode, DistNGOBankAdd, DistNGORecCertificate, DistNGOPanPic, DistNGODarpanPic, DistNGOSignupUserName, DistNGOSignupEmail, DistNGOSignupPassword, DistNGOCreatedByAuthRegId, DistNGOCreatedDate, StateNGORegId, DistNGOIsActive, DistNGOAprovedBy, DistNGOAprovedDate, DistNGOGenRegNo) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?, ?, ?)`;
 
+    // ✅ Value bindings correctly inject data.DistNGOBankAcctHolderName in the precise index matching SQL statement.
     const values = [
-        data.DistNGOName, data.DistNGORegDate, data.DistNGORegNo, data.DistNGOPanNo, data.DistNGODarpanId, data.DistNGOMailId, data.DistNGOPhoneNo, data.DistNGORegAddress, data.DistNGOWorkingAddress, data.DistNGOStateName, data.DistNGODistName, data.DistNGOBlockName, data.DistNGOSDPName, data.DistNGOSDPMailId, data.DistNGOSDPPhoneNo, data.DistNGOSDPAadhaarNo, data.DistNGOBankName, data.DistNGOAcctNo, data.DistNGOIFSCode, data.DistNGOBankAdd, data.DistNGORecCertificate, data.DistNGOPanPic, data.DistNGODarpanPic, data.DistNGOSignupUserName, data.DistNGOSignupEmail, data.DistNGOSignupPassword, data.DistNGOCreatedByAuthRegId || null,
+        data.DistNGOName, data.DistNGORegDate, data.DistNGORegNo, data.DistNGOPanNo, data.DistNGODarpanId, data.DistNGOMailId, data.DistNGOPhoneNo, data.DistNGORegAddress, data.DistNGOWorkingAddress, data.DistNGOStateName, data.DistNGODistName, data.DistNGOBlockName, data.DistNGOSDPName, data.DistNGOSDPMailId, data.DistNGOSDPPhoneNo, data.DistNGOSDPAadhaarNo, data.DistNGOBankAcctHolderName, data.DistNGOBankName, data.DistNGOAcctNo, data.DistNGOIFSCode, data.DistNGOBankAdd, data.DistNGORecCertificate, data.DistNGOPanPic, data.DistNGODarpanPic, data.DistNGOSignupUserName, data.DistNGOSignupEmail, data.DistNGOSignupPassword, data.DistNGOCreatedByAuthRegId || null,
         data.StateNGORegId || null, data.DistNGOIsActive || 1, data.DistNGOAprovedBy || null, data.DistNGOAprovedDate || null, data.DistNGOGenRegNo || null
     ];
 
@@ -327,12 +328,13 @@ exports.updateDistrictAdmin = (req, res) => {
     const { id } = req.params;
     const data = req.body;
 
+    // ✅ Explicitly setting DistNGOBankAcctHolderName in the UPDATE query
     const updateQuery = `UPDATE dist_ngo_reg SET 
-        DistNGOName=?, DistNGORegDate=?, DistNGORegNo=?, DistNGOPanNo=?, DistNGODarpanId=?, DistNGOMailId=?, DistNGOPhoneNo=?, DistNGORegAddress=?, DistNGOWorkingAddress=?, DistNGOStateName=?, DistNGODistName=?, DistNGOBlockName=?, DistNGOSDPName=?, DistNGOSDPMailId=?, DistNGOSDPPhoneNo=?, DistNGOSDPAadhaarNo=?, DistNGOBankName=?, DistNGOAcctNo=?, DistNGOIFSCode=?, DistNGOBankAdd=?, DistNGORecCertificate=?, DistNGOPanPic=?, DistNGODarpanPic=?, DistNGOSignupUserName=?, DistNGOSignupEmail=?, DistNGOSignupPassword=?, DistNGOIsActive=?, DistNGOAprovedBy=?, DistNGOAprovedDate=?, DistNGOGenRegNo=?
+        DistNGOName=?, DistNGORegDate=?, DistNGORegNo=?, DistNGOPanNo=?, DistNGODarpanId=?, DistNGOMailId=?, DistNGOPhoneNo=?, DistNGORegAddress=?, DistNGOWorkingAddress=?, DistNGOStateName=?, DistNGODistName=?, DistNGOBlockName=?, DistNGOSDPName=?, DistNGOSDPMailId=?, DistNGOSDPPhoneNo=?, DistNGOSDPAadhaarNo=?, DistNGOBankAcctHolderName=?, DistNGOBankName=?, DistNGOAcctNo=?, DistNGOIFSCode=?, DistNGOBankAdd=?, DistNGORecCertificate=?, DistNGOPanPic=?, DistNGODarpanPic=?, DistNGOSignupUserName=?, DistNGOSignupEmail=?, DistNGOSignupPassword=?, DistNGOIsActive=?, DistNGOAprovedBy=?, DistNGOAprovedDate=?, DistNGOGenRegNo=?
         WHERE DistNGORegId=?`;
 
     const values = [
-        data.DistNGOName, data.DistNGORegDate, data.DistNGORegNo, data.DistNGOPanNo, data.DistNGODarpanId, data.DistNGOMailId, data.DistNGOPhoneNo, data.DistNGORegAddress, data.DistNGOWorkingAddress, data.DistNGOStateName, data.DistNGODistName, data.DistNGOBlockName, data.DistNGOSDPName, data.DistNGOSDPMailId, data.DistNGOSDPPhoneNo, data.DistNGOSDPAadhaarNo, data.DistNGOBankName, data.DistNGOAcctNo, data.DistNGOIFSCode, data.DistNGOBankAdd, data.DistNGORecCertificate, data.DistNGOPanPic, data.DistNGODarpanPic, data.DistNGOSignupUserName, data.DistNGOSignupEmail, data.DistNGOSignupPassword, data.DistNGOIsActive, data.DistNGOAprovedBy, data.DistNGOAprovedDate, data.DistNGOGenRegNo, id
+        data.DistNGOName, data.DistNGORegDate, data.DistNGORegNo, data.DistNGOPanNo, data.DistNGODarpanId, data.DistNGOMailId, data.DistNGOPhoneNo, data.DistNGORegAddress, data.DistNGOWorkingAddress, data.DistNGOStateName, data.DistNGODistName, data.DistNGOBlockName, data.DistNGOSDPName, data.DistNGOSDPMailId, data.DistNGOSDPPhoneNo, data.DistNGOSDPAadhaarNo, data.DistNGOBankAcctHolderName, data.DistNGOBankName, data.DistNGOAcctNo, data.DistNGOIFSCode, data.DistNGOBankAdd, data.DistNGORecCertificate, data.DistNGOPanPic, data.DistNGODarpanPic, data.DistNGOSignupUserName, data.DistNGOSignupEmail, data.DistNGOSignupPassword, data.DistNGOIsActive, data.DistNGOAprovedBy, data.DistNGOAprovedDate, data.DistNGOGenRegNo, id
     ];
 
     db.query(updateQuery, values, (err) => {

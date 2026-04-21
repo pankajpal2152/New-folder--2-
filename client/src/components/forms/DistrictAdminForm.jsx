@@ -27,6 +27,9 @@ export const ngoSchema = z.object({
     secretaryEmail: z.string().email("Valid email required"),
     secretaryMobile: z.string().regex(indianPhoneRegex, "Valid phone required"),
     secretaryAadhar: z.string().length(12, "Must be exactly 12 digits").regex(/^\d+$/, "Numbers only"),
+    
+    // ✅ Added the new Bank Account Holder Name field
+    bankAccountHolderName: z.string().min(1, "Account Holder Name is required"),
     bankName: z.string().min(1, "Bank Name is required"),
     accountNo: z.string().min(1, "Account Number is required"),
     ifsCode: z.string().min(1, "IFS Code is required"),
@@ -100,14 +103,14 @@ const DistrictAdminForm = ({ onSuccess }) => {
         resolver: zodResolver(ngoSchema),
         mode: 'onChange',
         defaultValues: {
-            ngoName: '', ngoRegistrationDate: '', ngoRegistrationNo: '', ngoPanNo: '', ngoDarpanId: '', generalNgoEmail: '', ngoMobile: '', ngoRegAddress: '', ngoWorkingAddress: '', state: null, district: null, blockName: '', sdpName: '', secretaryEmail: '', secretaryMobile: '', secretaryAadhar: '', bankName: '', accountNo: '', ifsCode: '', bankAddress: '', userName: '', ngoEmail: '', password: ''
+            ngoName: '', ngoRegistrationDate: '', ngoRegistrationNo: '', ngoPanNo: '', ngoDarpanId: '', generalNgoEmail: '', ngoMobile: '', ngoRegAddress: '', ngoWorkingAddress: '', state: null, district: null, blockName: '', sdpName: '', secretaryEmail: '', secretaryMobile: '', secretaryAadhar: '', bankAccountHolderName: '', bankName: '', accountNo: '', ifsCode: '', bankAddress: '', userName: '', ngoEmail: '', password: ''
         }
     });
 
     const selectedState = watch("state");
     const ngoNameValue = watch("ngoName");
 
-    // ✅ Automatically syncs User Name to NGO Name
+    // Automatically syncs User Name to NGO Name
     useEffect(() => {
         setValue("userName", ngoNameValue || "", { shouldValidate: true });
     }, [ngoNameValue, setValue]);
@@ -150,11 +153,9 @@ const DistrictAdminForm = ({ onSuccess }) => {
     };
 
     const onSubmitDistrictAdmin = async (data) => {
-        // Extact logged in User ID
         const loggedInUser = getSafeUser ? getSafeUser() : null;
         const currentUserId = loggedInUser ? (loggedInUser.UserSignUpId || loggedInUser.id) : null;
 
-        // ✅ Exact mapping to match new database columns
         const dbPayload = {
             DistNGOName: data.ngoName,
             DistNGORegDate: data.ngoRegistrationDate,
@@ -172,6 +173,9 @@ const DistrictAdminForm = ({ onSuccess }) => {
             DistNGOSDPMailId: data.secretaryEmail,
             DistNGOSDPPhoneNo: data.secretaryMobile,
             DistNGOSDPAadhaarNo: data.secretaryAadhar,
+            
+            // ✅ Mapped new Account Holder Name Field
+            DistNGOBankAcctHolderName: data.bankAccountHolderName,
             DistNGOBankName: data.bankName,
             DistNGOAcctNo: data.accountNo,
             DistNGOIFSCode: data.ifsCode,
@@ -181,7 +185,6 @@ const DistrictAdminForm = ({ onSuccess }) => {
             DistNGOPanPic: panPdf,
             DistNGODarpanPic: darpanPdf,
 
-            // ✅ Login Credentials mapped dynamically
             DistNGOSignupUserName: data.userName,
             DistNGOSignupEmail: data.ngoEmail,
             DistNGOSignupPassword: data.password,
@@ -304,7 +307,6 @@ const DistrictAdminForm = ({ onSuccess }) => {
 
                     <h6 style={styles.sectionHeader}>Login & Account Setup</h6>
                     <div style={styles.formGrid}>
-                        {/* ✅ Read Only and dynamically synced User Name */}
                         <Controller name="userName" control={control} render={({ field }) => (
                             <FormInput label={<>User Name <span style={{ color: '#ff3e1d' }}>*</span></>} id="userName" error={errors.userName} type="text" readOnly disabled={true} {...field} />
                         )} />
@@ -318,6 +320,10 @@ const DistrictAdminForm = ({ onSuccess }) => {
 
                     <h6 style={styles.sectionHeader}>Banking & Account Setup</h6>
                     <div style={styles.formGrid}>
+                        {/* ✅ Added Form Input UI for the newly requested field */}
+                        <Controller name="bankAccountHolderName" control={control} render={({ field }) => (
+                            <FormInput label={<>Account Holder Name <span style={{ color: '#ff3e1d' }}>*</span></>} id="bankAccountHolderName" error={errors.bankAccountHolderName} type="text" {...field} />
+                        )} />
                         <Controller name="bankName" control={control} render={({ field }) => (
                             <FormInput label={<>Bank Name <span style={{ color: '#ff3e1d' }}>*</span></>} id="bankName" error={errors.bankName} type="text" {...field} />
                         )} />

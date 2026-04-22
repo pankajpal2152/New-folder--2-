@@ -61,16 +61,16 @@ const AccountTab = () => {
         // ✅ Fetch all global filter data on mount
         fetch(`${API_BASE_URL}/states`).then(res => res.json()).then(data => {
             setDbStates(data.map(s => ({ value: s.StateId, label: s.StateName })));
-        }).catch(() => {});
+        }).catch(() => { });
 
         fetch(`${API_BASE_URL}/districtadmin`).then(res => res.json()).then(data => {
             setDbMotherNgos(data.map(n => ({ value: n.DistNGORegId, label: n.DistNGOName, districtName: n.DistNGODistName })));
-        }).catch(() => {});
+        }).catch(() => { });
 
         fetch(`${API_BASE_URL}/supervisor`).then(res => res.json()).then(data => {
             // Maps the supervisor data. userSignUpId acts as a fallback map to AsthaDidiCreatedByAuthRegId
             setDbSupervisors(data.map(s => ({ value: s.SupRegId, label: s.SupName, userSignUpId: s.UserSignUpId || s.SupRegId })));
-        }).catch(() => {});
+        }).catch(() => { });
     }, []);
 
     // ✅ Fetch Districts dynamically when State changes
@@ -78,7 +78,7 @@ const AccountTab = () => {
         if (filterState) {
             fetch(`${API_BASE_URL}/districts/${filterState.value}`).then(res => res.json()).then(data => {
                 setDbDistricts(data.map(d => ({ value: d.DistId, label: d.DistName })));
-            }).catch(() => {});
+            }).catch(() => { });
         } else {
             setDbDistricts([]);
             setFilterDistrict(null);
@@ -147,23 +147,24 @@ const AccountTab = () => {
                     </div>
 
                     {/* ✅ Custom Filter Dropdowns dynamically displayed beside the Role Selector */}
-                    {adminActiveView === 'Astha Didi' && (appUserRole === 'State Super Administrator' || appUserRole.toLowerCase() === 'developer' || appUserRole === 'District Administrator') && (
+                    {/* FIX: Added 'Supervisor' to the allowed roles so it shows up for them too! */}
+                    {adminActiveView === 'Astha Didi' && (appUserRole === 'State Super Administrator' || appUserRole.toLowerCase() === 'developer' || appUserRole === 'District Administrator' || appUserRole === 'Supervisor') && (
                         <>
                             <div style={{ width: '100%', maxWidth: '200px' }}>
                                 <label style={{ ...styles.label, marginBottom: '8px', display: 'block' }}>Mother NGO</label>
-                                <Select options={dbMotherNgos} value={filterMotherNgo} onChange={setFilterMotherNgo} isClearable placeholder="All Mother NGOs" styles={{...styles.selectStyles(false), menuPortal: base => ({ ...base, zIndex: 99999 })}} menuPortalTarget={document.body} menuPosition="fixed" />
+                                <Select options={dbMotherNgos} value={filterMotherNgo} onChange={setFilterMotherNgo} isClearable placeholder="All Mother NGOs" styles={{ ...styles.selectStyles(false), menuPortal: base => ({ ...base, zIndex: 99999 }) }} menuPortalTarget={document.body} menuPosition="fixed" />
                             </div>
                             <div style={{ width: '100%', maxWidth: '150px' }}>
                                 <label style={{ ...styles.label, marginBottom: '8px', display: 'block' }}>State</label>
-                                <Select options={dbStates} value={filterState} onChange={setFilterState} isClearable placeholder="All States" styles={{...styles.selectStyles(false), menuPortal: base => ({ ...base, zIndex: 99999 })}} menuPortalTarget={document.body} menuPosition="fixed" />
+                                <Select options={dbStates} value={filterState} onChange={setFilterState} isClearable placeholder="All States" styles={{ ...styles.selectStyles(false), menuPortal: base => ({ ...base, zIndex: 99999 }) }} menuPortalTarget={document.body} menuPosition="fixed" />
                             </div>
                             <div style={{ width: '100%', maxWidth: '150px' }}>
                                 <label style={{ ...styles.label, marginBottom: '8px', display: 'block' }}>District</label>
-                                <Select options={dbDistricts} value={filterDistrict} onChange={setFilterDistrict} isDisabled={!filterState} isClearable placeholder="All Districts" styles={{...styles.selectStyles(false), menuPortal: base => ({ ...base, zIndex: 99999 })}} menuPortalTarget={document.body} menuPosition="fixed" />
+                                <Select options={dbDistricts} value={filterDistrict} onChange={setFilterDistrict} isDisabled={!filterState} isClearable placeholder="All Districts" styles={{ ...styles.selectStyles(false), menuPortal: base => ({ ...base, zIndex: 99999 }) }} menuPortalTarget={document.body} menuPosition="fixed" />
                             </div>
                             <div style={{ width: '100%', maxWidth: '200px' }}>
                                 <label style={{ ...styles.label, marginBottom: '8px', display: 'block' }}>Supervisor</label>
-                                <Select options={dbSupervisors} value={filterSupervisor} onChange={setFilterSupervisor} isClearable placeholder="All Supervisors" styles={{...styles.selectStyles(false), menuPortal: base => ({ ...base, zIndex: 99999 })}} menuPortalTarget={document.body} menuPosition="fixed" />
+                                <Select options={dbSupervisors} value={filterSupervisor} onChange={setFilterSupervisor} isClearable placeholder="All Supervisors" styles={{ ...styles.selectStyles(false), menuPortal: base => ({ ...base, zIndex: 99999 }) }} menuPortalTarget={document.body} menuPosition="fixed" />
                             </div>
                         </>
                     )}
@@ -188,7 +189,7 @@ const AccountTab = () => {
             ) : (
                 <>
                     <AsthaDidiForm onSuccess={handleFormSuccess} />
-                    {/* ✅ Passed the external filters safely as props into the Table */}
+                    {/* Passed the external filters safely as props into the Table */}
                     <MembersTable refreshTrigger={refreshTrigger} externalFilters={{ filterMotherNgo, filterState, filterDistrict, filterSupervisor }} />
                 </>
             )}

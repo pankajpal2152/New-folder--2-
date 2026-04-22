@@ -312,10 +312,7 @@ const MembersTable = ({ refreshTrigger, externalFilters }) => {
 
     useEffect(() => { fetchMembers(); }, [refreshTrigger]);
 
-    const uniqueStates = [...new Set(members.map(m => m.AsthaDidiStateName).filter(Boolean))];
-    const uniqueDistricts = [...new Set(members.map(m => m.AsthaDidiDistName).filter(Boolean))];
-
-    // ✅ Implemented strict logic combining internal and external filters
+    // ✅ FIX: Implemented strict, case-insensitive, space-trimmed logic for perfect filter matching!
     const filteredMembers = useMemo(() => {
         return members.filter((member) => {
             let matchesSearch = true;
@@ -326,23 +323,30 @@ const MembersTable = ({ refreshTrigger, externalFilters }) => {
                 );
             }
 
-            // External Dynamic State Filter
+            // External Dynamic State Filter (Trims spaces and checks lowercase to fix DB inconsistencies)
             let matchesState = true;
             if (externalFilters?.filterState) {
-                matchesState = member.AsthaDidiStateName === externalFilters.filterState.label;
+                const dbState = member.AsthaDidiStateName ? String(member.AsthaDidiStateName).trim().toLowerCase() : "";
+                const filterState = String(externalFilters.filterState.label).trim().toLowerCase();
+                matchesState = dbState === filterState;
             }
 
-            // External Dynamic District Filter
+            // External Dynamic District Filter (Trims spaces and checks lowercase to fix DB inconsistencies)
             let matchesDistrict = true;
             if (externalFilters?.filterDistrict) {
-                matchesDistrict = member.AsthaDidiDistName === externalFilters.filterDistrict.label;
+                const dbDist = member.AsthaDidiDistName ? String(member.AsthaDidiDistName).trim().toLowerCase() : "";
+                const filterDist = String(externalFilters.filterDistrict.label).trim().toLowerCase();
+                matchesDistrict = dbDist === filterDist;
             }
 
             // External Dynamic Mother NGO Filter
             let matchesMotherNgo = true;
             if (externalFilters?.filterMotherNgo) {
+                const dbDist = member.AsthaDidiDistName ? String(member.AsthaDidiDistName).trim().toLowerCase() : "";
+                const ngoDist = externalFilters.filterMotherNgo.districtName ? String(externalFilters.filterMotherNgo.districtName).trim().toLowerCase() : "";
+
                 matchesMotherNgo = String(member.DistNGORegId) === String(externalFilters.filterMotherNgo.value) || 
-                                   member.AsthaDidiDistName === externalFilters.filterMotherNgo.districtName;
+                                   dbDist === ngoDist;
             }
 
             // External Dynamic Supervisor Filter directly matches AsthaDidiCreatedByAuthRegId as requested

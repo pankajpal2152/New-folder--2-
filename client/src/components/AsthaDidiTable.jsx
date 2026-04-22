@@ -249,7 +249,8 @@ const AsthaDidiModal = ({ member, mode, onClose, onSuccess }) => {
     );
 };
 
-const MembersTable = ({ refreshTrigger }) => {
+// ✅ Accepts externalFilters custom prop securely from the AccountTab Orchestrator
+const MembersTable = ({ refreshTrigger, externalFilters }) => {
     const [members, setMembers] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -296,11 +297,9 @@ const MembersTable = ({ refreshTrigger }) => {
             if (user) {
                 const currentRole = user.role || user.UserSignUpRole || '';
                 
-                // FIX: Astha Didi logic correctly identifies their own row using ProfileRegId
                 if (currentRole === 'Astha Didi') {
                     data = data.filter(member => String(member.AsthaDidiRegId) === String(user.ProfileRegId));
                 } 
-                // Supervisor logic remains unchanged
                 else if (currentRole === 'Supervisor') {
                     data = data.filter(member => String(member.AsthaDidiCreatedByAuthRegId) === String(user.id || user.UserSignUpId));
                 }
@@ -316,6 +315,7 @@ const MembersTable = ({ refreshTrigger }) => {
     const uniqueStates = [...new Set(members.map(m => m.AsthaDidiStateName).filter(Boolean))];
     const uniqueDistricts = [...new Set(members.map(m => m.AsthaDidiDistName).filter(Boolean))];
 
+    // ✅ Implemented strict logic combining internal and external filters
     const filteredMembers = useMemo(() => {
         return members.filter((member) => {
             let matchesSearch = true;
@@ -326,15 +326,38 @@ const MembersTable = ({ refreshTrigger }) => {
                 );
             }
 
-            const matchesState = filters.state ? member.AsthaDidiStateName === filters.state : true;
-            const matchesDistrict = filters.district ? member.AsthaDidiDistName === filters.district : true;
+            // External Dynamic State Filter
+            let matchesState = true;
+            if (externalFilters?.filterState) {
+                matchesState = member.AsthaDidiStateName === externalFilters.filterState.label;
+            }
+
+            // External Dynamic District Filter
+            let matchesDistrict = true;
+            if (externalFilters?.filterDistrict) {
+                matchesDistrict = member.AsthaDidiDistName === externalFilters.filterDistrict.label;
+            }
+
+            // External Dynamic Mother NGO Filter
+            let matchesMotherNgo = true;
+            if (externalFilters?.filterMotherNgo) {
+                matchesMotherNgo = String(member.DistNGORegId) === String(externalFilters.filterMotherNgo.value) || 
+                                   member.AsthaDidiDistName === externalFilters.filterMotherNgo.districtName;
+            }
+
+            // External Dynamic Supervisor Filter directly matches AsthaDidiCreatedByAuthRegId as requested
+            let matchesSupervisor = true;
+            if (externalFilters?.filterSupervisor) {
+                matchesSupervisor = String(member.AsthaDidiCreatedByAuthRegId) === String(externalFilters.filterSupervisor.userSignUpId) ||
+                                    String(member.SupRegId) === String(externalFilters.filterSupervisor.value);
+            }
 
             const statusStr = Number(member.AsthaDidiIsActive) === 2 ? 'Approved' : 'Pending';
             const matchesStatus = filters.status ? statusStr === filters.status : true;
 
-            return matchesSearch && matchesState && matchesDistrict && matchesStatus;
+            return matchesSearch && matchesState && matchesDistrict && matchesMotherNgo && matchesSupervisor && matchesStatus;
         });
-    }, [members, globalSearch, filters]);
+    }, [members, globalSearch, filters, externalFilters]);
 
     const sortedMembers = useMemo(() => {
         let sortableItems = [...filteredMembers];
@@ -577,12 +600,10 @@ const MembersTable = ({ refreshTrigger }) => {
                                                 <button onClick={() => openModal('view', row)} style={styles.actionBtn}>👁️</button>
                                                 <button onClick={() => openModal('edit', row)} style={styles.actionBtn}>✏️</button>
 
-                                                {/* FIX 2: Modified logic so anyone who is NOT 'Astha Didi' can see the delete button */}
                                                 {userRole !== 'Astha Didi' && (
                                                     <button onClick={() => openModal('delete', row)} style={styles.actionBtn}>🗑️</button>
                                                 )}
 
-                                                {/* FIX 3: Modified logic so anyone who is NOT 'Astha Didi' can see the approve button (if member is pending) */}
                                                 {Number(row.AsthaDidiIsActive) !== 2 && userRole !== 'Astha Didi' && (
                                                     <button onClick={() => openModal('approve', row)} style={styles.actionBtn}>✅</button>
                                                 )}

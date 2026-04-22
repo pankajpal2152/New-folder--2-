@@ -3,7 +3,8 @@ import Select from 'react-select';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-import { styles } from '../config/constants';
+// ✅ Added API_BASE_URL to fetch the filter dropdown data
+import { styles, API_BASE_URL } from '../config/constants';
 import { getSafeUser } from './AccountSharedUtils';
 
 // Import Forms
@@ -26,6 +27,18 @@ const AccountTab = () => {
     const [refreshTrigger, setRefreshTrigger] = useState(0);
     const [adminActiveView, setAdminActiveView] = useState('');
 
+    // ✅ New State for Astha Didi External Filters
+    const [filterMotherNgo, setFilterMotherNgo] = useState(null);
+    const [filterState, setFilterState] = useState(null);
+    const [filterDistrict, setFilterDistrict] = useState(null);
+    const [filterSupervisor, setFilterSupervisor] = useState(null);
+
+    // ✅ New State for Dropdown Options
+    const [dbMotherNgos, setDbMotherNgos] = useState([]);
+    const [dbStates, setDbStates] = useState([]);
+    const [dbDistricts, setDbDistricts] = useState([]);
+    const [dbSupervisors, setDbSupervisors] = useState([]);
+
     useEffect(() => {
         const user = getSafeUser();
         if (user) {
@@ -44,7 +57,33 @@ const AccountTab = () => {
         } else {
             setAppUserRole('');
         }
+
+        // ✅ Fetch all global filter data on mount
+        fetch(`${API_BASE_URL}/states`).then(res => res.json()).then(data => {
+            setDbStates(data.map(s => ({ value: s.StateId, label: s.StateName })));
+        }).catch(() => {});
+
+        fetch(`${API_BASE_URL}/districtadmin`).then(res => res.json()).then(data => {
+            setDbMotherNgos(data.map(n => ({ value: n.DistNGORegId, label: n.DistNGOName, districtName: n.DistNGODistName })));
+        }).catch(() => {});
+
+        fetch(`${API_BASE_URL}/supervisor`).then(res => res.json()).then(data => {
+            // Maps the supervisor data. userSignUpId acts as a fallback map to AsthaDidiCreatedByAuthRegId
+            setDbSupervisors(data.map(s => ({ value: s.SupRegId, label: s.SupName, userSignUpId: s.UserSignUpId || s.SupRegId })));
+        }).catch(() => {});
     }, []);
+
+    // ✅ Fetch Districts dynamically when State changes
+    useEffect(() => {
+        if (filterState) {
+            fetch(`${API_BASE_URL}/districts/${filterState.value}`).then(res => res.json()).then(data => {
+                setDbDistricts(data.map(d => ({ value: d.DistId, label: d.DistName })));
+            }).catch(() => {});
+        } else {
+            setDbDistricts([]);
+            setFilterDistrict(null);
+        }
+    }, [filterState]);
 
     const handleFormSuccess = () => setRefreshTrigger(prev => prev + 1);
 
@@ -60,7 +99,6 @@ const AccountTab = () => {
             { value: 'Supervisor', label: 'Supervisor' },
             { value: 'Astha Didi', label: 'Astha Didi' },
             { value: 'Astha Maa', label: 'Astha Maa' },
-
         ];
     } else if (appUserRole.toLowerCase() === 'developer') {
         adminOptions = [
@@ -76,12 +114,10 @@ const AccountTab = () => {
         ];
     } else if (appUserRole === 'Supervisor') {
         adminOptions = [
-            { value: 'Astha Didi', label: 'Astha Didi' },
-            // { value: 'Astha Maa', label: 'Astha Maa' }
+            { value: 'Astha Didi', label: 'Astha Didi' }
         ];
     } else if (appUserRole === 'Astha Didi') {
         adminOptions = [
-            // { value: 'Astha Didi', label: 'Astha Didi' },
             { value: 'Astha Maa', label: 'Astha Maa' }
         ];
     }
@@ -91,8 +127,8 @@ const AccountTab = () => {
             <ToastContainer autoClose={3000} pauseOnHover={false} />
 
             {adminOptions.length > 0 && (
-                <div style={{ ...styles.card, padding: '24px', marginBottom: '24px', overflow: 'visible' }}>
-                    <div style={{ width: '100%', maxWidth: '400px' }}>
+                <div style={{ ...styles.card, padding: '24px', marginBottom: '24px', overflow: 'visible', display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                    <div style={{ width: '100%', maxWidth: '250px' }}>
                         <label style={{ ...styles.label, marginBottom: '8px', display: 'block' }}>
                             Select Role Entry / View <span style={{ color: '#ff3e1d' }}>*</span>
                         </label>
@@ -102,12 +138,35 @@ const AccountTab = () => {
                             onChange={(selected) => setAdminActiveView(selected.value)}
                             styles={{
                                 ...styles.selectStyles(false),
-                                menuPortal: base => ({ ...base, zIndex: 9999 })
+                                menuPortal: base => ({ ...base, zIndex: 99999 })
                             }}
                             menuPortalTarget={document.body}
+                            menuPosition="fixed"
                             isSearchable={false}
                         />
                     </div>
+
+                    {/* ✅ Custom Filter Dropdowns dynamically displayed beside the Role Selector */}
+                    {adminActiveView === 'Astha Didi' && (appUserRole === 'State Super Administrator' || appUserRole.toLowerCase() === 'developer' || appUserRole === 'District Administrator') && (
+                        <>
+                            <div style={{ width: '100%', maxWidth: '200px' }}>
+                                <label style={{ ...styles.label, marginBottom: '8px', display: 'block' }}>Mother NGO</label>
+                                <Select options={dbMotherNgos} value={filterMotherNgo} onChange={setFilterMotherNgo} isClearable placeholder="All Mother NGOs" styles={{...styles.selectStyles(false), menuPortal: base => ({ ...base, zIndex: 99999 })}} menuPortalTarget={document.body} menuPosition="fixed" />
+                            </div>
+                            <div style={{ width: '100%', maxWidth: '150px' }}>
+                                <label style={{ ...styles.label, marginBottom: '8px', display: 'block' }}>State</label>
+                                <Select options={dbStates} value={filterState} onChange={setFilterState} isClearable placeholder="All States" styles={{...styles.selectStyles(false), menuPortal: base => ({ ...base, zIndex: 99999 })}} menuPortalTarget={document.body} menuPosition="fixed" />
+                            </div>
+                            <div style={{ width: '100%', maxWidth: '150px' }}>
+                                <label style={{ ...styles.label, marginBottom: '8px', display: 'block' }}>District</label>
+                                <Select options={dbDistricts} value={filterDistrict} onChange={setFilterDistrict} isDisabled={!filterState} isClearable placeholder="All Districts" styles={{...styles.selectStyles(false), menuPortal: base => ({ ...base, zIndex: 99999 })}} menuPortalTarget={document.body} menuPosition="fixed" />
+                            </div>
+                            <div style={{ width: '100%', maxWidth: '200px' }}>
+                                <label style={{ ...styles.label, marginBottom: '8px', display: 'block' }}>Supervisor</label>
+                                <Select options={dbSupervisors} value={filterSupervisor} onChange={setFilterSupervisor} isClearable placeholder="All Supervisors" styles={{...styles.selectStyles(false), menuPortal: base => ({ ...base, zIndex: 99999 })}} menuPortalTarget={document.body} menuPosition="fixed" />
+                            </div>
+                        </>
+                    )}
                 </div>
             )}
 
@@ -129,7 +188,8 @@ const AccountTab = () => {
             ) : (
                 <>
                     <AsthaDidiForm onSuccess={handleFormSuccess} />
-                    <MembersTable refreshTrigger={refreshTrigger} />
+                    {/* ✅ Passed the external filters safely as props into the Table */}
+                    <MembersTable refreshTrigger={refreshTrigger} externalFilters={{ filterMotherNgo, filterState, filterDistrict, filterSupervisor }} />
                 </>
             )}
         </>

@@ -3,7 +3,6 @@ import Select from 'react-select';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-// ✅ Added API_BASE_URL to fetch the filter dropdown data
 import { styles, API_BASE_URL } from '../config/constants';
 import { getSafeUser } from './AccountSharedUtils';
 
@@ -27,13 +26,13 @@ const AccountTab = () => {
     const [refreshTrigger, setRefreshTrigger] = useState(0);
     const [adminActiveView, setAdminActiveView] = useState('');
 
-    // ✅ New State for Astha Didi External Filters
+    // ✅ State for External Filters applied to all tables
     const [filterMotherNgo, setFilterMotherNgo] = useState(null);
     const [filterState, setFilterState] = useState(null);
     const [filterDistrict, setFilterDistrict] = useState(null);
     const [filterSupervisor, setFilterSupervisor] = useState(null);
 
-    // ✅ New State for Dropdown Options
+    // ✅ State for Dropdown Options
     const [dbMotherNgos, setDbMotherNgos] = useState([]);
     const [dbStates, setDbStates] = useState([]);
     const [dbDistricts, setDbDistricts] = useState([]);
@@ -58,7 +57,7 @@ const AccountTab = () => {
             setAppUserRole('');
         }
 
-        // ✅ Fetch all global filter data on mount
+        // Fetch all global filter data
         fetch(`${API_BASE_URL}/states`).then(res => res.json()).then(data => {
             setDbStates(data.map(s => ({ value: s.StateId, label: s.StateName })));
         }).catch(() => { });
@@ -68,12 +67,11 @@ const AccountTab = () => {
         }).catch(() => { });
 
         fetch(`${API_BASE_URL}/supervisor`).then(res => res.json()).then(data => {
-            // Maps the supervisor data. userSignUpId acts as a fallback map to AsthaDidiCreatedByAuthRegId
             setDbSupervisors(data.map(s => ({ value: s.SupRegId, label: s.SupName, userSignUpId: s.UserSignUpId || s.SupRegId })));
         }).catch(() => { });
     }, []);
 
-    // ✅ Fetch Districts dynamically when State changes
+    // Fetch Districts dynamically when State changes
     useEffect(() => {
         if (filterState) {
             fetch(`${API_BASE_URL}/districts/${filterState.value}`).then(res => res.json()).then(data => {
@@ -122,6 +120,8 @@ const AccountTab = () => {
         ];
     }
 
+    const canSeeFilters = appUserRole === 'State Super Administrator' || appUserRole.toLowerCase() === 'developer' || appUserRole === 'District Administrator' || appUserRole === 'Supervisor';
+
     return (
         <>
             <ToastContainer autoClose={3000} pauseOnHover={false} />
@@ -146,50 +146,57 @@ const AccountTab = () => {
                         />
                     </div>
 
-                    {/* ✅ Custom Filter Dropdowns dynamically displayed beside the Role Selector */}
-                    {/* FIX: Added 'Supervisor' to the allowed roles so it shows up for them too! */}
-                    {adminActiveView === 'Astha Didi' && (appUserRole === 'State Super Administrator' || appUserRole.toLowerCase() === 'developer' || appUserRole === 'District Administrator' || appUserRole === 'Supervisor') && (
+                    {/* ✅ Dynamically conditionally render the global filters based on the selected View */}
+                    {canSeeFilters && (
                         <>
-                            {/* <div style={{ width: '100%', maxWidth: '200px' }}>
-                                <label style={{ ...styles.label, marginBottom: '8px', display: 'block' }}>Mother NGO</label>
-                                <Select options={dbMotherNgos} value={filterMotherNgo} onChange={setFilterMotherNgo} isClearable placeholder="All Mother NGOs" styles={{ ...styles.selectStyles(false), menuPortal: base => ({ ...base, zIndex: 99999 }) }} menuPortalTarget={document.body} menuPosition="fixed" />
-                            </div> */}
+                            {['Supervisor', 'Astha Maa', 'Astha Didi'].includes(adminActiveView) && (
+                                <div style={{ width: '100%', maxWidth: '200px' }}>
+                                    <label style={{ ...styles.label, marginBottom: '8px', display: 'block' }}>Mother NGO</label>
+                                    <Select options={dbMotherNgos} value={filterMotherNgo} onChange={setFilterMotherNgo} isClearable placeholder="All Mother NGOs" styles={{ ...styles.selectStyles(false), menuPortal: base => ({ ...base, zIndex: 99999 }) }} menuPortalTarget={document.body} menuPosition="fixed" />
+                                </div>
+                            )}
+
+                            {/* State and District filters show for ALL views */}
                             <div style={{ width: '100%', maxWidth: '150px' }}>
                                 <label style={{ ...styles.label, marginBottom: '8px', display: 'block' }}>State</label>
                                 <Select options={dbStates} value={filterState} onChange={setFilterState} isClearable placeholder="All States" styles={{ ...styles.selectStyles(false), menuPortal: base => ({ ...base, zIndex: 99999 }) }} menuPortalTarget={document.body} menuPosition="fixed" />
                             </div>
+
                             <div style={{ width: '100%', maxWidth: '150px' }}>
                                 <label style={{ ...styles.label, marginBottom: '8px', display: 'block' }}>District</label>
                                 <Select options={dbDistricts} value={filterDistrict} onChange={setFilterDistrict} isDisabled={!filterState} isClearable placeholder="All Districts" styles={{ ...styles.selectStyles(false), menuPortal: base => ({ ...base, zIndex: 99999 }) }} menuPortalTarget={document.body} menuPosition="fixed" />
                             </div>
-                            <div style={{ width: '100%', maxWidth: '200px' }}>
-                                <label style={{ ...styles.label, marginBottom: '8px', display: 'block' }}>Supervisor</label>
-                                <Select options={dbSupervisors} value={filterSupervisor} onChange={setFilterSupervisor} isClearable placeholder="All Supervisors" styles={{ ...styles.selectStyles(false), menuPortal: base => ({ ...base, zIndex: 99999 }) }} menuPortalTarget={document.body} menuPosition="fixed" />
-                            </div>
+
+                            {['Astha Maa', 'Astha Didi'].includes(adminActiveView) && (
+                                <div style={{ width: '100%', maxWidth: '200px' }}>
+                                    <label style={{ ...styles.label, marginBottom: '8px', display: 'block' }}>Supervisor</label>
+                                    <Select options={dbSupervisors} value={filterSupervisor} onChange={setFilterSupervisor} isClearable placeholder="All Supervisors" styles={{ ...styles.selectStyles(false), menuPortal: base => ({ ...base, zIndex: 99999 }) }} menuPortalTarget={document.body} menuPosition="fixed" />
+                                </div>
+                            )}
                         </>
                     )}
                 </div>
             )}
 
+            {/* ✅ Passed externalFilters securely to ALL relevant tables */}
             {adminActiveView === 'District Administrator' || adminActiveView === 'State Super Administrator' ? (
                 <>
                     <DistrictAdminForm onSuccess={handleFormSuccess} />
-                    <DistrictAdminTable refreshTrigger={refreshTrigger} />
+                    <DistrictAdminTable refreshTrigger={refreshTrigger} externalFilters={{ filterState, filterDistrict }} />
                 </>
             ) : adminActiveView === 'Supervisor' ? (
                 <>
                     <SupervisorForm onSuccess={handleFormSuccess} />
-                    <SupervisorTable refreshTrigger={refreshTrigger} />
+                    <SupervisorTable refreshTrigger={refreshTrigger} externalFilters={{ filterMotherNgo, filterState, filterDistrict }} />
                 </>
             ) : adminActiveView === 'Astha Maa' ? (
                 <>
                     <AsthaMaaForm onSuccess={handleFormSuccess} />
-                    <AsthaMaaTable refreshTrigger={refreshTrigger} />
+                    <AsthaMaaTable refreshTrigger={refreshTrigger} externalFilters={{ filterMotherNgo, filterState, filterDistrict, filterSupervisor }} />
                 </>
             ) : (
                 <>
                     <AsthaDidiForm onSuccess={handleFormSuccess} />
-                    {/* Passed the external filters safely as props into the Table */}
                     <MembersTable refreshTrigger={refreshTrigger} externalFilters={{ filterMotherNgo, filterState, filterDistrict, filterSupervisor }} />
                 </>
             )}

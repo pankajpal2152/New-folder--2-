@@ -265,7 +265,7 @@ const SupervisorModal = ({ member, mode, onClose, onSuccess }) => {
     );
 };
 
-// ✅ Accepts externalFilters safely passed down from AccountTab
+// ✅ Accepts externalFilters securely passed down from AccountTab
 const SupervisorTable = ({ refreshTrigger, externalFilters }) => {
     const [members, setMembers] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -310,7 +310,7 @@ const SupervisorTable = ({ refreshTrigger, externalFilters }) => {
 
     useEffect(() => { fetchMembers(); }, [refreshTrigger]);
 
-    // ✅ FIX: Robust case-insensitive, space-trimmed logic for perfect filter matching!
+    // ✅ Implemented strict, case-insensitive, space-trimmed logic for perfect filter matching
     const filteredMembers = useMemo(() => {
         return members.filter((member) => {
             let matchesSearch = true;

@@ -5,7 +5,6 @@ import Select from 'react-select';
 import { toast } from 'react-toastify';
 
 import { API_BASE_URL, DUMMY_AVATAR, extractBase64, styles, FormInput } from '../config/constants';
-// Fix: Updated the import path to match the 'forms' directory pattern
 import { asthaMaaSchema } from './forms/AsthaMaaForm'; 
 import { getSafeUser, PasswordInput } from './AccountSharedUtils';
 
@@ -14,9 +13,6 @@ const formatDisplayDate = (dbDateStr) => {
     return String(dbDateStr).substring(0, 10);
 };
 
-// ==========================================
-// ASTHA MAA EDIT/VIEW MODAL
-// ==========================================
 const AsthaMaaModal = ({ member, mode, onClose, onSuccess }) => {
     const isView = mode === 'view';
     const cleanInitialImage = extractBase64(member.AsthaMaProfileImage) || DUMMY_AVATAR;
@@ -250,11 +246,8 @@ const AsthaMaaModal = ({ member, mode, onClose, onSuccess }) => {
     );
 };
 
-
-// ==========================================
-// ASTHA MAA TABLE
-// ==========================================
-const AsthaMaaTable = ({ refreshTrigger }) => {
+// ✅ Accepts externalFilters securely passed down from AccountTab
+const AsthaMaaTable = ({ refreshTrigger, externalFilters }) => {
     const [members, setMembers] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -308,6 +301,7 @@ const AsthaMaaTable = ({ refreshTrigger }) => {
 
     useEffect(() => { fetchMembers(); }, [refreshTrigger]);
 
+    // ✅ Implemented strict, case-insensitive, space-trimmed logic for perfect filter matching
     const filteredMembers = useMemo(() => {
         return members.filter((member) => {
             let matchesSearch = true;
@@ -317,14 +311,41 @@ const AsthaMaaTable = ({ refreshTrigger }) => {
                     val => val && String(val).toLowerCase().includes(searchLower)
                 );
             }
-            const matchesState = filters.state ? member.AsthaMaStateName === filters.state : true;
-            const matchesDistrict = filters.district ? member.AsthaMaDistName === filters.district : true;
+
+            let matchesState = true;
+            if (externalFilters?.filterState) {
+                const dbState = member.AsthaMaStateName ? String(member.AsthaMaStateName).trim().toLowerCase() : "";
+                const filterState = String(externalFilters.filterState.label).trim().toLowerCase();
+                matchesState = dbState === filterState;
+            }
+
+            let matchesDistrict = true;
+            if (externalFilters?.filterDistrict) {
+                const dbDist = member.AsthaMaDistName ? String(member.AsthaMaDistName).trim().toLowerCase() : "";
+                const filterDist = String(externalFilters.filterDistrict.label).trim().toLowerCase();
+                matchesDistrict = dbDist === filterDist;
+            }
+
+            let matchesMotherNgo = true;
+            if (externalFilters?.filterMotherNgo) {
+                const dbDist = member.AsthaMaDistName ? String(member.AsthaMaDistName).trim().toLowerCase() : "";
+                const ngoDist = externalFilters.filterMotherNgo.districtName ? String(externalFilters.filterMotherNgo.districtName).trim().toLowerCase() : "";
+                matchesMotherNgo = String(member.DistNGORegId) === String(externalFilters.filterMotherNgo.value) || 
+                                   dbDist === ngoDist;
+            }
+
+            let matchesSupervisor = true;
+            if (externalFilters?.filterSupervisor) {
+                matchesSupervisor = String(member.AsthaMaCreatedByAuthRegId) === String(externalFilters.filterSupervisor.userSignUpId) ||
+                                    String(member.SupRegId) === String(externalFilters.filterSupervisor.value);
+            }
+
             const statusStr = Number(member.AsthaMaIsActive) === 2 ? 'Approved' : 'Pending';
             const matchesStatus = filters.status ? statusStr === filters.status : true;
 
-            return matchesSearch && matchesState && matchesDistrict && matchesStatus;
+            return matchesSearch && matchesState && matchesDistrict && matchesMotherNgo && matchesSupervisor && matchesStatus;
         });
-    }, [members, globalSearch, filters]);
+    }, [members, globalSearch, filters, externalFilters]);
 
     const sortedMembers = useMemo(() => {
         let sortableItems = [...filteredMembers];

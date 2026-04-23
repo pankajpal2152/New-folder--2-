@@ -150,10 +150,10 @@ const AccountTab = () => {
                     {/* FIX: Added 'Supervisor' to the allowed roles so it shows up for them too! */}
                     {adminActiveView === 'Astha Didi' && (appUserRole === 'State Super Administrator' || appUserRole.toLowerCase() === 'developer' || appUserRole === 'District Administrator' || appUserRole === 'Supervisor') && (
                         <>
-                            <div style={{ width: '100%', maxWidth: '200px' }}>
+                            {/* <div style={{ width: '100%', maxWidth: '200px' }}>
                                 <label style={{ ...styles.label, marginBottom: '8px', display: 'block' }}>Mother NGO</label>
                                 <Select options={dbMotherNgos} value={filterMotherNgo} onChange={setFilterMotherNgo} isClearable placeholder="All Mother NGOs" styles={{ ...styles.selectStyles(false), menuPortal: base => ({ ...base, zIndex: 99999 }) }} menuPortalTarget={document.body} menuPosition="fixed" />
-                            </div>
+                            </div> */}
                             <div style={{ width: '100%', maxWidth: '150px' }}>
                                 <label style={{ ...styles.label, marginBottom: '8px', display: 'block' }}>State</label>
                                 <Select options={dbStates} value={filterState} onChange={setFilterState} isClearable placeholder="All States" styles={{ ...styles.selectStyles(false), menuPortal: base => ({ ...base, zIndex: 99999 }) }} menuPortalTarget={document.body} menuPosition="fixed" />

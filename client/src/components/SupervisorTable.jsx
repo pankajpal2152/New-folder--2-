@@ -8,7 +8,6 @@ import { API_BASE_URL, DUMMY_AVATAR, extractBase64, styles, FormInput } from '..
 import { asthaMaaSchema as supervisorSchema } from './forms/SupervisorForm';
 import { getSafeUser, PasswordInput } from './AccountSharedUtils';
 
-// ✅ Safe Date Formatter
 const formatDisplayDate = (dbDateStr) => {
     if (!dbDateStr) return '-';
     return String(dbDateStr).substring(0, 10);
@@ -196,11 +195,37 @@ const SupervisorModal = ({ member, mode, onClose, onSuccess }) => {
                         <div style={styles.formGrid}>
                             <div style={styles.inputGroup}>
                                 <label style={styles.label}>Select State *</label>
-                                <Controller name="state" control={control} render={({ field }) => (<Select {...field} options={dbStates} styles={styles.selectStyles(!!errors.state)} isDisabled={isView} menuPortalTarget={document.body} />)} />
+                                <Controller name="state" control={control} render={({ field }) => (
+                                    <Select 
+                                        {...field} 
+                                        options={dbStates} 
+                                        styles={{
+                                            ...styles.selectStyles(!!errors.state),
+                                            menuPortal: base => ({ ...base, zIndex: 99999 }),
+                                            menu: base => ({ ...base, zIndex: 99999 })
+                                        }} 
+                                        isDisabled={isView} 
+                                        menuPortalTarget={document.body}
+                                        menuPosition="fixed"
+                                    />
+                                )} />
                             </div>
                             <div style={styles.inputGroup}>
                                 <label style={styles.label}>District *</label>
-                                <Controller name="district" control={control} render={({ field }) => (<Select {...field} options={dbDistricts} styles={styles.selectStyles(!!errors.district)} isDisabled={isView || !selectedState} menuPortalTarget={document.body} />)} />
+                                <Controller name="district" control={control} render={({ field }) => (
+                                    <Select 
+                                        {...field} 
+                                        options={dbDistricts} 
+                                        styles={{
+                                            ...styles.selectStyles(!!errors.district),
+                                            menuPortal: base => ({ ...base, zIndex: 99999 }),
+                                            menu: base => ({ ...base, zIndex: 99999 })
+                                        }} 
+                                        isDisabled={isView || !selectedState} 
+                                        menuPortalTarget={document.body}
+                                        menuPosition="fixed"
+                                    />
+                                )} />
                             </div>
                             <Controller name="city" control={control} render={({ field }) => (<FormInput label="City" id="edit_city" error={errors.city} disabled={isView} {...field} />)} />
                             <Controller name="block" control={control} render={({ field }) => (<FormInput label="Block" id="edit_block" error={errors.block} disabled={isView} {...field} />)} />
@@ -240,7 +265,8 @@ const SupervisorModal = ({ member, mode, onClose, onSuccess }) => {
     );
 };
 
-const SupervisorTable = ({ refreshTrigger }) => {
+// ✅ Accepts externalFilters safely passed down from AccountTab
+const SupervisorTable = ({ refreshTrigger, externalFilters }) => {
     const [members, setMembers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [userRole, setUserRole] = useState('');
@@ -250,7 +276,6 @@ const SupervisorTable = ({ refreshTrigger }) => {
     const [rowsPerPage, setRowsPerPage] = useState(5);
     const [sortConfig, setSortConfig] = useState(null);
     
-    // Search State added
     const [globalSearch, setGlobalSearch] = useState('');
 
     const [viewModal, setViewModal] = useState(false);
@@ -285,18 +310,44 @@ const SupervisorTable = ({ refreshTrigger }) => {
 
     useEffect(() => { fetchMembers(); }, [refreshTrigger]);
 
-    // Live search filter logic added
+    // ✅ FIX: Robust case-insensitive, space-trimmed logic for perfect filter matching!
     const filteredMembers = useMemo(() => {
-        if (!globalSearch) return members;
-        const searchLower = globalSearch.toLowerCase();
-        return members.filter((member) =>
-            Object.values(member).some(
-                val => val && String(val).toLowerCase().includes(searchLower)
-            )
-        );
-    }, [members, globalSearch]);
+        return members.filter((member) => {
+            let matchesSearch = true;
+            if (globalSearch) {
+                const searchLower = globalSearch.toLowerCase();
+                matchesSearch = Object.values(member).some(
+                    val => val && String(val).toLowerCase().includes(searchLower)
+                );
+            }
 
-    // Ensure sorted members applies AFTER filtering
+            let matchesState = true;
+            if (externalFilters?.filterState) {
+                const dbState = member.SupStateName ? String(member.SupStateName).trim().toLowerCase() : "";
+                const filterState = String(externalFilters.filterState.label).trim().toLowerCase();
+                matchesState = dbState === filterState;
+            }
+
+            let matchesDistrict = true;
+            if (externalFilters?.filterDistrict) {
+                const dbDist = member.SupDistName ? String(member.SupDistName).trim().toLowerCase() : "";
+                const filterDist = String(externalFilters.filterDistrict.label).trim().toLowerCase();
+                matchesDistrict = dbDist === filterDist;
+            }
+
+            let matchesMotherNgo = true;
+            if (externalFilters?.filterMotherNgo) {
+                const dbDist = member.SupDistName ? String(member.SupDistName).trim().toLowerCase() : "";
+                const ngoDist = externalFilters.filterMotherNgo.districtName ? String(externalFilters.filterMotherNgo.districtName).trim().toLowerCase() : "";
+                
+                matchesMotherNgo = String(member.DistNGORegId) === String(externalFilters.filterMotherNgo.value) || 
+                                   dbDist === ngoDist;
+            }
+
+            return matchesSearch && matchesState && matchesDistrict && matchesMotherNgo;
+        });
+    }, [members, globalSearch, externalFilters]);
+
     const sortedMembers = useMemo(() => {
         let sortableItems = [...filteredMembers];
         if (sortConfig !== null) {
@@ -333,7 +384,6 @@ const SupervisorTable = ({ refreshTrigger }) => {
     const handlePrevPage = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
     const handleRowsChange = (e) => { setRowsPerPage(Number(e.target.value)); setCurrentPage(1); };
 
-    // ✅ Advanced Modal opening logic to construct the 16-digit ID dynamically
     const openModal = async (type, member) => {
         setSelectedRow({ ...member });
         if (type === 'view') setViewModal(true);
@@ -405,7 +455,6 @@ const SupervisorTable = ({ refreshTrigger }) => {
         try {
             toast.loading("Approving...", { toastId: 'approveSup' });
 
-            // ✅ PERFECT FIX: Sends the full 16-digit `approvalData.id` correctly!
             const payload = { 
                 ...selectedRow, 
                 SupIsActive: 2, 
@@ -443,7 +492,6 @@ const SupervisorTable = ({ refreshTrigger }) => {
                 <button onClick={fetchMembers} style={styles.btnOutline}>Refresh Data</button>
             </div>
             <div style={styles.cardBody}>
-                {/* Real-time search input bar */}
                 <div style={{ marginBottom: '20px', paddingBottom: '20px', borderBottom: '1px solid #e0e0e0' }}>
                     <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
                         <input 
@@ -453,7 +501,6 @@ const SupervisorTable = ({ refreshTrigger }) => {
                             onChange={(e) => setGlobalSearch(e.target.value)}
                             style={{ ...styles.input(false), flex: 1, padding: '8px 12px' }}
                         />
-                        {/* <button>Filter</button> - Commented out filter button as requested */}
                     </div>
                 </div>
 

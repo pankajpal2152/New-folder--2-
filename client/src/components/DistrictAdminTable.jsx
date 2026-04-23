@@ -55,7 +55,6 @@ const DistrictAdminModal = ({ member, mode, onClose, onSuccess }) => {
             secretaryMobile: member.DistNGOSDPPhoneNo || '',
             secretaryAadhar: member.DistNGOSDPAadhaarNo || '',
             
-            // ✅ Initializing New Acct Holder Name mapping
             bankAccountHolderName: member.DistNGOBankAcctHolderName || '',
             bankName: member.DistNGOBankName || '',
             accountNo: member.DistNGOAcctNo || '',
@@ -133,7 +132,6 @@ const DistrictAdminModal = ({ member, mode, onClose, onSuccess }) => {
             DistNGOSDPPhoneNo: data.secretaryMobile,
             DistNGOSDPAadhaarNo: data.secretaryAadhar,
             
-            // ✅ Connecting the new Acct Holder Name to db variable
             DistNGOBankAcctHolderName: data.bankAccountHolderName,
             DistNGOBankName: data.bankName,
             DistNGOAcctNo: data.accountNo,
@@ -197,7 +195,6 @@ const DistrictAdminModal = ({ member, mode, onClose, onSuccess }) => {
                         <div style={styles.formGrid}>
                             <div style={styles.inputGroup}>
                                 <label style={styles.label}>State *</label>
-                                {/* ✅ Fix: Z-index adjusted perfectly to overlay above modal */}
                                 <Controller name="state" control={control} render={({ field }) => (
                                     <Select 
                                         {...field} 
@@ -215,7 +212,6 @@ const DistrictAdminModal = ({ member, mode, onClose, onSuccess }) => {
                             </div>
                             <div style={styles.inputGroup}>
                                 <label style={styles.label}>District *</label>
-                                {/* ✅ Fix: Z-index adjusted perfectly to overlay above modal */}
                                 <Controller name="district" control={control} render={({ field }) => (
                                     <Select 
                                         {...field} 
@@ -266,7 +262,6 @@ const DistrictAdminModal = ({ member, mode, onClose, onSuccess }) => {
 
                         <h6 style={styles.sectionHeader}>Banking & Account Setup</h6>
                         <div style={styles.formGrid}>
-                            {/* ✅ Added the new field to the Edit view section */}
                             <Controller name="bankAccountHolderName" control={control} render={({ field }) => (<FormInput label="Account Holder Name *" id="e_acctHolder" error={errors.bankAccountHolderName} disabled={isView} {...field} />)} />
                             <Controller name="bankName" control={control} render={({ field }) => (<FormInput label="Bank Name *" id="e_bank" error={errors.bankName} disabled={isView} {...field} />)} />
                             <Controller name="accountNo" control={control} render={({ field }) => (<FormInput label="Account Number *" id="e_acct" error={errors.accountNo} disabled={isView} {...field} />)} />
@@ -325,7 +320,7 @@ const DistrictAdminModal = ({ member, mode, onClose, onSuccess }) => {
     );
 };
 
-const DistrictAdminTable = ({ refreshTrigger }) => {
+const DistrictAdminTable = ({ refreshTrigger, externalFilters }) => {
     const [members, setMembers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [userRole, setUserRole] = useState('');
@@ -366,15 +361,34 @@ const DistrictAdminTable = ({ refreshTrigger }) => {
 
     useEffect(() => { fetchMembers(); }, [refreshTrigger]);
 
+    // ✅ FIX: Robust case-insensitive, space-trimmed logic for perfect filter matching!
     const filteredMembers = useMemo(() => {
-        if (!globalSearch) return members;
-        const searchLower = globalSearch.toLowerCase();
-        return members.filter((member) =>
-            Object.values(member).some(
-                val => val && String(val).toLowerCase().includes(searchLower)
-            )
-        );
-    }, [members, globalSearch]);
+        return members.filter((member) => {
+            let matchesSearch = true;
+            if (globalSearch) {
+                const searchLower = globalSearch.toLowerCase();
+                matchesSearch = Object.values(member).some(
+                    val => val && String(val).toLowerCase().includes(searchLower)
+                );
+            }
+
+            let matchesState = true;
+            if (externalFilters?.filterState) {
+                const dbState = member.DistNGOStateName ? String(member.DistNGOStateName).trim().toLowerCase() : "";
+                const filterState = String(externalFilters.filterState.label).trim().toLowerCase();
+                matchesState = dbState === filterState;
+            }
+
+            let matchesDistrict = true;
+            if (externalFilters?.filterDistrict) {
+                const dbDist = member.DistNGODistName ? String(member.DistNGODistName).trim().toLowerCase() : "";
+                const filterDist = String(externalFilters.filterDistrict.label).trim().toLowerCase();
+                matchesDistrict = dbDist === filterDist;
+            }
+
+            return matchesSearch && matchesState && matchesDistrict;
+        });
+    }, [members, globalSearch, externalFilters]);
 
     const openModal = async (type, member) => {
         setSelectedRow({ ...member });
@@ -514,7 +528,6 @@ const DistrictAdminTable = ({ refreshTrigger }) => {
                                     {renderTh('Sec Email')}
                                     {renderTh('Sec Mobile')}
                                     {renderTh('Sec Aadhar')}
-                                    {/* ✅ Added Acct Holder Name to Table Header */}
                                     {renderTh('Acct Holder Name')}
                                     {renderTh('Bank Name')}
                                     {renderTh('Account No')}
@@ -552,10 +565,7 @@ const DistrictAdminTable = ({ refreshTrigger }) => {
                                         <td style={styles.td}>{row.DistNGOSDPMailId}</td>
                                         <td style={styles.td}>{row.DistNGOSDPPhoneNo}</td>
                                         <td style={styles.td}>{row.DistNGOSDPAadhaarNo}</td>
-                                        
-                                        {/* ✅ Added the actual Acct Holder Name database data block */}
                                         <td style={styles.td}>{row.DistNGOBankAcctHolderName || '-'}</td>
-                                        
                                         <td style={styles.td}>{row.DistNGOBankName}</td>
                                         <td style={styles.td}>{row.DistNGOAcctNo}</td>
                                         <td style={styles.td}>{row.DistNGOIFSCode}</td>

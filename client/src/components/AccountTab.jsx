@@ -149,12 +149,12 @@ const AccountTab = () => {
                     {/* ✅ Dynamically conditionally render the global filters based on the selected View */}
                     {canSeeFilters && (
                         <>
-                            {['Supervisor', 'Astha Maa', 'Astha Didi'].includes(adminActiveView) && (
+                            {/* {['Supervisor', 'Astha Maa', 'Astha Didi'].includes(adminActiveView) && (
                                 <div style={{ width: '100%', maxWidth: '200px' }}>
                                     <label style={{ ...styles.label, marginBottom: '8px', display: 'block' }}>Mother NGO</label>
                                     <Select options={dbMotherNgos} value={filterMotherNgo} onChange={setFilterMotherNgo} isClearable placeholder="All Mother NGOs" styles={{ ...styles.selectStyles(false), menuPortal: base => ({ ...base, zIndex: 99999 }) }} menuPortalTarget={document.body} menuPosition="fixed" />
                                 </div>
-                            )}
+                            )} */}
 
                             {/* State and District filters show for ALL views */}
                             <div style={{ width: '100%', maxWidth: '150px' }}>

@@ -1,5 +1,93 @@
 const db = require('../config/db');
 
+exports.signup = async (req, res) => {
+    const { role, username, email, password } = req.body;
+    try {
+        db.query('SELECT * FROM userssignup WHERE UserSignUpEmail = ?', [email], async (err, results) => {
+            if (err) return res.status(500).json({ error: 'Database error' });
+            if (results.length > 0) return res.status(400).json({ error: 'Email already exists' });
+
+            const query = `INSERT INTO userssignup (UserSignUpRole, SignupUserName, UserSignUpEmail, UserSignUpPassword, UserSignIsActive) VALUES (?, ?, ?, ?, 1)`;
+            db.query(query, [role, username, email, password], (err) => {
+                if (err) return res.status(500).json({ error: 'Failed to register' });
+                res.status(201).json({ message: 'User registered successfully!' });
+            });
+        });
+    } catch (error) {
+        res.status(500).json({ error: 'Server error' });
+    }
+};
+
+exports.login = (req, res) => {
+    const { role, email, password } = req.body;
+
+    db.query('SELECT * FROM userssignup WHERE UserSignUpEmail = ? AND UserSignUpRole = ?', [email, role], async (err, results) => {
+        if (err) return res.status(500).json({ error: 'Database error' });
+        if (results.length === 0) return res.status(400).json({ error: 'User not found or role mismatch' });
+
+        const user = results[0];
+        
+        if (password !== user.UserSignUpPassword) {
+            return res.status(400).json({ error: 'Incorrect password' });
+        }
+
+        res.status(200).json({
+            message: 'Login successful',
+            user: { 
+                id: user.UserSignUpId, 
+                role: user.UserSignUpRole, 
+                username: user.SignupUserName || user.UserSignUpEmail.split('@')[0], 
+                email: user.UserSignUpEmail,
+                UserSignUpId: user.UserSignUpId,
+                UserSignUpRole: user.UserSignUpRole,
+                UserSignUpEmail: user.UserSignUpEmail,
+                UserSignUpPassword: user.UserSignUpPassword,
+                ProfileRegId: user.ProfileRegId,
+                UserAtuorizedRegId: user.UserAtuorizedRegId,
+                UserSignIsActive: user.UserSignIsActive,
+                SignupUserName: user.SignupUserName
+            }
+        });
+    });
+};
+
+exports.getUserInfo = (req, res) => {
+    db.query('SELECT * FROM userinfo WHERE ActStatus = 1', (err, results) => {
+        if (err) {
+            return res.status(500).json({ error: 'Database error while fetching roles' });
+        }
+        res.json(results);
+    });
+};
+
+// ==========================================
+// ROLE MANAGEMENT ENDPOINTS (userinfo table)
+// ==========================================
+exports.createUserRole = (req, res) => {
+    const { UserType, UserRole, ActStatus } = req.body;
+    db.query('INSERT INTO userinfo (UserType, UserRole, ActStatus) VALUES (?, ?, ?)', [UserType, UserRole, ActStatus], (err, result) => {
+        if (err) return res.status(500).json({ error: 'Database error' });
+        res.status(201).json({ message: 'Role added successfully', id: result.insertId });
+    });
+};
+
+exports.updateUserRole = (req, res) => {
+    const { id } = req.params;
+    const { UserType, UserRole, ActStatus } = req.body;
+    db.query('UPDATE userinfo SET UserType = ?, UserRole = ?, ActStatus = ? WHERE UserInfoId = ?', [UserType, UserRole, ActStatus, id], (err) => {
+        if (err) return res.status(500).json({ error: 'Database error' });
+        res.json({ message: 'Role updated successfully' });
+    });
+};
+
+exports.deleteUserRole = (req, res) => {
+    const { id } = req.params;
+    db.query('DELETE FROM userinfo WHERE UserInfoId = ?', [id], (err) => {
+        if (err) return res.status(500).json({ error: 'Database error' });
+        res.json({ message: 'Role deleted successfully' });
+    });
+};
+
 // ==========================================
 // DYNAMIC DROPDOWNS
 // ==========================================
@@ -14,6 +102,40 @@ exports.getDistricts = (req, res) => {
     const stateId = req.params.stateId;
     db.query('SELECT DistId, DistName FROM dist WHERE StateId = ? AND IsActive = 1', [stateId], (err, results) => {
         if (err) { console.error("❌ getDistricts DB Error:", err.message); return res.status(500).json({ error: err.message }); }
+        res.json(results);
+    });
+};
+
+// ==========================================
+// NEW STRICT DROPDOWN FILTERS
+// ==========================================
+exports.getFilterStates = (req, res) => {
+    // Fetches states that exist in BOTH the state table (Active) AND state_ngo_reg table.
+    const query = `
+        SELECT DISTINCT s.StateId, s.StateName 
+        FROM state s 
+        INNER JOIN state_ngo_reg sn 
+        ON LOWER(TRIM(s.StateName)) = LOWER(TRIM(sn.StateNGOStateName)) 
+        WHERE s.IsActive = 1
+    `;
+    db.query(query, (err, results) => {
+        if (err) { console.error("❌ getFilterStates DB Error:", err.message); return res.status(500).json({ error: err.message }); }
+        res.json(results);
+    });
+};
+
+exports.getFilterDistricts = (req, res) => {
+    const stateId = req.params.stateId;
+    // Fetches districts that exist in BOTH the dist table (Active) AND dist_ngo_reg table for the selected state.
+    const query = `
+        SELECT DISTINCT d.DistId, d.DistName 
+        FROM dist d 
+        INNER JOIN dist_ngo_reg dn 
+        ON LOWER(TRIM(d.DistName)) = LOWER(TRIM(dn.DistNGODistName)) 
+        WHERE d.StateId = ? AND d.IsActive = 1
+    `;
+    db.query(query, [stateId], (err, results) => {
+        if (err) { console.error("❌ getFilterDistricts DB Error:", err.message); return res.status(500).json({ error: err.message }); }
         res.json(results);
     });
 };
@@ -298,12 +420,10 @@ exports.getDistrictAdmin = (req, res) => {
 exports.createDistrictAdmin = (req, res) => {
     const data = req.body;
 
-    // ✅ Insert Query updated directly mapping to DistNGOBankAcctHolderName column. Placeholders adjusted.
     const insertQuery = `INSERT INTO dist_ngo_reg 
         (DistNGOName, DistNGORegDate, DistNGORegNo, DistNGOPanNo, DistNGODarpanId, DistNGOMailId, DistNGOPhoneNo, DistNGORegAddress, DistNGOWorkingAddress, DistNGOStateName, DistNGODistName, DistNGOBlockName, DistNGOSDPName, DistNGOSDPMailId, DistNGOSDPPhoneNo, DistNGOSDPAadhaarNo, DistNGOBankAcctHolderName, DistNGOBankName, DistNGOAcctNo, DistNGOIFSCode, DistNGOBankAdd, DistNGORecCertificate, DistNGOPanPic, DistNGODarpanPic, DistNGOSignupUserName, DistNGOSignupEmail, DistNGOSignupPassword, DistNGOCreatedByAuthRegId, DistNGOCreatedDate, StateNGORegId, DistNGOIsActive, DistNGOAprovedBy, DistNGOAprovedDate, DistNGOGenRegNo) 
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?, ?, ?)`;
 
-    // ✅ Value bindings correctly inject data.DistNGOBankAcctHolderName in the precise index matching SQL statement.
     const values = [
         data.DistNGOName, data.DistNGORegDate, data.DistNGORegNo, data.DistNGOPanNo, data.DistNGODarpanId, data.DistNGOMailId, data.DistNGOPhoneNo, data.DistNGORegAddress, data.DistNGOWorkingAddress, data.DistNGOStateName, data.DistNGODistName, data.DistNGOBlockName, data.DistNGOSDPName, data.DistNGOSDPMailId, data.DistNGOSDPPhoneNo, data.DistNGOSDPAadhaarNo, data.DistNGOBankAcctHolderName, data.DistNGOBankName, data.DistNGOAcctNo, data.DistNGOIFSCode, data.DistNGOBankAdd, data.DistNGORecCertificate, data.DistNGOPanPic, data.DistNGODarpanPic, data.DistNGOSignupUserName, data.DistNGOSignupEmail, data.DistNGOSignupPassword, data.DistNGOCreatedByAuthRegId || null,
         data.StateNGORegId || null, data.DistNGOIsActive || 1, data.DistNGOAprovedBy || null, data.DistNGOAprovedDate || null, data.DistNGOGenRegNo || null
@@ -328,7 +448,6 @@ exports.updateDistrictAdmin = (req, res) => {
     const { id } = req.params;
     const data = req.body;
 
-    // ✅ Explicitly setting DistNGOBankAcctHolderName in the UPDATE query
     const updateQuery = `UPDATE dist_ngo_reg SET 
         DistNGOName=?, DistNGORegDate=?, DistNGORegNo=?, DistNGOPanNo=?, DistNGODarpanId=?, DistNGOMailId=?, DistNGOPhoneNo=?, DistNGORegAddress=?, DistNGOWorkingAddress=?, DistNGOStateName=?, DistNGODistName=?, DistNGOBlockName=?, DistNGOSDPName=?, DistNGOSDPMailId=?, DistNGOSDPPhoneNo=?, DistNGOSDPAadhaarNo=?, DistNGOBankAcctHolderName=?, DistNGOBankName=?, DistNGOAcctNo=?, DistNGOIFSCode=?, DistNGOBankAdd=?, DistNGORecCertificate=?, DistNGOPanPic=?, DistNGODarpanPic=?, DistNGOSignupUserName=?, DistNGOSignupEmail=?, DistNGOSignupPassword=?, DistNGOIsActive=?, DistNGOAprovedBy=?, DistNGOAprovedDate=?, DistNGOGenRegNo=?
         WHERE DistNGORegId=?`;
@@ -480,93 +599,5 @@ exports.deleteSupervisor = (req, res) => {
     db.query('DELETE FROM suvervisor_reg WHERE SupRegId = ?', [req.params.id], (err) => {
         if (err) { console.error("❌ deleteSupervisor DB Error:", err.message); return res.status(500).json({ error: err.message }); }
         res.json({ message: 'Supervisor deleted successfully' });
-    });
-};
-
-exports.signup = async (req, res) => {
-    const { role, username, email, password } = req.body;
-    try {
-        db.query('SELECT * FROM userssignup WHERE UserSignUpEmail = ?', [email], async (err, results) => {
-            if (err) return res.status(500).json({ error: 'Database error' });
-            if (results.length > 0) return res.status(400).json({ error: 'Email already exists' });
-
-            const query = `INSERT INTO userssignup (UserSignUpRole, SignupUserName, UserSignUpEmail, UserSignUpPassword, UserSignIsActive) VALUES (?, ?, ?, ?, 1)`;
-            db.query(query, [role, username, email, password], (err) => {
-                if (err) return res.status(500).json({ error: 'Failed to register' });
-                res.status(201).json({ message: 'User registered successfully!' });
-            });
-        });
-    } catch (error) {
-        res.status(500).json({ error: 'Server error' });
-    }
-};
-
-exports.login = (req, res) => {
-    const { role, email, password } = req.body;
-
-    db.query('SELECT * FROM userssignup WHERE UserSignUpEmail = ? AND UserSignUpRole = ?', [email, role], async (err, results) => {
-        if (err) return res.status(500).json({ error: 'Database error' });
-        if (results.length === 0) return res.status(400).json({ error: 'User not found or role mismatch' });
-
-        const user = results[0];
-
-        if (password !== user.UserSignUpPassword) {
-            return res.status(400).json({ error: 'Incorrect password' });
-        }
-
-        res.status(200).json({
-            message: 'Login successful',
-            user: {
-                id: user.UserSignUpId,
-                role: user.UserSignUpRole,
-                username: user.SignupUserName || user.UserSignUpEmail.split('@')[0],
-                email: user.UserSignUpEmail,
-                UserSignUpId: user.UserSignUpId,
-                UserSignUpRole: user.UserSignUpRole,
-                UserSignUpEmail: user.UserSignUpEmail,
-                UserSignUpPassword: user.UserSignUpPassword,
-                ProfileRegId: user.ProfileRegId,
-                UserAtuorizedRegId: user.UserAtuorizedRegId,
-                UserSignIsActive: user.UserSignIsActive,
-                SignupUserName: user.SignupUserName
-            }
-        });
-    });
-};
-
-exports.getUserInfo = (req, res) => {
-    db.query('SELECT * FROM userinfo WHERE ActStatus = 1', (err, results) => {
-        if (err) {
-            return res.status(500).json({ error: 'Database error while fetching roles' });
-        }
-        res.json(results);
-    });
-};
-
-// ==========================================
-// ROLE MANAGEMENT ENDPOINTS (userinfo table)
-// ==========================================
-exports.createUserRole = (req, res) => {
-    const { UserType, UserRole, ActStatus } = req.body;
-    db.query('INSERT INTO userinfo (UserType, UserRole, ActStatus) VALUES (?, ?, ?)', [UserType, UserRole, ActStatus], (err, result) => {
-        if (err) return res.status(500).json({ error: 'Database error' });
-        res.status(201).json({ message: 'Role added successfully', id: result.insertId });
-    });
-};
-
-exports.updateUserRole = (req, res) => {
-    const { id } = req.params;
-    const { UserType, UserRole, ActStatus } = req.body;
-    db.query('UPDATE userinfo SET UserType = ?, UserRole = ?, ActStatus = ? WHERE UserInfoId = ?', [UserType, UserRole, ActStatus, id], (err) => {
-        if (err) return res.status(500).json({ error: 'Database error' });
-        res.json({ message: 'Role updated successfully' });
-    });
-};
-
-exports.deleteUserRole = (req, res) => {
-    const { id } = req.params;
-    db.query('DELETE FROM userinfo WHERE UserInfoId = ?', [id], (err) => {
-        if (err) return res.status(500).json({ error: 'Database error' });
-        res.json({ message: 'Role deleted successfully' });
     });
 };

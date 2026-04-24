@@ -12,9 +12,13 @@ router.post('/userinfo', authController.createUserRole);
 router.put('/userinfo/:id', authController.updateUserRole);
 router.delete('/userinfo/:id', authController.deleteUserRole);
 
-// --- DROPDOWN ROUTES ---
+// --- GENERAL DROPDOWN ROUTES (Used in Forms) ---
 router.get('/states', formController.getStates);
 router.get('/districts/:stateId', formController.getDistricts);
+
+// --- STRICT FILTER DROPDOWN ROUTES (Used for External Table Filters) ---
+router.get('/filter/states', formController.getFilterStates);
+router.get('/filter/districts/:stateId', formController.getFilterDistricts);
 
 // --- ASTHA DIDI ROUTES ---
 router.get('/asthadidi', formController.getAsthaDidi);

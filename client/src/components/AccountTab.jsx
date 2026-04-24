@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Select from 'react-select';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -57,8 +57,8 @@ const AccountTab = () => {
             setAppUserRole('');
         }
 
-        // Fetch all global filter data
-        fetch(`${API_BASE_URL}/states`).then(res => res.json()).then(data => {
+        // ✅ Point to the strict backend query routes
+        fetch(`${API_BASE_URL}/filter/states`).then(res => res.json()).then(data => {
             setDbStates(data.map(s => ({ value: s.StateId, label: s.StateName })));
         }).catch(() => { });
 
@@ -67,14 +67,21 @@ const AccountTab = () => {
         }).catch(() => { });
 
         fetch(`${API_BASE_URL}/supervisor`).then(res => res.json()).then(data => {
-            setDbSupervisors(data.map(s => ({ value: s.SupRegId, label: s.SupName, userSignUpId: s.UserSignUpId || s.SupRegId })));
+            // ✅ Map supervisor location context securely to be filtered
+            setDbSupervisors(data.map(s => ({ 
+                value: s.SupRegId, 
+                label: s.SupName, 
+                userSignUpId: s.UserSignUpId || s.SupRegId,
+                stateName: s.SupStateName,
+                distName: s.SupDistName
+            })));
         }).catch(() => { });
     }, []);
 
-    // Fetch Districts dynamically when State changes
     useEffect(() => {
         if (filterState) {
-            fetch(`${API_BASE_URL}/districts/${filterState.value}`).then(res => res.json()).then(data => {
+            // ✅ Fetch strictly mapped districts based on State
+            fetch(`${API_BASE_URL}/filter/districts/${filterState.value}`).then(res => res.json()).then(data => {
                 setDbDistricts(data.map(d => ({ value: d.DistId, label: d.DistName })));
             }).catch(() => { });
         } else {
@@ -84,6 +91,24 @@ const AccountTab = () => {
     }, [filterState]);
 
     const handleFormSuccess = () => setRefreshTrigger(prev => prev + 1);
+
+    // ✅ Robustly filter the supervisor dropdown so it only shows Supervisors in the selected State/District
+    const filteredSupervisors = useMemo(() => {
+        return dbSupervisors.filter(sup => {
+            let matches = true;
+            if (filterState) {
+                const supState = sup.stateName ? String(sup.stateName).trim().toLowerCase() : "";
+                const fState = String(filterState.label).trim().toLowerCase();
+                if (supState !== fState) matches = false;
+            }
+            if (filterDistrict) {
+                const supDist = sup.distName ? String(sup.distName).trim().toLowerCase() : "";
+                const fDist = String(filterDistrict.label).trim().toLowerCase();
+                if (supDist !== fDist) matches = false;
+            }
+            return matches;
+        });
+    }, [dbSupervisors, filterState, filterDistrict]);
 
     if (appUserRole === null || adminActiveView === '') {
         return <div style={{ padding: '24px', color: '#697a8d' }}>Loading Interface...</div>;
@@ -146,17 +171,15 @@ const AccountTab = () => {
                         />
                     </div>
 
-                    {/* ✅ Dynamically conditionally render the global filters based on the selected View */}
                     {canSeeFilters && (
                         <>
-                            {/* {['Supervisor', 'Astha Maa', 'Astha Didi'].includes(adminActiveView) && (
+                            {['Supervisor', 'Astha Maa', 'Astha Didi'].includes(adminActiveView) && (
                                 <div style={{ width: '100%', maxWidth: '200px' }}>
                                     <label style={{ ...styles.label, marginBottom: '8px', display: 'block' }}>Mother NGO</label>
                                     <Select options={dbMotherNgos} value={filterMotherNgo} onChange={setFilterMotherNgo} isClearable placeholder="All Mother NGOs" styles={{ ...styles.selectStyles(false), menuPortal: base => ({ ...base, zIndex: 99999 }) }} menuPortalTarget={document.body} menuPosition="fixed" />
                                 </div>
-                            )} */}
+                            )}
 
-                            {/* State and District filters show for ALL views */}
                             <div style={{ width: '100%', maxWidth: '150px' }}>
                                 <label style={{ ...styles.label, marginBottom: '8px', display: 'block' }}>State</label>
                                 <Select options={dbStates} value={filterState} onChange={setFilterState} isClearable placeholder="All States" styles={{ ...styles.selectStyles(false), menuPortal: base => ({ ...base, zIndex: 99999 }) }} menuPortalTarget={document.body} menuPosition="fixed" />
@@ -170,7 +193,8 @@ const AccountTab = () => {
                             {['Astha Maa', 'Astha Didi'].includes(adminActiveView) && (
                                 <div style={{ width: '100%', maxWidth: '200px' }}>
                                     <label style={{ ...styles.label, marginBottom: '8px', display: 'block' }}>Supervisor</label>
-                                    <Select options={dbSupervisors} value={filterSupervisor} onChange={setFilterSupervisor} isClearable placeholder="All Supervisors" styles={{ ...styles.selectStyles(false), menuPortal: base => ({ ...base, zIndex: 99999 }) }} menuPortalTarget={document.body} menuPosition="fixed" />
+                                    {/* ✅ Pass the robust filteredSupervisors array here */}
+                                    <Select options={filteredSupervisors} value={filterSupervisor} onChange={setFilterSupervisor} isClearable placeholder="All Supervisors" styles={{ ...styles.selectStyles(false), menuPortal: base => ({ ...base, zIndex: 99999 }) }} menuPortalTarget={document.body} menuPosition="fixed" />
                                 </div>
                             )}
                         </>
@@ -178,7 +202,6 @@ const AccountTab = () => {
                 </div>
             )}
 
-            {/* ✅ Passed externalFilters securely to ALL relevant tables */}
             {adminActiveView === 'District Administrator' || adminActiveView === 'State Super Administrator' ? (
                 <>
                     <DistrictAdminForm onSuccess={handleFormSuccess} />

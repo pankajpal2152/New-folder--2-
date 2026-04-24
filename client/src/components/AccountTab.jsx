@@ -3,29 +3,37 @@ import Select from 'react-select';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
+// ✅ Added API_BASE_URL to fetch the filter dropdown data
 import { styles, API_BASE_URL } from '../config/constants';
 import { getSafeUser } from './AccountSharedUtils';
 
+// Import Forms
 import DistrictAdminForm from './forms/DistrictAdminForm';
 import SupervisorForm from './forms/SupervisorForm';
 import AsthaMaaForm from './forms/AsthaMaaForm';
 import AsthaDidiForm from './forms/AsthaDidiForm';
 
+// Import Split Tables
 import DistrictAdminTable from './DistrictAdminTable';
 import SupervisorTable from './SupervisorTable';
 import AsthaMaaTable from './AsthaMaaTable';
 import MembersTable from './AsthaDidiTable';
 
+// ==========================================
+// 7. ORCHESTRATOR COMPONENT
+// ==========================================
 const AccountTab = () => {
     const [appUserRole, setAppUserRole] = useState(null);
     const [refreshTrigger, setRefreshTrigger] = useState(0);
     const [adminActiveView, setAdminActiveView] = useState('');
 
+    // ✅ State for External Filters applied to all tables
     const [filterMotherNgo, setFilterMotherNgo] = useState(null);
     const [filterState, setFilterState] = useState(null);
     const [filterDistrict, setFilterDistrict] = useState(null);
     const [filterSupervisor, setFilterSupervisor] = useState(null);
 
+    // ✅ State for Dropdown Options
     const [dbMotherNgos, setDbMotherNgos] = useState([]);
     const [dbStates, setDbStates] = useState([]);
     const [dbDistricts, setDbDistricts] = useState([]);
@@ -50,18 +58,13 @@ const AccountTab = () => {
             setAppUserRole('');
         }
 
-        // ✅ Pointing directly to the newly created strict filter backend API endpoints
+        // ✅ Fetch STRICT filtered global data on mount (Checks dist_ngo_reg logic)
         fetch(`${API_BASE_URL}/filter/states`).then(res => res.json()).then(data => {
             setDbStates(data.map(s => ({ value: s.StateId, label: s.StateName })));
         }).catch(() => { });
 
         fetch(`${API_BASE_URL}/districtadmin`).then(res => res.json()).then(data => {
-            setDbMotherNgos(data.map(n => ({ 
-                value: n.DistNGORegId, 
-                label: n.DistNGOName, 
-                districtName: n.DistNGODistName,
-                stateName: n.DistNGOStateName
-            })));
+            setDbMotherNgos(data.map(n => ({ value: n.DistNGORegId, label: n.DistNGOName, districtName: n.DistNGODistName, stateName: n.DistNGOStateName })));
         }).catch(() => { });
 
         fetch(`${API_BASE_URL}/supervisor`).then(res => res.json()).then(data => {
@@ -76,9 +79,9 @@ const AccountTab = () => {
         }).catch(() => { });
     }, []);
 
+    // ✅ Fetch STRICT Districts dynamically when State changes
     useEffect(() => {
         if (filterState) {
-            // ✅ Pointing to the strict district filter route to ensure data is accurate
             fetch(`${API_BASE_URL}/filter/districts/${filterState.value}`).then(res => res.json()).then(data => {
                 setDbDistricts(data.map(d => ({ value: d.DistId, label: d.DistName })));
             }).catch(() => { });
@@ -88,6 +91,9 @@ const AccountTab = () => {
         }
     }, [filterState]);
 
+    // ==========================================
+    // ✅ CASCADING DROPDOWN LOGIC
+    // ==========================================
     const filteredStateOptions = useMemo(() => {
         if (filterMotherNgo && filterMotherNgo.stateName) {
             const ngoState = filterMotherNgo.stateName.trim().toLowerCase();
@@ -136,6 +142,7 @@ const AccountTab = () => {
         });
     }, [dbSupervisors, filterMotherNgo, filterState, filterDistrict]);
 
+    // Handlers to auto-clear downstream filters when a higher filter changes
     const handleMotherNgoChange = (selected) => {
         setFilterMotherNgo(selected);
         setFilterState(null);

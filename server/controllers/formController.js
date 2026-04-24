@@ -61,7 +61,7 @@ exports.getUserInfo = (req, res) => {
 };
 
 // ==========================================
-// ROLE MANAGEMENT ENDPOINTS
+// ROLE MANAGEMENT ENDPOINTS (userinfo table)
 // ==========================================
 exports.createUserRole = (req, res) => {
     const { UserType, UserRole, ActStatus } = req.body;
@@ -89,7 +89,7 @@ exports.deleteUserRole = (req, res) => {
 };
 
 // ==========================================
-// DYNAMIC DROPDOWNS (For Data Entry Forms)
+// DYNAMIC DROPDOWNS
 // ==========================================
 exports.getStates = (req, res) => {
     db.query('SELECT StateId, StateName FROM state WHERE IsActive = 1', (err, results) => {
@@ -107,15 +107,16 @@ exports.getDistricts = (req, res) => {
 };
 
 // ==========================================
-// STRICT DROPDOWN FILTERS (For Table Filters)
+// NEW STRICT DROPDOWN FILTERS (WITH FIXES)
 // ==========================================
 exports.getFilterStates = (req, res) => {
-    // Matches active states dynamically against state_ngo_reg table data
+    // ✅ Fetches ONLY states that are active AND present in dist_ngo_reg. 
+    // Trims and lowercase used to bypass manual typing inconsistencies in DB.
     const query = `
         SELECT DISTINCT s.StateId, s.StateName 
         FROM state s 
-        INNER JOIN state_ngo_reg sn 
-        ON LOWER(TRIM(s.StateName)) = LOWER(TRIM(sn.StateNGOStateName)) 
+        INNER JOIN dist_ngo_reg dn 
+        ON LOWER(TRIM(s.StateName)) = LOWER(TRIM(dn.DistNGOStateName)) 
         WHERE s.IsActive = 1
     `;
     db.query(query, (err, results) => {
@@ -126,7 +127,8 @@ exports.getFilterStates = (req, res) => {
 
 exports.getFilterDistricts = (req, res) => {
     const stateId = req.params.stateId;
-    // Matches active districts dynamically against dist_ngo_reg table data
+    // ✅ Fetches ONLY districts for the selected state that are active AND present in dist_ngo_reg.
+    // Trims and lowercase used to bypass manual typing inconsistencies in DB.
     const query = `
         SELECT DISTINCT d.DistId, d.DistName 
         FROM dist d 
@@ -141,7 +143,7 @@ exports.getFilterDistricts = (req, res) => {
 };
 
 // ==========================================
-// ASTHA DIDI REGISTRATION
+// ASTHA DIDI REGISTRATION (`asthadidi_reg`)
 // ==========================================
 exports.getAsthaDidi = (req, res) => {
     const query = `
@@ -262,7 +264,7 @@ exports.deleteAsthaDidi = (req, res) => {
 };
 
 // ==========================================
-// ASTHA MAA REGISTRATION
+// ASTHA MAA REGISTRATION (asthama_reg)
 // ==========================================
 exports.getAsthaMaa = (req, res) => {
     const query = `
@@ -386,7 +388,7 @@ exports.deleteAsthaMaa = (req, res) => {
 };
 
 // ==========================================
-// DISTRICT ADMIN REGISTRATION
+// DISTRICT ADMIN REGISTRATION (dist_ngo_reg)
 // ==========================================
 exports.getDistrictAdmin = (req, res) => {
     const query = `
@@ -479,7 +481,7 @@ exports.deleteDistrictAdmin = (req, res) => {
 };
 
 // ==========================================
-// SUPERVISOR REGISTRATION
+// SUPERVISOR REGISTRATION (suvervisor_reg)
 // ==========================================
 exports.getSupervisor = (req, res) => {
     const query = `

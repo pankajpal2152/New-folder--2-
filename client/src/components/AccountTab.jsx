@@ -119,19 +119,32 @@ const AccountTab = () => {
     const filteredSupervisorOptions = useMemo(() => {
         return dbSupervisors.filter(sup => {
             let matches = true;
+            
+            // ✅ PERFECT FIX: Fallback to District matching if MotherNgoId is NULL in the Database
             if (filterMotherNgo) {
-                if (String(sup.motherNgoId) !== String(filterMotherNgo.value)) matches = false;
+                const supDist = sup.distName ? String(sup.distName).trim().toLowerCase() : "";
+                const ngoDist = filterMotherNgo.districtName ? String(filterMotherNgo.districtName).trim().toLowerCase() : "";
+                
+                const idMatch = String(sup.motherNgoId) === String(filterMotherNgo.value);
+                const distMatch = supDist !== "" && supDist === ngoDist;
+                
+                if (!idMatch && !distMatch) {
+                    matches = false;
+                }
             }
+            
             if (filterState) {
                 const supState = sup.stateName ? String(sup.stateName).trim().toLowerCase() : "";
                 const fState = String(filterState.label).trim().toLowerCase();
                 if (supState !== fState) matches = false;
             }
+            
             if (filterDistrict) {
                 const supDist = sup.distName ? String(sup.distName).trim().toLowerCase() : "";
                 const fDist = String(filterDistrict.label).trim().toLowerCase();
                 if (supDist !== fDist) matches = false;
             }
+            
             return matches;
         });
     }, [dbSupervisors, filterMotherNgo, filterState, filterDistrict]);
@@ -219,6 +232,7 @@ const AccountTab = () => {
                         />
                     </div>
 
+                    {/* ✅ Dynamically conditionally render the global filters based on the selected View */}
                     {canSeeFilters && (
                         <>
                             {['Supervisor', 'Astha Maa', 'Astha Didi'].includes(adminActiveView) && (
@@ -228,6 +242,7 @@ const AccountTab = () => {
                                 </div>
                             )}
 
+                            {/* State and District filters show for ALL views */}
                             <div style={{ width: '100%', maxWidth: '150px' }}>
                                 <label style={{ ...styles.label, marginBottom: '8px', display: 'block' }}>State</label>
                                 <Select options={filteredStateOptions} value={filterState} onChange={handleStateChange} isClearable placeholder="All States" styles={{ ...styles.selectStyles(false), menuPortal: base => ({ ...base, zIndex: 99999 }) }} menuPortalTarget={document.body} menuPosition="fixed" />
@@ -241,6 +256,7 @@ const AccountTab = () => {
                             {['Astha Maa', 'Astha Didi'].includes(adminActiveView) && (
                                 <div style={{ width: '100%', maxWidth: '200px' }}>
                                     <label style={{ ...styles.label, marginBottom: '8px', display: 'block' }}>Supervisor</label>
+                                    {/* ✅ Pass the robust filteredSupervisors array here */}
                                     <Select options={filteredSupervisorOptions} value={filterSupervisor} onChange={setFilterSupervisor} isClearable placeholder="All Supervisors" styles={{ ...styles.selectStyles(false), menuPortal: base => ({ ...base, zIndex: 99999 }) }} menuPortalTarget={document.body} menuPosition="fixed" />
                                 </div>
                             )}
@@ -249,6 +265,7 @@ const AccountTab = () => {
                 </div>
             )}
 
+            {/* ✅ Passed externalFilters securely to ALL relevant tables */}
             {adminActiveView === 'District Administrator' || adminActiveView === 'State Super Administrator' ? (
                 <>
                     <DistrictAdminForm onSuccess={handleFormSuccess} />

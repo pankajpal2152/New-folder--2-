@@ -57,13 +57,19 @@ const AccountTab = () => {
             setAppUserRole('');
         }
 
-        // ✅ Point to the strict backend query routes
-        fetch(`${API_BASE_URL}/filter/states`).then(res => res.json()).then(data => {
+        // ✅ Fetch all base global data
+        fetch(`${API_BASE_URL}/states`).then(res => res.json()).then(data => {
             setDbStates(data.map(s => ({ value: s.StateId, label: s.StateName })));
         }).catch(() => { });
 
         fetch(`${API_BASE_URL}/districtadmin`).then(res => res.json()).then(data => {
-            setDbMotherNgos(data.map(n => ({ value: n.DistNGORegId, label: n.DistNGOName, districtName: n.DistNGODistName })));
+            // ✅ Map stateName and districtName to support cascading filters
+            setDbMotherNgos(data.map(n => ({ 
+                value: n.DistNGORegId, 
+                label: n.DistNGOName, 
+                districtName: n.DistNGODistName,
+                stateName: n.DistNGOStateName
+            })));
         }).catch(() => { });
 
         fetch(`${API_BASE_URL}/supervisor`).then(res => res.json()).then(data => {
@@ -73,15 +79,16 @@ const AccountTab = () => {
                 label: s.SupName, 
                 userSignUpId: s.UserSignUpId || s.SupRegId,
                 stateName: s.SupStateName,
-                distName: s.SupDistName
+                distName: s.SupDistName,
+                motherNgoId: s.DistNGORegId
             })));
         }).catch(() => { });
     }, []);
 
+    // ✅ Fetch Districts dynamically when State changes
     useEffect(() => {
         if (filterState) {
-            // ✅ Fetch strictly mapped districts based on State
-            fetch(`${API_BASE_URL}/filter/districts/${filterState.value}`).then(res => res.json()).then(data => {
+            fetch(`${API_BASE_URL}/districts/${filterState.value}`).then(res => res.json()).then(data => {
                 setDbDistricts(data.map(d => ({ value: d.DistId, label: d.DistName })));
             }).catch(() => { });
         } else {
@@ -90,12 +97,31 @@ const AccountTab = () => {
         }
     }, [filterState]);
 
-    const handleFormSuccess = () => setRefreshTrigger(prev => prev + 1);
+    // ==========================================
+    // ✅ CASCADING DROPDOWN LOGIC
+    // ==========================================
+    const filteredStateOptions = useMemo(() => {
+        if (filterMotherNgo && filterMotherNgo.stateName) {
+            const ngoState = filterMotherNgo.stateName.trim().toLowerCase();
+            return dbStates.filter(s => s.label.trim().toLowerCase() === ngoState);
+        }
+        return dbStates;
+    }, [dbStates, filterMotherNgo]);
 
-    // ✅ Robustly filter the supervisor dropdown so it only shows Supervisors in the selected State/District
-    const filteredSupervisors = useMemo(() => {
+    const filteredDistrictOptions = useMemo(() => {
+        if (filterMotherNgo && filterMotherNgo.districtName) {
+            const ngoDist = filterMotherNgo.districtName.trim().toLowerCase();
+            return dbDistricts.filter(d => d.label.trim().toLowerCase() === ngoDist);
+        }
+        return dbDistricts;
+    }, [dbDistricts, filterMotherNgo]);
+
+    const filteredSupervisorOptions = useMemo(() => {
         return dbSupervisors.filter(sup => {
             let matches = true;
+            if (filterMotherNgo) {
+                if (String(sup.motherNgoId) !== String(filterMotherNgo.value)) matches = false;
+            }
             if (filterState) {
                 const supState = sup.stateName ? String(sup.stateName).trim().toLowerCase() : "";
                 const fState = String(filterState.label).trim().toLowerCase();
@@ -108,7 +134,29 @@ const AccountTab = () => {
             }
             return matches;
         });
-    }, [dbSupervisors, filterState, filterDistrict]);
+    }, [dbSupervisors, filterMotherNgo, filterState, filterDistrict]);
+
+    // Handlers to auto-clear downstream filters when a higher filter changes
+    const handleMotherNgoChange = (selected) => {
+        setFilterMotherNgo(selected);
+        setFilterState(null);
+        setFilterDistrict(null);
+        setFilterSupervisor(null);
+    };
+
+    const handleStateChange = (selected) => {
+        setFilterState(selected);
+        setFilterDistrict(null);
+        setFilterSupervisor(null);
+    };
+
+    const handleDistrictChange = (selected) => {
+        setFilterDistrict(selected);
+        setFilterSupervisor(null);
+    };
+
+
+    const handleFormSuccess = () => setRefreshTrigger(prev => prev + 1);
 
     if (appUserRole === null || adminActiveView === '') {
         return <div style={{ padding: '24px', color: '#697a8d' }}>Loading Interface...</div>;
@@ -176,25 +224,24 @@ const AccountTab = () => {
                             {['Supervisor', 'Astha Maa', 'Astha Didi'].includes(adminActiveView) && (
                                 <div style={{ width: '100%', maxWidth: '200px' }}>
                                     <label style={{ ...styles.label, marginBottom: '8px', display: 'block' }}>Mother NGO</label>
-                                    <Select options={dbMotherNgos} value={filterMotherNgo} onChange={setFilterMotherNgo} isClearable placeholder="All Mother NGOs" styles={{ ...styles.selectStyles(false), menuPortal: base => ({ ...base, zIndex: 99999 }) }} menuPortalTarget={document.body} menuPosition="fixed" />
+                                    <Select options={dbMotherNgos} value={filterMotherNgo} onChange={handleMotherNgoChange} isClearable placeholder="All Mother NGOs" styles={{ ...styles.selectStyles(false), menuPortal: base => ({ ...base, zIndex: 99999 }) }} menuPortalTarget={document.body} menuPosition="fixed" />
                                 </div>
                             )}
 
                             <div style={{ width: '100%', maxWidth: '150px' }}>
                                 <label style={{ ...styles.label, marginBottom: '8px', display: 'block' }}>State</label>
-                                <Select options={dbStates} value={filterState} onChange={setFilterState} isClearable placeholder="All States" styles={{ ...styles.selectStyles(false), menuPortal: base => ({ ...base, zIndex: 99999 }) }} menuPortalTarget={document.body} menuPosition="fixed" />
+                                <Select options={filteredStateOptions} value={filterState} onChange={handleStateChange} isClearable placeholder="All States" styles={{ ...styles.selectStyles(false), menuPortal: base => ({ ...base, zIndex: 99999 }) }} menuPortalTarget={document.body} menuPosition="fixed" />
                             </div>
 
                             <div style={{ width: '100%', maxWidth: '150px' }}>
                                 <label style={{ ...styles.label, marginBottom: '8px', display: 'block' }}>District</label>
-                                <Select options={dbDistricts} value={filterDistrict} onChange={setFilterDistrict} isDisabled={!filterState} isClearable placeholder="All Districts" styles={{ ...styles.selectStyles(false), menuPortal: base => ({ ...base, zIndex: 99999 }) }} menuPortalTarget={document.body} menuPosition="fixed" />
+                                <Select options={filteredDistrictOptions} value={filterDistrict} onChange={handleDistrictChange} isDisabled={!filterState} isClearable placeholder="All Districts" styles={{ ...styles.selectStyles(false), menuPortal: base => ({ ...base, zIndex: 99999 }) }} menuPortalTarget={document.body} menuPosition="fixed" />
                             </div>
 
                             {['Astha Maa', 'Astha Didi'].includes(adminActiveView) && (
                                 <div style={{ width: '100%', maxWidth: '200px' }}>
                                     <label style={{ ...styles.label, marginBottom: '8px', display: 'block' }}>Supervisor</label>
-                                    {/* ✅ Pass the robust filteredSupervisors array here */}
-                                    <Select options={filteredSupervisors} value={filterSupervisor} onChange={setFilterSupervisor} isClearable placeholder="All Supervisors" styles={{ ...styles.selectStyles(false), menuPortal: base => ({ ...base, zIndex: 99999 }) }} menuPortalTarget={document.body} menuPosition="fixed" />
+                                    <Select options={filteredSupervisorOptions} value={filterSupervisor} onChange={setFilterSupervisor} isClearable placeholder="All Supervisors" styles={{ ...styles.selectStyles(false), menuPortal: base => ({ ...base, zIndex: 99999 }) }} menuPortalTarget={document.body} menuPosition="fixed" />
                                 </div>
                             )}
                         </>

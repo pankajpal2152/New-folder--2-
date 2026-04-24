@@ -249,7 +249,6 @@ const AsthaDidiModal = ({ member, mode, onClose, onSuccess }) => {
     );
 };
 
-// ✅ Accepts externalFilters custom prop securely from the AccountTab Orchestrator
 const MembersTable = ({ refreshTrigger, externalFilters }) => {
     const [members, setMembers] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -312,7 +311,7 @@ const MembersTable = ({ refreshTrigger, externalFilters }) => {
 
     useEffect(() => { fetchMembers(); }, [refreshTrigger]);
 
-    // ✅ FIX: Implemented strict, case-insensitive, space-trimmed logic for perfect filter matching!
+    // ✅ Implemented strict, case-insensitive, space-trimmed logic for perfect filter matching!
     const filteredMembers = useMemo(() => {
         return members.filter((member) => {
             let matchesSearch = true;
@@ -323,7 +322,6 @@ const MembersTable = ({ refreshTrigger, externalFilters }) => {
                 );
             }
 
-            // External Dynamic State Filter (Trims spaces and checks lowercase to fix DB inconsistencies)
             let matchesState = true;
             if (externalFilters?.filterState) {
                 const dbState = member.AsthaDidiStateName ? String(member.AsthaDidiStateName).trim().toLowerCase() : "";
@@ -331,7 +329,6 @@ const MembersTable = ({ refreshTrigger, externalFilters }) => {
                 matchesState = dbState === filterState;
             }
 
-            // External Dynamic District Filter (Trims spaces and checks lowercase to fix DB inconsistencies)
             let matchesDistrict = true;
             if (externalFilters?.filterDistrict) {
                 const dbDist = member.AsthaDidiDistName ? String(member.AsthaDidiDistName).trim().toLowerCase() : "";
@@ -339,7 +336,6 @@ const MembersTable = ({ refreshTrigger, externalFilters }) => {
                 matchesDistrict = dbDist === filterDist;
             }
 
-            // External Dynamic Mother NGO Filter
             let matchesMotherNgo = true;
             if (externalFilters?.filterMotherNgo) {
                 const dbDist = member.AsthaDidiDistName ? String(member.AsthaDidiDistName).trim().toLowerCase() : "";
@@ -349,7 +345,6 @@ const MembersTable = ({ refreshTrigger, externalFilters }) => {
                                    dbDist === ngoDist;
             }
 
-            // External Dynamic Supervisor Filter directly matches AsthaDidiCreatedByAuthRegId as requested
             let matchesSupervisor = true;
             if (externalFilters?.filterSupervisor) {
                 matchesSupervisor = String(member.AsthaDidiCreatedByAuthRegId) === String(externalFilters.filterSupervisor.userSignUpId) ||

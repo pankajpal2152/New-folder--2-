@@ -61,7 +61,7 @@ exports.getUserInfo = (req, res) => {
 };
 
 // ==========================================
-// ROLE MANAGEMENT ENDPOINTS (userinfo table)
+// ROLE MANAGEMENT ENDPOINTS
 // ==========================================
 exports.createUserRole = (req, res) => {
     const { UserType, UserRole, ActStatus } = req.body;
@@ -89,7 +89,7 @@ exports.deleteUserRole = (req, res) => {
 };
 
 // ==========================================
-// DYNAMIC DROPDOWNS
+// DYNAMIC DROPDOWNS (For Data Entry Forms)
 // ==========================================
 exports.getStates = (req, res) => {
     db.query('SELECT StateId, StateName FROM state WHERE IsActive = 1', (err, results) => {
@@ -107,10 +107,10 @@ exports.getDistricts = (req, res) => {
 };
 
 // ==========================================
-// NEW STRICT DROPDOWN FILTERS
+// STRICT DROPDOWN FILTERS (For Table Filters)
 // ==========================================
 exports.getFilterStates = (req, res) => {
-    // Fetches states that exist in BOTH the state table (Active) AND state_ngo_reg table.
+    // Matches active states dynamically against state_ngo_reg table data
     const query = `
         SELECT DISTINCT s.StateId, s.StateName 
         FROM state s 
@@ -126,7 +126,7 @@ exports.getFilterStates = (req, res) => {
 
 exports.getFilterDistricts = (req, res) => {
     const stateId = req.params.stateId;
-    // Fetches districts that exist in BOTH the dist table (Active) AND dist_ngo_reg table for the selected state.
+    // Matches active districts dynamically against dist_ngo_reg table data
     const query = `
         SELECT DISTINCT d.DistId, d.DistName 
         FROM dist d 
@@ -141,7 +141,7 @@ exports.getFilterDistricts = (req, res) => {
 };
 
 // ==========================================
-// ASTHA DIDI REGISTRATION (`asthadidi_reg`)
+// ASTHA DIDI REGISTRATION
 // ==========================================
 exports.getAsthaDidi = (req, res) => {
     const query = `
@@ -262,7 +262,7 @@ exports.deleteAsthaDidi = (req, res) => {
 };
 
 // ==========================================
-// ASTHA MAA REGISTRATION (asthama_reg)
+// ASTHA MAA REGISTRATION
 // ==========================================
 exports.getAsthaMaa = (req, res) => {
     const query = `
@@ -386,7 +386,7 @@ exports.deleteAsthaMaa = (req, res) => {
 };
 
 // ==========================================
-// DISTRICT ADMIN REGISTRATION (dist_ngo_reg)
+// DISTRICT ADMIN REGISTRATION
 // ==========================================
 exports.getDistrictAdmin = (req, res) => {
     const query = `
@@ -479,7 +479,7 @@ exports.deleteDistrictAdmin = (req, res) => {
 };
 
 // ==========================================
-// SUPERVISOR REGISTRATION (suvervisor_reg)
+// SUPERVISOR REGISTRATION
 // ==========================================
 exports.getSupervisor = (req, res) => {
     const query = `

@@ -6,33 +6,26 @@ import 'react-toastify/dist/ReactToastify.css';
 import { styles, API_BASE_URL } from '../config/constants';
 import { getSafeUser } from './AccountSharedUtils';
 
-// Import Forms
 import DistrictAdminForm from './forms/DistrictAdminForm';
 import SupervisorForm from './forms/SupervisorForm';
 import AsthaMaaForm from './forms/AsthaMaaForm';
 import AsthaDidiForm from './forms/AsthaDidiForm';
 
-// Import Split Tables
 import DistrictAdminTable from './DistrictAdminTable';
 import SupervisorTable from './SupervisorTable';
 import AsthaMaaTable from './AsthaMaaTable';
 import MembersTable from './AsthaDidiTable';
 
-// ==========================================
-// 7. ORCHESTRATOR COMPONENT
-// ==========================================
 const AccountTab = () => {
     const [appUserRole, setAppUserRole] = useState(null);
     const [refreshTrigger, setRefreshTrigger] = useState(0);
     const [adminActiveView, setAdminActiveView] = useState('');
 
-    // ✅ State for External Filters applied to all tables
     const [filterMotherNgo, setFilterMotherNgo] = useState(null);
     const [filterState, setFilterState] = useState(null);
     const [filterDistrict, setFilterDistrict] = useState(null);
     const [filterSupervisor, setFilterSupervisor] = useState(null);
 
-    // ✅ State for Dropdown Options
     const [dbMotherNgos, setDbMotherNgos] = useState([]);
     const [dbStates, setDbStates] = useState([]);
     const [dbDistricts, setDbDistricts] = useState([]);
@@ -57,13 +50,12 @@ const AccountTab = () => {
             setAppUserRole('');
         }
 
-        // ✅ Fetch all base global data
-        fetch(`${API_BASE_URL}/states`).then(res => res.json()).then(data => {
+        // ✅ Pointing directly to the newly created strict filter backend API endpoints
+        fetch(`${API_BASE_URL}/filter/states`).then(res => res.json()).then(data => {
             setDbStates(data.map(s => ({ value: s.StateId, label: s.StateName })));
         }).catch(() => { });
 
         fetch(`${API_BASE_URL}/districtadmin`).then(res => res.json()).then(data => {
-            // ✅ Map stateName and districtName to support cascading filters
             setDbMotherNgos(data.map(n => ({ 
                 value: n.DistNGORegId, 
                 label: n.DistNGOName, 
@@ -73,7 +65,6 @@ const AccountTab = () => {
         }).catch(() => { });
 
         fetch(`${API_BASE_URL}/supervisor`).then(res => res.json()).then(data => {
-            // ✅ Map supervisor location context securely to be filtered
             setDbSupervisors(data.map(s => ({ 
                 value: s.SupRegId, 
                 label: s.SupName, 
@@ -85,10 +76,10 @@ const AccountTab = () => {
         }).catch(() => { });
     }, []);
 
-    // ✅ Fetch Districts dynamically when State changes
     useEffect(() => {
         if (filterState) {
-            fetch(`${API_BASE_URL}/districts/${filterState.value}`).then(res => res.json()).then(data => {
+            // ✅ Pointing to the strict district filter route to ensure data is accurate
+            fetch(`${API_BASE_URL}/filter/districts/${filterState.value}`).then(res => res.json()).then(data => {
                 setDbDistricts(data.map(d => ({ value: d.DistId, label: d.DistName })));
             }).catch(() => { });
         } else {
@@ -97,9 +88,6 @@ const AccountTab = () => {
         }
     }, [filterState]);
 
-    // ==========================================
-    // ✅ CASCADING DROPDOWN LOGIC
-    // ==========================================
     const filteredStateOptions = useMemo(() => {
         if (filterMotherNgo && filterMotherNgo.stateName) {
             const ngoState = filterMotherNgo.stateName.trim().toLowerCase();
@@ -120,7 +108,6 @@ const AccountTab = () => {
         return dbSupervisors.filter(sup => {
             let matches = true;
             
-            // ✅ PERFECT FIX: Fallback to District matching if MotherNgoId is NULL in the Database
             if (filterMotherNgo) {
                 const supDist = sup.distName ? String(sup.distName).trim().toLowerCase() : "";
                 const ngoDist = filterMotherNgo.districtName ? String(filterMotherNgo.districtName).trim().toLowerCase() : "";
@@ -149,7 +136,6 @@ const AccountTab = () => {
         });
     }, [dbSupervisors, filterMotherNgo, filterState, filterDistrict]);
 
-    // Handlers to auto-clear downstream filters when a higher filter changes
     const handleMotherNgoChange = (selected) => {
         setFilterMotherNgo(selected);
         setFilterState(null);
@@ -167,7 +153,6 @@ const AccountTab = () => {
         setFilterDistrict(selected);
         setFilterSupervisor(null);
     };
-
 
     const handleFormSuccess = () => setRefreshTrigger(prev => prev + 1);
 
@@ -232,7 +217,6 @@ const AccountTab = () => {
                         />
                     </div>
 
-                    {/* ✅ Dynamically conditionally render the global filters based on the selected View */}
                     {canSeeFilters && (
                         <>
                             {['Supervisor', 'Astha Maa', 'Astha Didi'].includes(adminActiveView) && (
@@ -242,7 +226,6 @@ const AccountTab = () => {
                                 </div>
                             )}
 
-                            {/* State and District filters show for ALL views */}
                             <div style={{ width: '100%', maxWidth: '150px' }}>
                                 <label style={{ ...styles.label, marginBottom: '8px', display: 'block' }}>State</label>
                                 <Select options={filteredStateOptions} value={filterState} onChange={handleStateChange} isClearable placeholder="All States" styles={{ ...styles.selectStyles(false), menuPortal: base => ({ ...base, zIndex: 99999 }) }} menuPortalTarget={document.body} menuPosition="fixed" />
@@ -256,7 +239,6 @@ const AccountTab = () => {
                             {['Astha Maa', 'Astha Didi'].includes(adminActiveView) && (
                                 <div style={{ width: '100%', maxWidth: '200px' }}>
                                     <label style={{ ...styles.label, marginBottom: '8px', display: 'block' }}>Supervisor</label>
-                                    {/* ✅ Pass the robust filteredSupervisors array here */}
                                     <Select options={filteredSupervisorOptions} value={filterSupervisor} onChange={setFilterSupervisor} isClearable placeholder="All Supervisors" styles={{ ...styles.selectStyles(false), menuPortal: base => ({ ...base, zIndex: 99999 }) }} menuPortalTarget={document.body} menuPosition="fixed" />
                                 </div>
                             )}
@@ -265,7 +247,6 @@ const AccountTab = () => {
                 </div>
             )}
 
-            {/* ✅ Passed externalFilters securely to ALL relevant tables */}
             {adminActiveView === 'District Administrator' || adminActiveView === 'State Super Administrator' ? (
                 <>
                     <DistrictAdminForm onSuccess={handleFormSuccess} />

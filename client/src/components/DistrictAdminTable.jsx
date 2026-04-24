@@ -194,15 +194,15 @@ const DistrictAdminModal = ({ member, mode, onClose, onSuccess }) => {
                             <div style={styles.inputGroup}>
                                 <label style={styles.label}>State *</label>
                                 <Controller name="state" control={control} render={({ field }) => (
-                                    <Select
-                                        {...field}
-                                        options={dbStates}
+                                    <Select 
+                                        {...field} 
+                                        options={dbStates} 
                                         styles={{
                                             ...styles.selectStyles(!!errors.state),
                                             menuPortal: base => ({ ...base, zIndex: 99999 }),
                                             menu: base => ({ ...base, zIndex: 99999 })
-                                        }}
-                                        isDisabled={isView}
+                                        }} 
+                                        isDisabled={isView} 
                                         menuPortalTarget={document.body}
                                         menuPosition="fixed"
                                     />
@@ -211,15 +211,15 @@ const DistrictAdminModal = ({ member, mode, onClose, onSuccess }) => {
                             <div style={styles.inputGroup}>
                                 <label style={styles.label}>District *</label>
                                 <Controller name="district" control={control} render={({ field }) => (
-                                    <Select
-                                        {...field}
-                                        options={dbDistricts}
+                                    <Select 
+                                        {...field} 
+                                        options={dbDistricts} 
                                         styles={{
                                             ...styles.selectStyles(!!errors.district),
                                             menuPortal: base => ({ ...base, zIndex: 99999 }),
                                             menu: base => ({ ...base, zIndex: 99999 })
-                                        }}
-                                        isDisabled={isView || !selectedState}
+                                        }} 
+                                        isDisabled={isView || !selectedState} 
                                         menuPortalTarget={document.body}
                                         menuPosition="fixed"
                                     />
@@ -318,7 +318,6 @@ const DistrictAdminModal = ({ member, mode, onClose, onSuccess }) => {
     );
 };
 
-// ✅ Accepts externalFilters securely passed down from AccountTab
 const DistrictAdminTable = ({ refreshTrigger, externalFilters }) => {
     const [members, setMembers] = useState([]);
     const [loading, setLoading] = useState(true);

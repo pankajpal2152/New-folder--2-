@@ -265,7 +265,6 @@ const SupervisorModal = ({ member, mode, onClose, onSuccess }) => {
     );
 };
 
-// ✅ Accepts externalFilters securely passed down from AccountTab
 const SupervisorTable = ({ refreshTrigger, externalFilters }) => {
     const [members, setMembers] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -310,8 +309,13 @@ const SupervisorTable = ({ refreshTrigger, externalFilters }) => {
 
     useEffect(() => { fetchMembers(); }, [refreshTrigger]);
 
-    // ✅ Implemented strict, case-insensitive, space-trimmed logic for perfect filter matching
+    // STRICT DATA VISIBILITY: Check if all expected filters are chosen before rendering rows!
     const filteredMembers = useMemo(() => {
+        // Only 3 filters are required for Supervisor table (Mother NGO, State, District)
+        if (!externalFilters?.filterMotherNgo || !externalFilters?.filterState || !externalFilters?.filterDistrict) {
+            return []; // Array is forcibly empty
+        }
+
         return members.filter((member) => {
             let matchesSearch = true;
             if (globalSearch) {
@@ -588,7 +592,15 @@ const SupervisorTable = ({ refreshTrigger, externalFilters }) => {
                                             </td>
                                         </tr>
                                     ))}
-                                    {currentMembers.length === 0 && <tr><td colSpan="31" style={{ ...styles.td, textAlign: 'center' }}>No members found in database.</td></tr>}
+                                    {currentMembers.length === 0 && (
+                                        <tr>
+                                            <td colSpan="31" style={{ ...styles.td, textAlign: 'center' }}>
+                                                {(!externalFilters?.filterMotherNgo || !externalFilters?.filterState || !externalFilters?.filterDistrict)
+                                                    ? "Please select all filters above (DISTRICT NGO, State, and District) to view data."
+                                                    : "No members found in database."}
+                                            </td>
+                                        </tr>
+                                    )}
                                 </tbody>
                             </table>
                         </div>

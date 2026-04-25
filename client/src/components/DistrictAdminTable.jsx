@@ -359,8 +359,13 @@ const DistrictAdminTable = ({ refreshTrigger, externalFilters }) => {
 
     useEffect(() => { fetchMembers(); }, [refreshTrigger]);
 
-    // ✅ Implemented strict, case-insensitive, space-trimmed logic for perfect filter matching
+    // STRICT DATA VISIBILITY: Check if State and District filters are chosen before rendering rows!
     const filteredMembers = useMemo(() => {
+        // Only State and District filters are required for District Admin table
+        if (!externalFilters?.filterState || !externalFilters?.filterDistrict) {
+            return []; // Array is forcibly empty
+        }
+
         return members.filter((member) => {
             let matchesSearch = true;
             if (globalSearch) {
@@ -588,7 +593,15 @@ const DistrictAdminTable = ({ refreshTrigger, externalFilters }) => {
                                         </td>
                                     </tr>
                                 ))}
-                                {filteredMembers.length === 0 && <tr><td colSpan="32" style={{ ...styles.td, textAlign: 'center' }}>No members found.</td></tr>}
+                                {filteredMembers.length === 0 && (
+                                    <tr>
+                                        <td colSpan="32" style={{ ...styles.td, textAlign: 'center' }}>
+                                            {(!externalFilters?.filterState || !externalFilters?.filterDistrict)
+                                                ? "Please select State and District filters above to view data."
+                                                : "No members found."}
+                                        </td>
+                                    </tr>
+                                )}
                             </tbody>
                         </table>
                     </div>

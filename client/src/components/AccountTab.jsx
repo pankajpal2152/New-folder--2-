@@ -3,7 +3,6 @@ import Select from 'react-select';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-// ✅ Added API_BASE_URL to fetch the filter dropdown data
 import { styles, API_BASE_URL } from '../config/constants';
 import { getSafeUser } from './AccountSharedUtils';
 
@@ -19,21 +18,18 @@ import SupervisorTable from './SupervisorTable';
 import AsthaMaaTable from './AsthaMaaTable';
 import MembersTable from './AsthaDidiTable';
 
-// ==========================================
-// 7. ORCHESTRATOR COMPONENT
-// ==========================================
 const AccountTab = () => {
     const [appUserRole, setAppUserRole] = useState(null);
     const [refreshTrigger, setRefreshTrigger] = useState(0);
     const [adminActiveView, setAdminActiveView] = useState('');
 
-    // ✅ State for External Filters applied to all tables
+    // State for External Filters applied to all tables
     const [filterMotherNgo, setFilterMotherNgo] = useState(null);
     const [filterState, setFilterState] = useState(null);
     const [filterDistrict, setFilterDistrict] = useState(null);
     const [filterSupervisor, setFilterSupervisor] = useState(null);
 
-    // ✅ State for Dropdown Options
+    // State for Dropdown Options
     const [dbMotherNgos, setDbMotherNgos] = useState([]);
     const [dbStates, setDbStates] = useState([]);
     const [dbDistricts, setDbDistricts] = useState([]);
@@ -45,12 +41,16 @@ const AccountTab = () => {
             const role = user.role || '';
             setAppUserRole(role);
 
+            // Set default views based on logged-in role
             if (role === 'State Super Administrator' || role.toLowerCase() === 'developer') {
                 setAdminActiveView('District Administrator');
             } else if (role === 'District Administrator') {
                 setAdminActiveView('Supervisor');
-            } else if (role === 'Supervisor' || role === 'Astha Didi') {
+            } else if (role === 'Supervisor') {
                 setAdminActiveView('Astha Didi');
+            } else if (role === 'Astha Didi') {
+                // By default, Astha Didi goes to Astha Maa page
+                setAdminActiveView('Astha Maa');
             } else {
                 setAdminActiveView(role);
             }
@@ -58,7 +58,7 @@ const AccountTab = () => {
             setAppUserRole('');
         }
 
-        // ✅ Fetch STRICT filtered global data on mount (Checks dist_ngo_reg logic)
+        // Fetch STRICT filtered global data on mount
         fetch(`${API_BASE_URL}/filter/states`).then(res => res.json()).then(data => {
             setDbStates(data.map(s => ({ value: s.StateId, label: s.StateName })));
         }).catch(() => { });
@@ -79,7 +79,7 @@ const AccountTab = () => {
         }).catch(() => { });
     }, []);
 
-    // ✅ Fetch STRICT Districts dynamically when State changes
+    // Fetch STRICT Districts dynamically when State changes
     useEffect(() => {
         if (filterState) {
             fetch(`${API_BASE_URL}/filter/districts/${filterState.value}`).then(res => res.json()).then(data => {
@@ -88,11 +88,12 @@ const AccountTab = () => {
         } else {
             setDbDistricts([]);
             setFilterDistrict(null);
+            setFilterSupervisor(null);
         }
     }, [filterState]);
 
     // ==========================================
-    // ✅ CASCADING DROPDOWN LOGIC
+    // CASCADING DROPDOWN LOGIC
     // ==========================================
     const filteredStateOptions = useMemo(() => {
         if (filterMotherNgo && filterMotherNgo.stateName) {
@@ -142,7 +143,17 @@ const AccountTab = () => {
         });
     }, [dbSupervisors, filterMotherNgo, filterState, filterDistrict]);
 
-    // Handlers to auto-clear downstream filters when a higher filter changes
+    // ==========================================
+    // HANDLERS TO AUTO-CLEAR DOWNSTREAM FILTERS
+    // ==========================================
+    const handleRoleChange = (selected) => {
+        setAdminActiveView(selected.value);
+        setFilterMotherNgo(null);
+        setFilterState(null);
+        setFilterDistrict(null);
+        setFilterSupervisor(null);
+    };
+
     const handleMotherNgoChange = (selected) => {
         setFilterMotherNgo(selected);
         setFilterState(null);
@@ -199,6 +210,10 @@ const AccountTab = () => {
     }
 
     const canSeeFilters = appUserRole === 'State Super Administrator' || appUserRole.toLowerCase() === 'developer' || appUserRole === 'District Administrator' || appUserRole === 'Supervisor';
+    
+    // Check view logic to appropriately lock/unlock subsequent dropdowns
+    const isMotherNgoVisible = ['Supervisor', 'Astha Maa', 'Astha Didi'].includes(adminActiveView);
+    const isSupervisorVisible = ['Astha Maa', 'Astha Didi'].includes(adminActiveView);
 
     return (
         <>
@@ -213,7 +228,7 @@ const AccountTab = () => {
                         <Select
                             options={adminOptions}
                             value={adminOptions.find(o => o.value === adminActiveView)}
-                            onChange={(selected) => setAdminActiveView(selected.value)}
+                            onChange={handleRoleChange} // Connected handler to reset all filters
                             styles={{
                                 ...styles.selectStyles(false),
                                 menuPortal: base => ({ ...base, zIndex: 99999 })
@@ -226,27 +241,66 @@ const AccountTab = () => {
 
                     {canSeeFilters && (
                         <>
-                            {['Supervisor', 'Astha Maa', 'Astha Didi'].includes(adminActiveView) && (
+                            {isMotherNgoVisible && (
                                 <div style={{ width: '100%', maxWidth: '200px' }}>
                                     <label style={{ ...styles.label, marginBottom: '8px', display: 'block' }}>DISTRICT NGO</label>
-                                    <Select options={dbMotherNgos} value={filterMotherNgo} onChange={handleMotherNgoChange} isClearable placeholder="All DISTRICT NGOs" styles={{ ...styles.selectStyles(false), menuPortal: base => ({ ...base, zIndex: 99999 }) }} menuPortalTarget={document.body} menuPosition="fixed" />
+                                    <Select 
+                                        options={dbMotherNgos} 
+                                        value={filterMotherNgo} 
+                                        onChange={handleMotherNgoChange} 
+                                        isClearable 
+                                        placeholder="All DISTRICT NGOs" 
+                                        styles={{ ...styles.selectStyles(false), menuPortal: base => ({ ...base, zIndex: 99999 }) }} 
+                                        menuPortalTarget={document.body} 
+                                        menuPosition="fixed" 
+                                    />
                                 </div>
                             )}
 
                             <div style={{ width: '100%', maxWidth: '150px' }}>
                                 <label style={{ ...styles.label, marginBottom: '8px', display: 'block' }}>State</label>
-                                <Select options={filteredStateOptions} value={filterState} onChange={handleStateChange} isClearable placeholder="All States" styles={{ ...styles.selectStyles(false), menuPortal: base => ({ ...base, zIndex: 99999 }) }} menuPortalTarget={document.body} menuPosition="fixed" />
+                                <Select 
+                                    options={filteredStateOptions} 
+                                    value={filterState} 
+                                    onChange={handleStateChange} 
+                                    isDisabled={isMotherNgoVisible && !filterMotherNgo} // Disabled until District NGO is picked
+                                    isClearable 
+                                    placeholder="All States" 
+                                    styles={{ ...styles.selectStyles(false), menuPortal: base => ({ ...base, zIndex: 99999 }) }} 
+                                    menuPortalTarget={document.body} 
+                                    menuPosition="fixed" 
+                                />
                             </div>
 
                             <div style={{ width: '100%', maxWidth: '150px' }}>
                                 <label style={{ ...styles.label, marginBottom: '8px', display: 'block' }}>District</label>
-                                <Select options={filteredDistrictOptions} value={filterDistrict} onChange={handleDistrictChange} isDisabled={!filterState} isClearable placeholder="All Districts" styles={{ ...styles.selectStyles(false), menuPortal: base => ({ ...base, zIndex: 99999 }) }} menuPortalTarget={document.body} menuPosition="fixed" />
+                                <Select 
+                                    options={filteredDistrictOptions} 
+                                    value={filterDistrict} 
+                                    onChange={handleDistrictChange} 
+                                    isDisabled={!filterState} // Disabled until State is picked
+                                    isClearable 
+                                    placeholder="All Districts" 
+                                    styles={{ ...styles.selectStyles(false), menuPortal: base => ({ ...base, zIndex: 99999 }) }} 
+                                    menuPortalTarget={document.body} 
+                                    menuPosition="fixed" 
+                                />
                             </div>
 
-                            {['Astha Maa', 'Astha Didi'].includes(adminActiveView) && (
+                            {isSupervisorVisible && (
                                 <div style={{ width: '100%', maxWidth: '200px' }}>
                                     <label style={{ ...styles.label, marginBottom: '8px', display: 'block' }}>Supervisor</label>
-                                    <Select options={filteredSupervisorOptions} value={filterSupervisor} onChange={setFilterSupervisor} isClearable placeholder="All Supervisors" styles={{ ...styles.selectStyles(false), menuPortal: base => ({ ...base, zIndex: 99999 }) }} menuPortalTarget={document.body} menuPosition="fixed" />
+                                    <Select 
+                                        options={filteredSupervisorOptions} 
+                                        value={filterSupervisor} 
+                                        onChange={setFilterSupervisor} 
+                                        isDisabled={!filterDistrict} // Disabled until District is picked
+                                        isClearable 
+                                        placeholder="All Supervisors" 
+                                        styles={{ ...styles.selectStyles(false), menuPortal: base => ({ ...base, zIndex: 99999 }) }} 
+                                        menuPortalTarget={document.body} 
+                                        menuPosition="fixed" 
+                                    />
                                 </div>
                             )}
                         </>

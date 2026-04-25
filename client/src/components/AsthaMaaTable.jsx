@@ -246,7 +246,6 @@ const AsthaMaaModal = ({ member, mode, onClose, onSuccess }) => {
     );
 };
 
-// ✅ Accepts externalFilters securely passed down from AccountTab
 const AsthaMaaTable = ({ refreshTrigger, externalFilters }) => {
     const [members, setMembers] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -301,8 +300,13 @@ const AsthaMaaTable = ({ refreshTrigger, externalFilters }) => {
 
     useEffect(() => { fetchMembers(); }, [refreshTrigger]);
 
-    // ✅ Implemented strict, case-insensitive, space-trimmed logic for perfect filter matching
+    // STRICT DATA VISIBILITY: Check if all expected filters are chosen before rendering rows!
     const filteredMembers = useMemo(() => {
+        // If the user has NOT successfully chosen the entire chain, block the data
+        if (!externalFilters?.filterMotherNgo || !externalFilters?.filterState || !externalFilters?.filterDistrict || !externalFilters?.filterSupervisor) {
+            return []; // Array is forcibly empty
+        }
+
         return members.filter((member) => {
             let matchesSearch = true;
             if (globalSearch) {
@@ -597,7 +601,15 @@ const AsthaMaaTable = ({ refreshTrigger, externalFilters }) => {
                                             </td>
                                         </tr>
                                     ))}
-                                    {currentMembers.length === 0 && <tr><td colSpan="30" style={{ ...styles.td, textAlign: 'center' }}>No members found. Try clearing your search filters!</td></tr>}
+                                    {currentMembers.length === 0 && (
+                                        <tr>
+                                            <td colSpan="30" style={{ ...styles.td, textAlign: 'center' }}>
+                                                {(!externalFilters?.filterMotherNgo || !externalFilters?.filterState || !externalFilters?.filterDistrict || !externalFilters?.filterSupervisor)
+                                                    ? "Please select all filters above (DISTRICT NGO, State, District, and Supervisor) to view data."
+                                                    : "No members found. Try clearing your search filters!"}
+                                            </td>
+                                        </tr>
+                                    )}
                                 </tbody>
                             </table>
                         </div>

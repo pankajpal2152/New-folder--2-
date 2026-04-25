@@ -20,6 +20,7 @@ import MembersTable from './AsthaDidiTable';
 
 const AccountTab = () => {
     const [appUserRole, setAppUserRole] = useState(null);
+    const [loggedInProfileId, setLoggedInProfileId] = useState(null);
     const [refreshTrigger, setRefreshTrigger] = useState(0);
     const [adminActiveView, setAdminActiveView] = useState('');
 
@@ -40,6 +41,7 @@ const AccountTab = () => {
         if (user) {
             const role = user.role || '';
             setAppUserRole(role);
+            setLoggedInProfileId(user.ProfileRegId); // Capture the Profile ID for filtering
 
             // Set default views based on logged-in role
             if (role === 'State Super Administrator' || role.toLowerCase() === 'developer') {
@@ -49,7 +51,6 @@ const AccountTab = () => {
             } else if (role === 'Supervisor') {
                 setAdminActiveView('Astha Didi');
             } else if (role === 'Astha Didi') {
-                // By default, Astha Didi goes to Astha Maa page
                 setAdminActiveView('Astha Maa');
             } else {
                 setAdminActiveView(role);
@@ -93,8 +94,26 @@ const AccountTab = () => {
     }, [filterState]);
 
     // ==========================================
-    // CASCADING DROPDOWN LOGIC
+    // CASCADING DROPDOWN LOGIC & ROLE FILTERING
     // ==========================================
+
+    // ✅ STRICT RBAC: Filter Mother NGOs based on logged-in user role
+    const filteredMotherNgos = useMemo(() => {
+        if (appUserRole === 'District Administrator' && loggedInProfileId) {
+            // Only return the specific NGO that the logged-in District Admin belongs to
+            return dbMotherNgos.filter(ngo => String(ngo.value) === String(loggedInProfileId));
+        }
+        // State Super Admins and Developers see all NGOs
+        return dbMotherNgos;
+    }, [dbMotherNgos, appUserRole, loggedInProfileId]);
+
+    // ✅ UX BONUS: If there is only ONE NGO option (because they are a Dist Admin), auto-select it!
+    useEffect(() => {
+        if (filteredMotherNgos.length === 1 && !filterMotherNgo) {
+            setFilterMotherNgo(filteredMotherNgos[0]);
+        }
+    }, [filteredMotherNgos, filterMotherNgo]);
+
     const filteredStateOptions = useMemo(() => {
         if (filterMotherNgo && filterMotherNgo.stateName) {
             const ngoState = filterMotherNgo.stateName.trim().toLowerCase();
@@ -148,10 +167,19 @@ const AccountTab = () => {
     // ==========================================
     const handleRoleChange = (selected) => {
         setAdminActiveView(selected.value);
-        setFilterMotherNgo(null);
-        setFilterState(null);
-        setFilterDistrict(null);
-        setFilterSupervisor(null);
+        
+        // If they are a District Admin, auto-keep their NGO selected. Otherwise, clear it.
+        if (appUserRole === 'District Administrator' && filteredMotherNgos.length === 1) {
+            setFilterMotherNgo(filteredMotherNgos[0]);
+            setFilterState(null);
+            setFilterDistrict(null);
+            setFilterSupervisor(null);
+        } else {
+            setFilterMotherNgo(null);
+            setFilterState(null);
+            setFilterDistrict(null);
+            setFilterSupervisor(null);
+        }
     };
 
     const handleMotherNgoChange = (selected) => {
@@ -228,7 +256,7 @@ const AccountTab = () => {
                         <Select
                             options={adminOptions}
                             value={adminOptions.find(o => o.value === adminActiveView)}
-                            onChange={handleRoleChange} // Connected handler to reset all filters
+                            onChange={handleRoleChange} 
                             styles={{
                                 ...styles.selectStyles(false),
                                 menuPortal: base => ({ ...base, zIndex: 99999 })
@@ -245,7 +273,7 @@ const AccountTab = () => {
                                 <div style={{ width: '100%', maxWidth: '200px' }}>
                                     <label style={{ ...styles.label, marginBottom: '8px', display: 'block' }}>DISTRICT NGO</label>
                                     <Select 
-                                        options={dbMotherNgos} 
+                                        options={filteredMotherNgos} 
                                         value={filterMotherNgo} 
                                         onChange={handleMotherNgoChange} 
                                         isClearable 

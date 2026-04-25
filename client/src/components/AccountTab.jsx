@@ -228,8 +228,8 @@ const AccountTab = () => {
                         <>
                             {['Supervisor', 'Astha Maa', 'Astha Didi'].includes(adminActiveView) && (
                                 <div style={{ width: '100%', maxWidth: '200px' }}>
-                                    <label style={{ ...styles.label, marginBottom: '8px', display: 'block' }}>Mother NGO</label>
-                                    <Select options={dbMotherNgos} value={filterMotherNgo} onChange={handleMotherNgoChange} isClearable placeholder="All Mother NGOs" styles={{ ...styles.selectStyles(false), menuPortal: base => ({ ...base, zIndex: 99999 }) }} menuPortalTarget={document.body} menuPosition="fixed" />
+                                    <label style={{ ...styles.label, marginBottom: '8px', display: 'block' }}>DISTRICT NGO</label>
+                                    <Select options={dbMotherNgos} value={filterMotherNgo} onChange={handleMotherNgoChange} isClearable placeholder="All DISTRICT NGOs" styles={{ ...styles.selectStyles(false), menuPortal: base => ({ ...base, zIndex: 99999 }) }} menuPortalTarget={document.body} menuPosition="fixed" />
                                 </div>
                             )}
 

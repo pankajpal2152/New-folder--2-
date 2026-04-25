@@ -41,7 +41,8 @@ const AccountTab = () => {
         if (user) {
             const role = user.role || '';
             setAppUserRole(role);
-            setLoggedInProfileId(user.ProfileRegId); // Capture the Profile ID for filtering
+            // ✅ Map the database ProfileRegId from the logged-in user
+            setLoggedInProfileId(user.ProfileRegId);
 
             // Set default views based on logged-in role
             if (role === 'State Super Administrator' || role.toLowerCase() === 'developer') {
@@ -65,6 +66,7 @@ const AccountTab = () => {
         }).catch(() => { });
 
         fetch(`${API_BASE_URL}/districtadmin`).then(res => res.json()).then(data => {
+            // value is mapped directly to DistNGORegId
             setDbMotherNgos(data.map(n => ({ value: n.DistNGORegId, label: n.DistNGOName, districtName: n.DistNGODistName, stateName: n.DistNGOStateName })));
         }).catch(() => { });
 
@@ -94,25 +96,17 @@ const AccountTab = () => {
     }, [filterState]);
 
     // ==========================================
-    // CASCADING DROPDOWN LOGIC & ROLE FILTERING
+    // CASCADING DROPDOWN LOGIC & RBAC FILTERING
     // ==========================================
 
-    // ✅ STRICT RBAC: Filter Mother NGOs based on logged-in user role
+    // ✅ DB MAPPING FIX: Restrict Mother NGOs based on logged-in District Admin's ProfileRegId
     const filteredMotherNgos = useMemo(() => {
         if (appUserRole === 'District Administrator' && loggedInProfileId) {
-            // Only return the specific NGO that the logged-in District Admin belongs to
+            // Maps the DistNGORegId (ngo.value) to userssignup ProfileRegId
             return dbMotherNgos.filter(ngo => String(ngo.value) === String(loggedInProfileId));
         }
-        // State Super Admins and Developers see all NGOs
         return dbMotherNgos;
     }, [dbMotherNgos, appUserRole, loggedInProfileId]);
-
-    // ✅ UX BONUS: If there is only ONE NGO option (because they are a Dist Admin), auto-select it!
-    useEffect(() => {
-        if (filteredMotherNgos.length === 1 && !filterMotherNgo) {
-            setFilterMotherNgo(filteredMotherNgos[0]);
-        }
-    }, [filteredMotherNgos, filterMotherNgo]);
 
     const filteredStateOptions = useMemo(() => {
         if (filterMotherNgo && filterMotherNgo.stateName) {
@@ -162,18 +156,41 @@ const AccountTab = () => {
         });
     }, [dbSupervisors, filterMotherNgo, filterState, filterDistrict]);
 
+
+    // ==========================================
+    // AUTO-SELECT UX ENHANCEMENTS
+    // ==========================================
+    // If a District Admin logs in, these single options will auto-select so data tables populate instantly!
+
+    useEffect(() => {
+        if (filteredMotherNgos.length === 1 && !filterMotherNgo) {
+            setFilterMotherNgo(filteredMotherNgos[0]);
+        }
+    }, [filteredMotherNgos, filterMotherNgo]);
+
+    useEffect(() => {
+        if (filterMotherNgo && filteredStateOptions.length === 1 && !filterState) {
+            setFilterState(filteredStateOptions[0]);
+        }
+    }, [filterMotherNgo, filteredStateOptions, filterState]);
+
+    useEffect(() => {
+        if (filterState && filteredDistrictOptions.length === 1 && !filterDistrict) {
+            setFilterDistrict(filteredDistrictOptions[0]);
+        }
+    }, [filterState, filteredDistrictOptions, filterDistrict]);
+
+
     // ==========================================
     // HANDLERS TO AUTO-CLEAR DOWNSTREAM FILTERS
     // ==========================================
     const handleRoleChange = (selected) => {
         setAdminActiveView(selected.value);
         
-        // If they are a District Admin, auto-keep their NGO selected. Otherwise, clear it.
-        if (appUserRole === 'District Administrator' && filteredMotherNgos.length === 1) {
-            setFilterMotherNgo(filteredMotherNgos[0]);
-            setFilterState(null);
-            setFilterDistrict(null);
-            setFilterSupervisor(null);
+        // Fix: If they are a District Admin, do NOT clear their NGO, State, or District when switching tabs
+        // because their identity is fixed to that specific location!
+        if (appUserRole === 'District Administrator') {
+            setFilterSupervisor(null); 
         } else {
             setFilterMotherNgo(null);
             setFilterState(null);
@@ -225,11 +242,13 @@ const AccountTab = () => {
     } else if (appUserRole === 'District Administrator') {
         adminOptions = [
             { value: 'Supervisor', label: 'Supervisor' },
-            { value: 'Astha Didi', label: 'Astha Didi' }
+            { value: 'Astha Didi', label: 'Astha Didi' },
+            { value: 'Astha Maa', label: 'Astha Maa' }
         ];
     } else if (appUserRole === 'Supervisor') {
         adminOptions = [
-            { value: 'Astha Didi', label: 'Astha Didi' }
+            { value: 'Astha Didi', label: 'Astha Didi' },
+            { value: 'Astha Maa', label: 'Astha Maa' }
         ];
     } else if (appUserRole === 'Astha Didi') {
         adminOptions = [
@@ -276,7 +295,8 @@ const AccountTab = () => {
                                         options={filteredMotherNgos} 
                                         value={filterMotherNgo} 
                                         onChange={handleMotherNgoChange} 
-                                        isClearable 
+                                        isClearable={appUserRole !== 'District Administrator'} // Prevent clearing if locked
+                                        isDisabled={appUserRole === 'District Administrator'} // Lock for Dist Admins
                                         placeholder="All DISTRICT NGOs" 
                                         styles={{ ...styles.selectStyles(false), menuPortal: base => ({ ...base, zIndex: 99999 }) }} 
                                         menuPortalTarget={document.body} 
@@ -291,8 +311,8 @@ const AccountTab = () => {
                                     options={filteredStateOptions} 
                                     value={filterState} 
                                     onChange={handleStateChange} 
-                                    isDisabled={isMotherNgoVisible && !filterMotherNgo} // Disabled until District NGO is picked
-                                    isClearable 
+                                    isDisabled={(isMotherNgoVisible && !filterMotherNgo) || appUserRole === 'District Administrator'} // Locked for Dist Admin
+                                    isClearable={appUserRole !== 'District Administrator'} 
                                     placeholder="All States" 
                                     styles={{ ...styles.selectStyles(false), menuPortal: base => ({ ...base, zIndex: 99999 }) }} 
                                     menuPortalTarget={document.body} 
@@ -306,8 +326,8 @@ const AccountTab = () => {
                                     options={filteredDistrictOptions} 
                                     value={filterDistrict} 
                                     onChange={handleDistrictChange} 
-                                    isDisabled={!filterState} // Disabled until State is picked
-                                    isClearable 
+                                    isDisabled={!filterState || appUserRole === 'District Administrator'} // Locked for Dist Admin
+                                    isClearable={appUserRole !== 'District Administrator'} 
                                     placeholder="All Districts" 
                                     styles={{ ...styles.selectStyles(false), menuPortal: base => ({ ...base, zIndex: 99999 }) }} 
                                     menuPortalTarget={document.body} 
@@ -322,7 +342,7 @@ const AccountTab = () => {
                                         options={filteredSupervisorOptions} 
                                         value={filterSupervisor} 
                                         onChange={setFilterSupervisor} 
-                                        isDisabled={!filterDistrict} // Disabled until District is picked
+                                        isDisabled={!filterDistrict} 
                                         isClearable 
                                         placeholder="All Supervisors" 
                                         styles={{ ...styles.selectStyles(false), menuPortal: base => ({ ...base, zIndex: 99999 }) }} 

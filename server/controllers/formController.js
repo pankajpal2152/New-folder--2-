@@ -342,6 +342,7 @@ exports.createAsthaMaa = (req, res) => {
             AsthaMaAprovedBy, AsthaMaAprovalDate, AsthaMaRegNo
         ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,NOW(),?,?,?,?,?,?,?,?)`;
 
+        // 👇 Note: data.AsthaDidiRegId is passed gracefully here
         const values = [
             data.AsthaMaProfileImage, data.AsthaMaUserName, data.AsthaMaGuardianName, data.AsthaMaDOB, data.AsthaMaGuardianContactNo,
             data.AsthaMaStateName, data.AsthaMaDistName, data.AsthaMaCity, data.AsthaMaBlockName, data.AsthaMaPO, data.AsthaMaPS,
@@ -398,6 +399,7 @@ exports.updateAsthaMaa = (req, res) => {
 
         const mappedStateNGORegId = mappingResult.length > 0 ? mappingResult[0].StateNGORegId : null;
 
+        // 👇 Added DistNGORegId, SupRegId, AsthaDidiRegId to strictly update relational fields if changed
         const updateQuery = `UPDATE asthama_reg SET 
             AsthaMaProfileImage=?, AsthaMaUserName=?, AsthaMaGuardianName=?, AsthaMaDOB=?, AsthaMaGuardianContactNo=?, 
             AsthaMaStateName=?, AsthaMaDistName=?, AsthaMaCity=?, AsthaMaBlockName=?, AsthaMaPO=?, AsthaMaPS=?, 

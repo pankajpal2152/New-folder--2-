@@ -289,7 +289,7 @@ const AsthaMaaTable = ({ refreshTrigger, externalFilters }) => {
             data = data.filter(member => String(member.AsthaMaIsActive) !== '0');
 
             const user = getSafeUser();
-            // If logged in as Astha Didi, only show Astha Maast they created
+            // ✅ DB MAPPING: Only show Astha Maas created by the logged-in Astha Didi
             if (user && user.role === 'Astha Didi') {
                 data = data.filter(member => String(member.AsthaMaCreatedByAuthRegId) === String(user.id || user.UserSignUpId));
             }
@@ -300,11 +300,13 @@ const AsthaMaaTable = ({ refreshTrigger, externalFilters }) => {
 
     useEffect(() => { fetchMembers(); }, [refreshTrigger]);
 
-    // STRICT DATA VISIBILITY: Check if all expected filters are chosen before rendering rows!
+    // STRICT DATA VISIBILITY: 
     const filteredMembers = useMemo(() => {
-        // If the user has NOT successfully chosen the entire chain, block the data
-        if (!externalFilters?.filterMotherNgo || !externalFilters?.filterState || !externalFilters?.filterDistrict || !externalFilters?.filterSupervisor) {
-            return []; // Array is forcibly empty
+        // ✅ BYPASS EXCEPTION: Astha Didi doesn't have external filters, so allow data through!
+        if (userRole !== 'Astha Didi') {
+            if (!externalFilters?.filterMotherNgo || !externalFilters?.filterState || !externalFilters?.filterDistrict || !externalFilters?.filterSupervisor) {
+                return []; // Array is forcibly empty for Admins/Supervisors until filters are picked
+            }
         }
 
         return members.filter((member) => {
@@ -316,6 +318,8 @@ const AsthaMaaTable = ({ refreshTrigger, externalFilters }) => {
                 );
             }
 
+            // Default matches to true. If filters exist, apply them. 
+            // (Astha Didi has no filters, so these remain true)
             let matchesState = true;
             if (externalFilters?.filterState) {
                 const dbState = member.AsthaMaStateName ? String(member.AsthaMaStateName).trim().toLowerCase() : "";
@@ -349,7 +353,7 @@ const AsthaMaaTable = ({ refreshTrigger, externalFilters }) => {
 
             return matchesSearch && matchesState && matchesDistrict && matchesMotherNgo && matchesSupervisor && matchesStatus;
         });
-    }, [members, globalSearch, filters, externalFilters]);
+    }, [members, globalSearch, filters, externalFilters, userRole]);
 
     const sortedMembers = useMemo(() => {
         let sortableItems = [...filteredMembers];
@@ -604,7 +608,8 @@ const AsthaMaaTable = ({ refreshTrigger, externalFilters }) => {
                                     {currentMembers.length === 0 && (
                                         <tr>
                                             <td colSpan="30" style={{ ...styles.td, textAlign: 'center' }}>
-                                                {(!externalFilters?.filterMotherNgo || !externalFilters?.filterState || !externalFilters?.filterDistrict || !externalFilters?.filterSupervisor)
+                                                {/* ✅ DYNAMIC EMPTY STATE TEXT: Astha Didi gets a normal message, others get the strict filter warning */}
+                                                {(userRole !== 'Astha Didi' && (!externalFilters?.filterMotherNgo || !externalFilters?.filterState || !externalFilters?.filterDistrict || !externalFilters?.filterSupervisor))
                                                     ? "Please select all filters above (DISTRICT NGO, State, District, and Supervisor) to view data."
                                                     : "No members found. Try clearing your search filters!"}
                                             </td>

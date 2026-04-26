@@ -178,10 +178,10 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
             AsthaMaJoiningAmt: parseInt(data.joiningAmount) || 105,
             AsthaMaWalletBalance: parseInt(data.walletBalance) || 0,
 
-            StateNGORegId: null, 
+            StateNGORegId: null,
             DistNGORegId: filterMotherNgo ? filterMotherNgo.value : null,
             SupRegId: filterSupervisor ? filterSupervisor.value : null,
-            
+
             AsthaDidiRegId: null,
             AsthaMaIsActive: 1,
             AsthaMaAprovedBy: null,

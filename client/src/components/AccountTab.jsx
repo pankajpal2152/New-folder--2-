@@ -368,12 +368,12 @@ const AccountTab = () => {
                 </>
             ) : adminActiveView === 'Astha Maa' ? (
                 <>
-                    <AsthaMaaForm onSuccess={handleFormSuccess} />
+                    {/* 👇 Updated: Now passing externalFilters down to AsthaMaaForm */}
+                    <AsthaMaaForm onSuccess={handleFormSuccess} externalFilters={{ filterMotherNgo, filterState, filterDistrict, filterSupervisor }} />
                     <AsthaMaaTable refreshTrigger={refreshTrigger} externalFilters={{ filterMotherNgo, filterState, filterDistrict, filterSupervisor }} />
                 </>
             ) : (
                 <>
-                    {/* 👇 Updated: Now passing externalFilters down to AsthaDidiForm */}
                     <AsthaDidiForm onSuccess={handleFormSuccess} externalFilters={{ filterMotherNgo, filterState, filterDistrict, filterSupervisor }} />
                     <MembersTable refreshTrigger={refreshTrigger} externalFilters={{ filterMotherNgo, filterState, filterDistrict, filterSupervisor }} />
                 </>

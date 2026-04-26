@@ -65,7 +65,10 @@ const PasswordInput = ({ label, id, error, placeholder, disabled, ...props }) =>
     );
 };
 
-const AsthaMaaForm = ({ onSuccess }) => {
+// 👇 Updated: Accept externalFilters as a prop
+const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
+    const { filterMotherNgo, filterState, filterDistrict, filterSupervisor } = externalFilters || {};
+
     const [dbStates, setDbStates] = useState([]);
     const [dbDistricts, setDbDistricts] = useState([]);
     const [profileImage, setProfileImage] = useState(DUMMY_AVATAR);
@@ -90,21 +93,33 @@ const AsthaMaaForm = ({ onSuccess }) => {
         setValue("userName", fullNameValue || "", { shouldValidate: true });
     }, [fullNameValue, setValue]);
 
+    // 👇 Updated: Smart mapping for States based on external filter
     useEffect(() => {
-        fetch(`${API_BASE_URL}/states`)
-            .then(res => res.json())
-            .then(data => setDbStates(data.map(s => ({ value: s.StateId, label: s.StateName }))));
-    }, []);
+        if (filterState) {
+            // Lock the form to only show and select the exact state from external filter
+            setDbStates([filterState]);
+            setValue("state", filterState, { shouldValidate: true });
+        } else {
+            fetch(`${API_BASE_URL}/states`)
+                .then(res => res.json())
+                .then(data => setDbStates(data.map(s => ({ value: s.StateId, label: s.StateName }))));
+        }
+    }, [filterState, setValue]);
 
+    // 👇 Updated: Smart mapping for Districts based on external filter
     useEffect(() => {
-        if (selectedState && selectedState.value) {
+        if (filterDistrict) {
+            // Lock the form to only show and select the exact district from external filter
+            setDbDistricts([filterDistrict]);
+            setValue("district", filterDistrict, { shouldValidate: true });
+        } else if (selectedState && selectedState.value && !filterState) {
             fetch(`${API_BASE_URL}/districts/${selectedState.value}`)
                 .then(res => res.json())
                 .then(data => setDbDistricts(data.map(d => ({ value: d.DistId, label: d.DistName }))));
         } else {
             setDbDistricts([]);
         }
-    }, [selectedState]);
+    }, [filterDistrict, selectedState, filterState, setValue]);
 
     const handleUploadClick = () => fileInputRef.current.click();
     const handleFileChange = (event) => {
@@ -153,7 +168,6 @@ const AsthaMaaForm = ({ onSuccess }) => {
             AsthaMaContactNo: data.mobileNo,
             AsthaMaMailId: data.email,
 
-            // ✅ Signup & Tracking Fields explicitly mapped
             AsthaMaSignupUserName: data.userName,
             AsthaMaSignupEmail: data.email,
             AsthaMaSignupPassword: data.password,
@@ -168,9 +182,12 @@ const AsthaMaaForm = ({ onSuccess }) => {
             AsthaMaJoiningAmt: parseInt(data.joiningAmount) || 105,
             AsthaMaWalletBalance: parseInt(data.walletBalance) || 0,
 
-            StateNGORegId: null,
-            DistNGORegId: null,
-            SupRegId: null,
+            StateNGORegId: null, // Backend will auto-resolve this!
+            
+            // 👇 Updated: Link to selected NGO and Supervisor automatically
+            DistNGORegId: filterMotherNgo ? filterMotherNgo.value : null,
+            SupRegId: filterSupervisor ? filterSupervisor.value : null,
+            
             AsthaDidiRegId: null,
             AsthaMaIsActive: 1,
             AsthaMaAprovedBy: null,
@@ -208,7 +225,16 @@ const AsthaMaaForm = ({ onSuccess }) => {
             <div style={styles.cardHeader}>
                 <h5>Astha Maa Registration</h5>
             </div>
-            <div style={styles.cardBody}>
+
+            {/* 👇 New UI check: Force user to select Supervisor first */}
+            {!filterSupervisor && (
+                <div style={{ padding: '12px 24px', backgroundColor: '#fff3cd', color: '#856404', borderBottom: '1px solid #ffeeba' }}>
+                    <strong>Notice:</strong> Please select a <strong>Supervisor</strong> from the top filters before filling out this registration form.
+                </div>
+            )}
+
+            {/* 👇 Form elements visually disabled and unclickable until a Supervisor is picked */}
+            <div style={{ ...styles.cardBody, opacity: !filterSupervisor ? 0.6 : 1, pointerEvents: !filterSupervisor ? 'none' : 'auto' }}>
                 <div style={styles.profileSection}>
                     <img src={profileImage} alt="Profile Avatar" style={styles.avatar} />
                     <div>
@@ -250,14 +276,16 @@ const AsthaMaaForm = ({ onSuccess }) => {
                         <div style={styles.inputGroup}>
                             <label style={styles.label}>Select State</label>
                             <Controller name="state" control={control} render={({ field }) => (
-                                <Select {...field} options={dbStates} styles={styles.selectStyles(!!errors.state)} placeholder="Select State" />
+                                {/* 👇 Updated: Disable if filtered externally */}
+                                <Select {...field} options={dbStates} styles={styles.selectStyles(!!errors.state)} placeholder="Select State" isDisabled={!!filterState} />
                             )} />
                             {errors.state && <p style={styles.errorText}>{errors.state.message}</p>}
                         </div>
                         <div style={styles.inputGroup}>
                             <label style={styles.label}>District</label>
                             <Controller name="district" control={control} render={({ field }) => (
-                                <Select {...field} options={dbDistricts} styles={styles.selectStyles(!!errors.district)} placeholder="Select District" isDisabled={!selectedState} />
+                                {/* 👇 Updated: Disable if filtered externally */}
+                                <Select {...field} options={dbDistricts} styles={styles.selectStyles(!!errors.district)} placeholder="Select District" isDisabled={!!filterDistrict || !selectedState} />
                             )} />
                             {errors.district && <p style={styles.errorText}>{errors.district.message}</p>}
                         </div>
@@ -324,7 +352,8 @@ const AsthaMaaForm = ({ onSuccess }) => {
 
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '16px', marginTop: '32px' }}>
                         <button type="button" style={styles.btnOutline} onClick={handleCancelAsthaMaa}>Cancel</button>
-                        <button type="submit" style={styles.btnPrimary}>Submit</button>
+                        {/* 👇 Disabled submit if no Supervisor is selected */}
+                        <button type="submit" style={{ ...styles.btnPrimary, opacity: !filterSupervisor ? 0.5 : 1 }} disabled={!filterSupervisor}>Submit</button>
                     </div>
                 </form>
             </div>

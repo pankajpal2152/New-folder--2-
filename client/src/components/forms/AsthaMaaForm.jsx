@@ -65,8 +65,9 @@ const PasswordInput = ({ label, id, error, placeholder, disabled, ...props }) =>
     );
 };
 
+// 👇 Destructured filterAsthaDidi from externalFilters
 const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
-    const { filterMotherNgo, filterState, filterDistrict, filterSupervisor } = externalFilters || {};
+    const { filterMotherNgo, filterState, filterDistrict, filterSupervisor, filterAsthaDidi } = externalFilters || {};
 
     const [dbStates, setDbStates] = useState([]);
     const [dbDistricts, setDbDistricts] = useState([]);
@@ -87,12 +88,10 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
     const selectedState = watch("state");
     const fullNameValue = watch("fullName");
 
-    // Dynamic auto-sync User Name to Full Name
     useEffect(() => {
         setValue("userName", fullNameValue || "", { shouldValidate: true });
     }, [fullNameValue, setValue]);
 
-    // Smart mapping for States based on external filter
     useEffect(() => {
         if (filterState) {
             setDbStates([filterState]);
@@ -104,7 +103,6 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
         }
     }, [filterState, setValue]);
 
-    // Smart mapping for Districts based on external filter
     useEffect(() => {
         if (filterDistrict) {
             setDbDistricts([filterDistrict]);
@@ -178,11 +176,12 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
             AsthaMaJoiningAmt: parseInt(data.joiningAmount) || 105,
             AsthaMaWalletBalance: parseInt(data.walletBalance) || 0,
 
-            StateNGORegId: null,
+            StateNGORegId: null, 
             DistNGORegId: filterMotherNgo ? filterMotherNgo.value : null,
             SupRegId: filterSupervisor ? filterSupervisor.value : null,
-
-            AsthaDidiRegId: null,
+            // 👇 Added the strict Astha Didi mapping!
+            AsthaDidiRegId: filterAsthaDidi ? filterAsthaDidi.value : null,
+            
             AsthaMaIsActive: 1,
             AsthaMaAprovedBy: null,
             AsthaMaAprovalDate: null,
@@ -220,13 +219,15 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
                 <h5>Astha Maa Registration</h5>
             </div>
 
-            {!filterSupervisor && (
+            {/* 👇 Check requires Astha Didi to be selected */}
+            {!filterAsthaDidi && (
                 <div style={{ padding: '12px 24px', backgroundColor: '#fff3cd', color: '#856404', borderBottom: '1px solid #ffeeba' }}>
-                    <strong>Notice:</strong> Please select a <strong>Supervisor</strong> from the top filters before filling out this registration form.
+                    <strong>Notice:</strong> Please select an <strong>Astha Didi</strong> from the top filters before filling out this registration form.
                 </div>
             )}
 
-            <div style={{ ...styles.cardBody, opacity: !filterSupervisor ? 0.6 : 1, pointerEvents: !filterSupervisor ? 'none' : 'auto' }}>
+            {/* 👇 Disabled until Astha Didi is picked */}
+            <div style={{ ...styles.cardBody, opacity: !filterAsthaDidi ? 0.6 : 1, pointerEvents: !filterAsthaDidi ? 'none' : 'auto' }}>
                 <div style={styles.profileSection}>
                     <img src={profileImage} alt="Profile Avatar" style={styles.avatar} />
                     <div>
@@ -342,7 +343,8 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
 
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '16px', marginTop: '32px' }}>
                         <button type="button" style={styles.btnOutline} onClick={handleCancelAsthaMaa}>Cancel</button>
-                        <button type="submit" style={{ ...styles.btnPrimary, opacity: !filterSupervisor ? 0.5 : 1 }} disabled={!filterSupervisor}>Submit</button>
+                        {/* 👇 Disabled submit if no Astha Didi is selected */}
+                        <button type="submit" style={{ ...styles.btnPrimary, opacity: !filterAsthaDidi ? 0.5 : 1 }} disabled={!filterAsthaDidi}>Submit</button>
                     </div>
                 </form>
             </div>

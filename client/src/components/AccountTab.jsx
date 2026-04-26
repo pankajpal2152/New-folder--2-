@@ -29,22 +29,24 @@ const AccountTab = () => {
     const [filterState, setFilterState] = useState(null);
     const [filterDistrict, setFilterDistrict] = useState(null);
     const [filterSupervisor, setFilterSupervisor] = useState(null);
+    // 👇 NEW: Astha Didi Filter State
+    const [filterAsthaDidi, setFilterAsthaDidi] = useState(null);
 
     // State for Dropdown Options
     const [dbMotherNgos, setDbMotherNgos] = useState([]);
     const [dbStates, setDbStates] = useState([]);
     const [dbDistricts, setDbDistricts] = useState([]);
     const [dbSupervisors, setDbSupervisors] = useState([]);
+    // 👇 NEW: Astha Didi Dropdown Options
+    const [dbAsthaDidis, setDbAsthaDidis] = useState([]);
 
     useEffect(() => {
         const user = getSafeUser();
         if (user) {
             const role = user.role || '';
             setAppUserRole(role);
-            // Capture the Profile ID for filtering (DistNGORegId for Admin, SupRegId for Supervisor)
             setLoggedInProfileId(user.ProfileRegId);
 
-            // Set default views based on logged-in role
             if (role === 'State Super Administrator' || role.toLowerCase() === 'developer') {
                 setAdminActiveView('District Administrator');
             } else if (role === 'District Administrator') {
@@ -60,7 +62,6 @@ const AccountTab = () => {
             setAppUserRole('');
         }
 
-        // Fetch STRICT filtered global data on mount
         fetch(`${API_BASE_URL}/filter/states`).then(res => res.json()).then(data => {
             setDbStates(data.map(s => ({ value: s.StateId, label: s.StateName })));
         }).catch(() => { });
@@ -79,6 +80,19 @@ const AccountTab = () => {
                 motherNgoId: s.DistNGORegId
             })));
         }).catch(() => { });
+
+        // 👇 NEW: Fetch Astha Didis for the dropdown
+        fetch(`${API_BASE_URL}/asthadidi`).then(res => res.json()).then(data => {
+            setDbAsthaDidis(data.map(a => ({ 
+                value: a.AsthaDidiRegId, 
+                label: a.AsthaDidiUserName, 
+                stateName: a.AsthaDidiStateName,
+                distName: a.AsthaDidiDistName,
+                motherNgoId: a.DistNGORegId,
+                supRegId: a.SupRegId
+            })));
+        }).catch(() => { });
+
     }, []);
 
     // Fetch STRICT Districts dynamically when State changes
@@ -91,6 +105,7 @@ const AccountTab = () => {
             setDbDistricts([]);
             setFilterDistrict(null);
             setFilterSupervisor(null);
+            setFilterAsthaDidi(null);
         }
     }, [filterState]);
 
@@ -102,7 +117,6 @@ const AccountTab = () => {
         if (appUserRole === 'District Administrator' && loggedInProfileId) {
             return dbMotherNgos.filter(ngo => String(ngo.value) === String(loggedInProfileId));
         }
-        
         if (appUserRole === 'Supervisor' && loggedInProfileId && dbSupervisors.length > 0) {
             const currentSupervisor = dbSupervisors.find(sup => String(sup.value) === String(loggedInProfileId));
             if (currentSupervisor && currentSupervisor.motherNgoId) {
@@ -131,34 +145,38 @@ const AccountTab = () => {
     const filteredSupervisorOptions = useMemo(() => {
         return dbSupervisors.filter(sup => {
             let matches = true;
-            
             if (filterMotherNgo) {
                 const supDist = sup.distName ? String(sup.distName).trim().toLowerCase() : "";
                 const ngoDist = filterMotherNgo.districtName ? String(filterMotherNgo.districtName).trim().toLowerCase() : "";
-                
                 const idMatch = String(sup.motherNgoId) === String(filterMotherNgo.value);
                 const distMatch = supDist !== "" && supDist === ngoDist;
-                
-                if (!idMatch && !distMatch) {
-                    matches = false;
-                }
+                if (!idMatch && !distMatch) matches = false;
             }
-            
             if (filterState) {
                 const supState = sup.stateName ? String(sup.stateName).trim().toLowerCase() : "";
                 const fState = String(filterState.label).trim().toLowerCase();
                 if (supState !== fState) matches = false;
             }
-            
             if (filterDistrict) {
                 const supDist = sup.distName ? String(sup.distName).trim().toLowerCase() : "";
                 const fDist = String(filterDistrict.label).trim().toLowerCase();
                 if (supDist !== fDist) matches = false;
             }
-            
             return matches;
         });
     }, [dbSupervisors, filterMotherNgo, filterState, filterDistrict]);
+
+    // 👇 NEW: Cascading logic for Astha Didi Dropdown
+    const filteredAsthaDidiOptions = useMemo(() => {
+        return dbAsthaDidis.filter(ad => {
+            let matches = true;
+            if (filterMotherNgo && String(ad.motherNgoId) !== String(filterMotherNgo.value)) matches = false;
+            if (filterState && String(ad.stateName).trim().toLowerCase() !== String(filterState.label).trim().toLowerCase()) matches = false;
+            if (filterDistrict && String(ad.distName).trim().toLowerCase() !== String(filterDistrict.label).trim().toLowerCase()) matches = false;
+            if (filterSupervisor && String(ad.supRegId) !== String(filterSupervisor.value)) matches = false;
+            return matches;
+        });
+    }, [dbAsthaDidis, filterMotherNgo, filterState, filterDistrict, filterSupervisor]);
 
 
     // ==========================================
@@ -166,22 +184,23 @@ const AccountTab = () => {
     // ==========================================
 
     useEffect(() => {
-        if (filteredMotherNgos.length === 1 && !filterMotherNgo) {
-            setFilterMotherNgo(filteredMotherNgos[0]);
-        }
+        if (filteredMotherNgos.length === 1 && !filterMotherNgo) setFilterMotherNgo(filteredMotherNgos[0]);
     }, [filteredMotherNgos, filterMotherNgo]);
 
     useEffect(() => {
-        if (filterMotherNgo && filteredStateOptions.length === 1 && !filterState) {
-            setFilterState(filteredStateOptions[0]);
-        }
+        if (filterMotherNgo && filteredStateOptions.length === 1 && !filterState) setFilterState(filteredStateOptions[0]);
     }, [filterMotherNgo, filteredStateOptions, filterState]);
 
     useEffect(() => {
-        if (filterState && filteredDistrictOptions.length === 1 && !filterDistrict) {
-            setFilterDistrict(filteredDistrictOptions[0]);
-        }
+        if (filterState && filteredDistrictOptions.length === 1 && !filterDistrict) setFilterDistrict(filteredDistrictOptions[0]);
     }, [filterState, filteredDistrictOptions, filterDistrict]);
+
+    // 👇 Auto-select Astha Didi if only 1 exists for the Supervisor
+    useEffect(() => {
+        if (filterSupervisor && filteredAsthaDidiOptions.length === 1 && !filterAsthaDidi) {
+            setFilterAsthaDidi(filteredAsthaDidiOptions[0]);
+        }
+    }, [filterSupervisor, filteredAsthaDidiOptions, filterAsthaDidi]);
 
 
     // ==========================================
@@ -189,14 +208,15 @@ const AccountTab = () => {
     // ==========================================
     const handleRoleChange = (selected) => {
         setAdminActiveView(selected.value);
-        
         if (appUserRole === 'District Administrator' || appUserRole === 'Supervisor') {
             setFilterSupervisor(null); 
+            setFilterAsthaDidi(null);
         } else {
             setFilterMotherNgo(null);
             setFilterState(null);
             setFilterDistrict(null);
             setFilterSupervisor(null);
+            setFilterAsthaDidi(null);
         }
     };
 
@@ -205,17 +225,26 @@ const AccountTab = () => {
         setFilterState(null);
         setFilterDistrict(null);
         setFilterSupervisor(null);
+        setFilterAsthaDidi(null);
     };
 
     const handleStateChange = (selected) => {
         setFilterState(selected);
         setFilterDistrict(null);
         setFilterSupervisor(null);
+        setFilterAsthaDidi(null);
     };
 
     const handleDistrictChange = (selected) => {
         setFilterDistrict(selected);
         setFilterSupervisor(null);
+        setFilterAsthaDidi(null);
+    };
+
+    // 👇 Added handler to clear Astha Didi when Supervisor changes
+    const handleSupervisorChange = (selected) => {
+        setFilterSupervisor(selected);
+        setFilterAsthaDidi(null);
     };
 
     const handleFormSuccess = () => setRefreshTrigger(prev => prev + 1);
@@ -261,6 +290,7 @@ const AccountTab = () => {
     
     const isMotherNgoVisible = ['Supervisor', 'Astha Maa', 'Astha Didi'].includes(adminActiveView);
     const isSupervisorVisible = ['Astha Maa', 'Astha Didi'].includes(adminActiveView);
+    const isAsthaDidiVisible = ['Astha Maa'].includes(adminActiveView);
 
     return (
         <>
@@ -341,10 +371,28 @@ const AccountTab = () => {
                                     <Select 
                                         options={filteredSupervisorOptions} 
                                         value={filterSupervisor} 
-                                        onChange={setFilterSupervisor} 
+                                        onChange={handleSupervisorChange} 
                                         isDisabled={!filterDistrict} 
                                         isClearable 
                                         placeholder="All Supervisors" 
+                                        styles={{ ...styles.selectStyles(false), menuPortal: base => ({ ...base, zIndex: 99999 }) }} 
+                                        menuPortalTarget={document.body} 
+                                        menuPosition="fixed" 
+                                    />
+                                </div>
+                            )}
+
+                            {/* 👇 NEW: Astha Didi Dropdown appears when Astha Maa is selected */}
+                            {isAsthaDidiVisible && (
+                                <div style={{ width: '100%', maxWidth: '200px' }}>
+                                    <label style={{ ...styles.label, marginBottom: '8px', display: 'block' }}>Astha Didi</label>
+                                    <Select 
+                                        options={filteredAsthaDidiOptions} 
+                                        value={filterAsthaDidi} 
+                                        onChange={setFilterAsthaDidi} 
+                                        isDisabled={!filterSupervisor} 
+                                        isClearable 
+                                        placeholder="All Astha Didis" 
                                         styles={{ ...styles.selectStyles(false), menuPortal: base => ({ ...base, zIndex: 99999 }) }} 
                                         menuPortalTarget={document.body} 
                                         menuPosition="fixed" 
@@ -368,9 +416,9 @@ const AccountTab = () => {
                 </>
             ) : adminActiveView === 'Astha Maa' ? (
                 <>
-                    {/* 👇 Updated: Now passing externalFilters down to AsthaMaaForm */}
-                    <AsthaMaaForm onSuccess={handleFormSuccess} externalFilters={{ filterMotherNgo, filterState, filterDistrict, filterSupervisor }} />
-                    <AsthaMaaTable refreshTrigger={refreshTrigger} externalFilters={{ filterMotherNgo, filterState, filterDistrict, filterSupervisor }} />
+                    {/* 👇 Passed filterAsthaDidi down to Astha Maa Form and Table */}
+                    <AsthaMaaForm onSuccess={handleFormSuccess} externalFilters={{ filterMotherNgo, filterState, filterDistrict, filterSupervisor, filterAsthaDidi }} />
+                    <AsthaMaaTable refreshTrigger={refreshTrigger} externalFilters={{ filterMotherNgo, filterState, filterDistrict, filterSupervisor, filterAsthaDidi }} />
                 </>
             ) : (
                 <>

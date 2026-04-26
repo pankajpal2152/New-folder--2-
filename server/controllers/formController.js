@@ -7,7 +7,6 @@ exports.signup = async (req, res) => {
             if (err) return res.status(500).json({ error: 'Database error' });
             if (results.length > 0) return res.status(400).json({ error: 'Email already exists' });
 
-            // Mapped to exact database columns including the new SignupUserName
             const query = `INSERT INTO userssignup (UserSignUpRole, SignupUserName, UserSignUpEmail, UserSignUpPassword, UserSignIsActive) VALUES (?, ?, ?, ?, 1)`;
             db.query(query, [role, username, email, password], (err) => {
                 if (err) return res.status(500).json({ error: 'Failed to register' });
@@ -27,19 +26,17 @@ exports.login = (req, res) => {
         if (results.length === 0) return res.status(400).json({ error: 'User not found or role mismatch' });
 
         const user = results[0];
-
-        // Check password against the mapped column
+        
         if (password !== user.UserSignUpPassword) {
             return res.status(400).json({ error: 'Incorrect password' });
         }
 
-        // Returning ALL columns exactly as they appear in the database for Local Storage
         res.status(200).json({
             message: 'Login successful',
-            user: {
-                id: user.UserSignUpId,
-                role: user.UserSignUpRole,
-                username: user.SignupUserName || user.UserSignUpEmail.split('@')[0],
+            user: { 
+                id: user.UserSignUpId, 
+                role: user.UserSignUpRole, 
+                username: user.SignupUserName || user.UserSignUpEmail.split('@')[0], 
                 email: user.UserSignUpEmail,
                 UserSignUpId: user.UserSignUpId,
                 UserSignUpRole: user.UserSignUpRole,
@@ -55,18 +52,12 @@ exports.login = (req, res) => {
 };
 
 exports.getUserInfo = (req, res) => {
-    // SMART FILTER: Only select roles where ActStatus is exactly 1
     db.query('SELECT * FROM userinfo WHERE ActStatus = 1', (err, results) => {
-        if (err) {
-            return res.status(500).json({ error: 'Database error while fetching roles' });
-        }
+        if (err) return res.status(500).json({ error: 'Database error while fetching roles' });
         res.json(results);
     });
 };
 
-// ==========================================
-// ROLE MANAGEMENT ENDPOINTS (userinfo table)
-// ==========================================
 exports.createUserRole = (req, res) => {
     const { UserType, UserRole, ActStatus } = req.body;
     db.query('INSERT INTO userinfo (UserType, UserRole, ActStatus) VALUES (?, ?, ?)', [UserType, UserRole, ActStatus], (err, result) => {
@@ -92,9 +83,6 @@ exports.deleteUserRole = (req, res) => {
     });
 };
 
-// ==========================================
-// DYNAMIC DROPDOWNS
-// ==========================================
 exports.getStates = (req, res) => {
     db.query('SELECT StateId, StateName FROM state WHERE IsActive = 1', (err, results) => {
         if (err) { console.error("❌ getStates DB Error:", err.message); return res.status(500).json({ error: err.message }); }
@@ -170,7 +158,6 @@ exports.getAsthaDidi = (req, res) => {
     });
 };
 
-// 👇 UPDATED: Automatically maps StateNGORegId during creation for Astha Didi
 exports.createAsthaDidi = (req, res) => {
     const data = req.body;
 
@@ -206,7 +193,7 @@ exports.createAsthaDidi = (req, res) => {
             data.AsthaDidiBankName, data.AsthaDidiBranchName, data.AsthaDidiBankAcctNo, data.AsthaDidiIFSCode, data.AsthaDidiPanNo, data.AsthaDidiAadharNo,
             data.AsthaDidiJoiningAmt, data.AsthaDidiWalletBalance, data.AsthaDidiSignupUserName, data.AsthaDidiSignupEmail, data.AsthaDidiSignupPassword,
             data.AsthaDidiCreatedByAuthRegId || null,
-            mappedStateNGORegId, // 👈 INJECTED HERE Automatically
+            mappedStateNGORegId, 
             data.DistNGORegId || null, data.SupRegId || null,
             data.AsthaDidiIsActive || 1, data.AsthaDidiAprovedBy || null, data.AsthaDidiAprovalDate || null, data.AsthaDidiRegNo || null
         ];
@@ -232,7 +219,6 @@ exports.createAsthaDidi = (req, res) => {
     });
 };
 
-// 👇 UPDATED: Automatically re-maps StateNGORegId during update for Astha Didi
 exports.updateAsthaDidi = (req, res) => {
     const { id } = req.params;
     const data = req.body;
@@ -271,7 +257,7 @@ exports.updateAsthaDidi = (req, res) => {
             data.AsthaDidiGramPanchayet, data.AsthaDidiVillage, data.AsthaDidiPincode, data.AsthaDidiContactNo, data.AsthaDidiMailId,
             data.AsthaDidiBankName, data.AsthaDidiBranchName, data.AsthaDidiBankAcctNo, data.AsthaDidiIFSCode, data.AsthaDidiPanNo, data.AsthaDidiAadharNo,
             data.AsthaDidiJoiningAmt, data.AsthaDidiWalletBalance, data.AsthaDidiSignupUserName, data.AsthaDidiSignupEmail, data.AsthaDidiSignupPassword,
-            mappedStateNGORegId, // 👈 Re-mapped ID injected on Update
+            mappedStateNGORegId, 
             data.AsthaDidiIsActive, data.AsthaDidiAprovedBy, data.AsthaDidiAprovalDate, data.AsthaDidiRegNo, id
         ];
 
@@ -328,7 +314,6 @@ exports.getAsthaMaa = (req, res) => {
     });
 };
 
-// 👇 UPDATED: Automatically maps StateNGORegId during creation for Astha Maa
 exports.createAsthaMaa = (req, res) => {
     const data = req.body;
 
@@ -357,14 +342,15 @@ exports.createAsthaMaa = (req, res) => {
             AsthaMaAprovedBy, AsthaMaAprovalDate, AsthaMaRegNo
         ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,NOW(),?,?,?,?,?,?,?,?)`;
 
+        // 👇 Note: data.AsthaDidiRegId is passed gracefully here
         const values = [
             data.AsthaMaProfileImage, data.AsthaMaUserName, data.AsthaMaGuardianName, data.AsthaMaDOB, data.AsthaMaGuardianContactNo,
             data.AsthaMaStateName, data.AsthaMaDistName, data.AsthaMaCity, data.AsthaMaBlockName, data.AsthaMaPO, data.AsthaMaPS,
             data.AsthaMaGramPanchayet, data.AsthaMaVillage, data.AsthaMaPincode, data.AsthaMaContactNo, data.AsthaMaMailId,
             data.AsthaMaBankName, data.AsthaMaBranchName, data.AsthaMaBankAcctNo, data.AsthaMaIFSCode, data.AsthaMaPanNo, data.AsthaMaAadharNo,
             data.AsthaMaJoiningAmt, data.AsthaMaWalletBalance, data.AsthaMaSignupUserName, data.AsthaMaSignupEmail, data.AsthaMaSignupPassword,
-            data.AsthaMaCreatedByAuthRegId || null,
-            mappedStateNGORegId, // 👈 INJECTED HERE Automatically
+            data.AsthaMaCreatedByAuthRegId || null, 
+            mappedStateNGORegId,
             data.DistNGORegId || null, data.SupRegId || null, data.AsthaDidiRegId || null,
             data.AsthaMaIsActive || 1, data.AsthaMaAprovedBy || null, data.AsthaMaAprovalDate || null, data.AsthaMaRegNo || null
         ];
@@ -390,7 +376,6 @@ exports.createAsthaMaa = (req, res) => {
     });
 };
 
-// 👇 UPDATED: Automatically re-maps StateNGORegId during update for Astha Maa
 exports.updateAsthaMaa = (req, res) => {
     const { id } = req.params;
     const data = req.body;
@@ -414,13 +399,14 @@ exports.updateAsthaMaa = (req, res) => {
 
         const mappedStateNGORegId = mappingResult.length > 0 ? mappingResult[0].StateNGORegId : null;
 
+        // 👇 Added DistNGORegId, SupRegId, AsthaDidiRegId to strictly update relational fields if changed
         const updateQuery = `UPDATE asthama_reg SET 
             AsthaMaProfileImage=?, AsthaMaUserName=?, AsthaMaGuardianName=?, AsthaMaDOB=?, AsthaMaGuardianContactNo=?, 
             AsthaMaStateName=?, AsthaMaDistName=?, AsthaMaCity=?, AsthaMaBlockName=?, AsthaMaPO=?, AsthaMaPS=?, 
             AsthaMaGramPanchayet=?, AsthaMaVillage=?, AsthaMaPincode=?, AsthaMaContactNo=?, AsthaMaMailId=?, 
             AsthaMaBankName=?, AsthaMaBranchName=?, AsthaMaBankAcctNo=?, AsthaMaIFSCode=?, AsthaMaPanNo=?, AsthaMaAadharNo=?, 
             AsthaMaJoiningAmt=?, AsthaMaWalletBalance=?, AsthaMaSignupUserName=?, AsthaMaSignupEmail=?, AsthaMaSignupPassword=?, 
-            StateNGORegId=?, AsthaMaIsActive=?, AsthaMaAprovedBy=?, AsthaMaAprovalDate=?, AsthaMaRegNo=?
+            StateNGORegId=?, DistNGORegId=?, SupRegId=?, AsthaDidiRegId=?, AsthaMaIsActive=?, AsthaMaAprovedBy=?, AsthaMaAprovalDate=?, AsthaMaRegNo=?
             WHERE AsthaMaRegId=?`;
 
         const values = [
@@ -429,7 +415,7 @@ exports.updateAsthaMaa = (req, res) => {
             data.AsthaMaGramPanchayet, data.AsthaMaVillage, data.AsthaMaPincode, data.AsthaMaContactNo, data.AsthaMaMailId,
             data.AsthaMaBankName, data.AsthaMaBranchName, data.AsthaMaBankAcctNo, data.AsthaMaIFSCode, data.AsthaMaPanNo, data.AsthaMaAadharNo,
             data.AsthaMaJoiningAmt, data.AsthaMaWalletBalance, data.AsthaMaSignupUserName, data.AsthaMaSignupEmail, data.AsthaMaSignupPassword,
-            mappedStateNGORegId, // 👈 Re-mapped ID injected on Update
+            mappedStateNGORegId, data.DistNGORegId || null, data.SupRegId || null, data.AsthaDidiRegId || null,
             data.AsthaMaIsActive, data.AsthaMaAprovedBy, data.AsthaMaAprovalDate, data.AsthaMaRegNo, id
         ];
 
@@ -554,7 +540,7 @@ exports.updateDistrictAdmin = (req, res) => {
             WHERE DistNGORegId=?`;
 
         const values = [
-            data.DistNGOName, data.DistNGORegDate, data.DistNGORegNo, data.DistNGOPanNo, data.DistNGODarpanId, data.DistNGOMailId, data.DistNGOPhoneNo, data.DistNGORegAddress, data.DistNGOWorkingAddress, data.DistNGOStateName, data.DistNGODistName, data.DistNGOBlockName, data.DistNGOSDPName, data.DistNGOSDPMailId, data.DistNGOSDPPhoneNo, data.DistNGOSDPAadhaarNo, data.DistNGOBankAcctHolderName, data.DistNGOBankName, data.DistNGOAcctNo, data.DistNGOIFSCode, data.DistNGOBankAdd, data.DistNGORecCertificate, data.DistNGOPanPic, data.DistNGODarpanPic, data.DistNGOSignupUserName, data.DistNGOSignupEmail, data.DistNGOSignupPassword,
+            data.DistNGOName, data.DistNGORegDate, data.DistNGORegNo, data.DistNGOPanNo, data.DistNGODarpanId, data.DistNGOMailId, data.DistNGOPhoneNo, data.DistNGORegAddress, data.DistNGOWorkingAddress, data.DistNGOStateName, data.DistNGODistName, data.DistNGOBlockName, data.DistNGOSDPName, data.DistNGOSDPMailId, data.DistNGOSDPPhoneNo, data.DistNGOSDPAadhaarNo, data.DistNGOBankAcctHolderName, data.DistNGOBankName, data.DistNGOAcctNo, data.DistNGOIFSCode, data.DistNGOBankAdd, data.DistNGORecCertificate, data.DistNGOPanPic, data.DistNGODarpanPic, data.DistNGOSignupUserName, data.DistNGOSignupEmail, data.DistNGOSignupPassword, 
             mappedStateNGORegId,
             data.DistNGOIsActive, data.DistNGOAprovedBy, data.DistNGOAprovedDate, data.DistNGOGenRegNo, id
         ];
@@ -703,7 +689,7 @@ exports.updateSupervisor = (req, res) => {
             SupGramPanchayet=?, SupVillage=?, SupPincode=?, SupContactNo=?, SupMailId=?, 
             SupBankName=?, SupBranchName=?, SupAcctNo=?, SupIFSCode=?, SupPanNo=?, SupAadharNo=?, 
             SupJoiningAmt=?, SupWalletBalance=?, SupSignupUserName=?, SupSignupEmail=?, SupSignupPassword=?,
-            StateNGORegId=?, SupIsActive=?, SupAprovedBy=?, SupAprovedDate=?, SupRegNo=?
+            StateNGORegId=?, DistNGORegId=?, SupIsActive=?, SupAprovedBy=?, SupAprovedDate=?, SupRegNo=?
             WHERE SupRegId=?`;
 
         const values = [
@@ -712,7 +698,7 @@ exports.updateSupervisor = (req, res) => {
             data.SupGramPanchayet, data.SupVillage, data.SupPincode, data.SupContactNo, data.SupMailId,
             data.SupBankName, data.SupBranchName, data.SupAcctNo, data.SupIFSCode, data.SupPanNo, data.SupAadharNo,
             data.SupJoiningAmt, data.SupWalletBalance, data.SupSignupUserName, data.SupSignupEmail, data.SupSignupPassword,
-            mappedStateNGORegId,
+            mappedStateNGORegId, data.DistNGORegId || null,
             data.SupIsActive, data.SupAprovedBy, data.SupAprovedDate, data.SupRegNo, id
         ];
 

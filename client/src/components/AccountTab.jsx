@@ -363,7 +363,6 @@ const AccountTab = () => {
                 </>
             ) : adminActiveView === 'Supervisor' ? (
                 <>
-                    {/* 👇 Updated: Now passing externalFilters down to SupervisorForm */}
                     <SupervisorForm onSuccess={handleFormSuccess} externalFilters={{ filterMotherNgo, filterState, filterDistrict }} />
                     <SupervisorTable refreshTrigger={refreshTrigger} externalFilters={{ filterMotherNgo, filterState, filterDistrict }} />
                 </>
@@ -374,7 +373,8 @@ const AccountTab = () => {
                 </>
             ) : (
                 <>
-                    <AsthaDidiForm onSuccess={handleFormSuccess} />
+                    {/* 👇 Updated: Now passing externalFilters down to AsthaDidiForm */}
+                    <AsthaDidiForm onSuccess={handleFormSuccess} externalFilters={{ filterMotherNgo, filterState, filterDistrict, filterSupervisor }} />
                     <MembersTable refreshTrigger={refreshTrigger} externalFilters={{ filterMotherNgo, filterState, filterDistrict, filterSupervisor }} />
                 </>
             )}

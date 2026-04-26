@@ -68,7 +68,6 @@ const PasswordInput = ({ label, id, error, placeholder, disabled, ...props }) =>
     );
 };
 
-// 👇 Updated: Accept externalFilters as a prop
 const SupervisorForm = ({ onSuccess, externalFilters }) => {
     const { filterMotherNgo, filterState, filterDistrict } = externalFilters || {};
     
@@ -96,24 +95,21 @@ const SupervisorForm = ({ onSuccess, externalFilters }) => {
         setValue("userName", fullNameValue || "", { shouldValidate: true });
     }, [fullNameValue, setValue]);
 
-    // 👇 Updated: Smart mapping for States based on external filter
+    // Smart mapping for States based on external filter
     useEffect(() => {
         if (filterState) {
-            // If there's an external filter, lock the form to only show and select that exact state
             setDbStates([filterState]);
             setValue("state", filterState, { shouldValidate: true });
         } else {
-            // Otherwise, load all available states normally
             fetch(`${API_BASE_URL}/states`)
                 .then(res => res.json())
                 .then(data => setDbStates(data.map(s => ({ value: s.StateId, label: s.StateName }))));
         }
     }, [filterState, setValue]);
 
-    // 👇 Updated: Smart mapping for Districts based on external filter
+    // Smart mapping for Districts based on external filter
     useEffect(() => {
         if (filterDistrict) {
-            // If there's an external filter, lock the form to only show and select that exact district
             setDbDistricts([filterDistrict]);
             setValue("district", filterDistrict, { shouldValidate: true });
         } else if (selectedState && selectedState.value && !filterState) {
@@ -153,7 +149,6 @@ const SupervisorForm = ({ onSuccess, externalFilters }) => {
         const loggedInUser = getSafeUser ? getSafeUser() : null;
         const currentUserId = loggedInUser ? (loggedInUser.UserSignUpId || loggedInUser.id) : null;
 
-        // MAPS EXACTLY TO THE NEW SIGNUP DB COLUMNS
         const dbPayload = {
             SupProfileImage: profileImage === DUMMY_AVATAR ? null : profileImage,
             SupName: data.fullName,
@@ -176,7 +171,7 @@ const SupervisorForm = ({ onSuccess, externalFilters }) => {
             SupSignupPassword: data.password,
             SupCreatedByAuthRegId: currentUserId,
             
-            // 👇 Updated: Link the Supervisor to the selected District NGO automatically!
+            // Link the Supervisor to the selected District NGO automatically!
             DistNGORegId: filterMotherNgo ? filterMotherNgo.value : null,
 
             SupBankName: data.bankName || "",
@@ -224,7 +219,6 @@ const SupervisorForm = ({ onSuccess, externalFilters }) => {
                 <h5>Supervisor Registration:-</h5>
             </div>
             
-            {/* 👇 New UI check: Force user to select NGO first */}
             {!filterMotherNgo && (
                 <div style={{ padding: '12px 24px', backgroundColor: '#fff3cd', color: '#856404', borderBottom: '1px solid #ffeeba' }}>
                     <strong>Notice:</strong> Please select a <strong>DISTRICT NGO</strong> from the top filters before filling out this registration form.
@@ -273,7 +267,6 @@ const SupervisorForm = ({ onSuccess, externalFilters }) => {
                         <div style={styles.inputGroup}>
                             <label style={styles.label}>Select State</label>
                             <Controller name="state" control={control} render={({ field }) => (
-                                {/* 👇 Updated: Disable if filtered externally */}
                                 <Select {...field} options={dbStates} styles={styles.selectStyles(!!errors.state)} placeholder="Select State" isDisabled={!!filterState} />
                             )} />
                             {errors.state && <p style={styles.errorText}>{errors.state.message}</p>}
@@ -281,7 +274,6 @@ const SupervisorForm = ({ onSuccess, externalFilters }) => {
                         <div style={styles.inputGroup}>
                             <label style={styles.label}>District</label>
                             <Controller name="district" control={control} render={({ field }) => (
-                                {/* 👇 Updated: Disable if filtered externally */}
                                 <Select {...field} options={dbDistricts} styles={styles.selectStyles(!!errors.district)} placeholder="Select District" isDisabled={!!filterDistrict || !selectedState} />
                             )} />
                             {errors.district && <p style={styles.errorText}>{errors.district.message}</p>}
@@ -349,7 +341,6 @@ const SupervisorForm = ({ onSuccess, externalFilters }) => {
 
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '16px', marginTop: '32px' }}>
                         <button type="button" style={styles.btnOutline} onClick={handleCancelForm}>Cancel</button>
-                        {/* 👇 Disabled submit if no Mother NGO is selected */}
                         <button type="submit" style={{ ...styles.btnPrimary, opacity: !filterMotherNgo ? 0.5 : 1 }} disabled={!filterMotherNgo}>Submit</button>
                     </div>
                 </form>

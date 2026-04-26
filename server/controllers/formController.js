@@ -407,11 +407,9 @@ exports.getDistrictAdmin = (req, res) => {
     });
 };
 
-// ✅ UPDATED: createDistrictAdmin now Maps StateNGORegId Automatically
 exports.createDistrictAdmin = (req, res) => {
     const data = req.body;
 
-    // STEP 1: Look up StateNGORegId dynamically based on the state selected
     const findStateMappingQuery = `
         SELECT snr.StateNGORegId
         FROM state_ngo_reg snr
@@ -425,17 +423,15 @@ exports.createDistrictAdmin = (req, res) => {
             return res.status(500).json({ error: 'Database error while resolving State ID.' });
         }
 
-        // If a match is found in state_ngo_reg, save it. Otherwise, fallback to null.
         const mappedStateNGORegId = mappingResult.length > 0 ? mappingResult[0].StateNGORegId : null;
 
-        // STEP 2: Insert into dist_ngo_reg using the newly mapped ID
         const insertQuery = `INSERT INTO dist_ngo_reg 
             (DistNGOName, DistNGORegDate, DistNGORegNo, DistNGOPanNo, DistNGODarpanId, DistNGOMailId, DistNGOPhoneNo, DistNGORegAddress, DistNGOWorkingAddress, DistNGOStateName, DistNGODistName, DistNGOBlockName, DistNGOSDPName, DistNGOSDPMailId, DistNGOSDPPhoneNo, DistNGOSDPAadhaarNo, DistNGOBankAcctHolderName, DistNGOBankName, DistNGOAcctNo, DistNGOIFSCode, DistNGOBankAdd, DistNGORecCertificate, DistNGOPanPic, DistNGODarpanPic, DistNGOSignupUserName, DistNGOSignupEmail, DistNGOSignupPassword, DistNGOCreatedByAuthRegId, DistNGOCreatedDate, StateNGORegId, DistNGOIsActive, DistNGOAprovedBy, DistNGOAprovedDate, DistNGOGenRegNo) 
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?, ?, ?)`;
 
         const values = [
             data.DistNGOName, data.DistNGORegDate, data.DistNGORegNo, data.DistNGOPanNo, data.DistNGODarpanId, data.DistNGOMailId, data.DistNGOPhoneNo, data.DistNGORegAddress, data.DistNGOWorkingAddress, data.DistNGOStateName, data.DistNGODistName, data.DistNGOBlockName, data.DistNGOSDPName, data.DistNGOSDPMailId, data.DistNGOSDPPhoneNo, data.DistNGOSDPAadhaarNo, data.DistNGOBankAcctHolderName, data.DistNGOBankName, data.DistNGOAcctNo, data.DistNGOIFSCode, data.DistNGOBankAdd, data.DistNGORecCertificate, data.DistNGOPanPic, data.DistNGODarpanPic, data.DistNGOSignupUserName, data.DistNGOSignupEmail, data.DistNGOSignupPassword, data.DistNGOCreatedByAuthRegId || null,
-            mappedStateNGORegId, // 👈 INJECTED HERE Automatically
+            mappedStateNGORegId,
             data.DistNGOIsActive || 1, data.DistNGOAprovedBy || null, data.DistNGOAprovedDate || null, data.DistNGOGenRegNo || null
         ];
 
@@ -455,7 +451,6 @@ exports.createDistrictAdmin = (req, res) => {
     });
 };
 
-// ✅ UPDATED: updateDistrictAdmin now Re-Maps StateNGORegId Automatically if state changes
 exports.updateDistrictAdmin = (req, res) => {
     const { id } = req.params;
     const data = req.body;
@@ -475,14 +470,13 @@ exports.updateDistrictAdmin = (req, res) => {
 
         const mappedStateNGORegId = mappingResult.length > 0 ? mappingResult[0].StateNGORegId : null;
 
-        // Added StateNGORegId=? to the SET block so it updates the mapped relation!
         const updateQuery = `UPDATE dist_ngo_reg SET 
             DistNGOName=?, DistNGORegDate=?, DistNGORegNo=?, DistNGOPanNo=?, DistNGODarpanId=?, DistNGOMailId=?, DistNGOPhoneNo=?, DistNGORegAddress=?, DistNGOWorkingAddress=?, DistNGOStateName=?, DistNGODistName=?, DistNGOBlockName=?, DistNGOSDPName=?, DistNGOSDPMailId=?, DistNGOSDPPhoneNo=?, DistNGOSDPAadhaarNo=?, DistNGOBankAcctHolderName=?, DistNGOBankName=?, DistNGOAcctNo=?, DistNGOIFSCode=?, DistNGOBankAdd=?, DistNGORecCertificate=?, DistNGOPanPic=?, DistNGODarpanPic=?, DistNGOSignupUserName=?, DistNGOSignupEmail=?, DistNGOSignupPassword=?, StateNGORegId=?, DistNGOIsActive=?, DistNGOAprovedBy=?, DistNGOAprovedDate=?, DistNGOGenRegNo=?
             WHERE DistNGORegId=?`;
 
         const values = [
             data.DistNGOName, data.DistNGORegDate, data.DistNGORegNo, data.DistNGOPanNo, data.DistNGODarpanId, data.DistNGOMailId, data.DistNGOPhoneNo, data.DistNGORegAddress, data.DistNGOWorkingAddress, data.DistNGOStateName, data.DistNGODistName, data.DistNGOBlockName, data.DistNGOSDPName, data.DistNGOSDPMailId, data.DistNGOSDPPhoneNo, data.DistNGOSDPAadhaarNo, data.DistNGOBankAcctHolderName, data.DistNGOBankName, data.DistNGOAcctNo, data.DistNGOIFSCode, data.DistNGOBankAdd, data.DistNGORecCertificate, data.DistNGOPanPic, data.DistNGODarpanPic, data.DistNGOSignupUserName, data.DistNGOSignupEmail, data.DistNGOSignupPassword, 
-            mappedStateNGORegId, // 👈 Re-mapped ID injected on Update
+            mappedStateNGORegId,
             data.DistNGOIsActive, data.DistNGOAprovedBy, data.DistNGOAprovedDate, data.DistNGOGenRegNo, id
         ];
 
@@ -540,48 +534,71 @@ exports.getSupervisor = (req, res) => {
     });
 };
 
+// 👇 UPDATED: Automatically maps StateNGORegId during creation
 exports.createSupervisor = (req, res) => {
     const data = req.body;
-    const insertQuery = `INSERT INTO suvervisor_reg (
-        SupProfileImage, SupName, SupGuardianName, SupDOB, SupGuardianContactNo, 
-        SupStateName, SupDistName, SupCity, SupBlockName, SupPO, SupPS, 
-        SupGramPanchayet, SupVillage, SupPincode, SupContactNo, SupMailId, 
-        SupBankName, SupBranchName, SupAcctNo, SupIFSCode, SupPanNo, SupAadharNo, 
-        SupJoiningAmt, SupWalletBalance, SupSignupUserName, SupSignupEmail, SupSignupPassword,
-        SupCreatedByAuthRegId, SupCreatedDate, StateNGORegId, DistNGORegId, SupIsActive, 
-        SupAprovedBy, SupAprovedDate, SupRegNo
-    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,NOW(),?,?,?,?,?,?)`;
 
-    const values = [
-        data.SupProfileImage, data.SupName, data.SupGuardianName, data.SupDOB, data.SupGuardianContactNo,
-        data.SupStateName, data.SupDistName, data.SupCity, data.SupBlockName, data.SupPO, data.SupPS,
-        data.SupGramPanchayet, data.SupVillage, data.SupPincode, data.SupContactNo, data.SupMailId,
-        data.SupBankName, data.SupBranchName, data.SupAcctNo, data.SupIFSCode, data.SupPanNo, data.SupAadharNo,
-        data.SupJoiningAmt, data.SupWalletBalance, data.SupSignupUserName, data.SupSignupEmail, data.SupSignupPassword,
-        data.SupCreatedByAuthRegId || null, data.StateNGORegId || null, data.DistNGORegId || null,
-        data.SupIsActive || 1, data.SupAprovedBy || null, data.SupAprovedDate || null, data.SupRegNo || null
-    ];
+    // STEP 1: Look up StateNGORegId dynamically based on the state selected
+    const findStateMappingQuery = `
+        SELECT snr.StateNGORegId
+        FROM state_ngo_reg snr
+        JOIN state s ON snr.StateNGOStateId = s.StateId
+        WHERE s.StateName = ? LIMIT 1
+    `;
 
-    db.query(insertQuery, values, (err, result) => {
-        if (err) { console.error("❌ createSupervisor DB Error:", err.message); return res.status(500).json({ error: err.message }); }
-        const newId = result.insertId;
-
-        if (data.SupProfileImage && !data.SupProfileImage.startsWith('ID:')) {
-            const taggedImage = `ID:${newId}||${data.SupProfileImage}`;
-            db.query('UPDATE suvervisor_reg SET SupProfileImage=? WHERE SupRegId=?', [taggedImage, newId], () => { });
+    db.query(findStateMappingQuery, [data.SupStateName], (err, mappingResult) => {
+        if (err) {
+            console.error("❌ Error mapping StateNGORegId for Supervisor:", err.message);
+            return res.status(500).json({ error: 'Database error while resolving State ID.' });
         }
 
-        if (data.SupSignupUserName && data.SupSignupPassword && data.SupSignupEmail) {
-            const signupQuery = `INSERT INTO userssignup (UserSignUpRole, SignupUserName, UserSignUpEmail, UserSignUpPassword, UserSignIsActive, UserAtuorizedRegId, ProfileRegId) VALUES (?, ?, ?, ?, 1, ?, ?)`;
-            const signupValues = ['Supervisor', data.SupSignupUserName, data.SupSignupEmail, data.SupSignupPassword, data.SupCreatedByAuthRegId || null, newId];
-            db.query(signupQuery, signupValues, (signupErr) => {
-                if (signupErr) console.error("❌ Auto-Signup DB Error (Supervisor):", signupErr.message);
-            });
-        }
-        res.json({ message: 'Supervisor added successfully', id: newId });
+        // Extract the ID if found, otherwise default to null
+        const mappedStateNGORegId = mappingResult.length > 0 ? mappingResult[0].StateNGORegId : null;
+
+        const insertQuery = `INSERT INTO suvervisor_reg (
+            SupProfileImage, SupName, SupGuardianName, SupDOB, SupGuardianContactNo, 
+            SupStateName, SupDistName, SupCity, SupBlockName, SupPO, SupPS, 
+            SupGramPanchayet, SupVillage, SupPincode, SupContactNo, SupMailId, 
+            SupBankName, SupBranchName, SupAcctNo, SupIFSCode, SupPanNo, SupAadharNo, 
+            SupJoiningAmt, SupWalletBalance, SupSignupUserName, SupSignupEmail, SupSignupPassword,
+            SupCreatedByAuthRegId, SupCreatedDate, StateNGORegId, DistNGORegId, SupIsActive, 
+            SupAprovedBy, SupAprovedDate, SupRegNo
+        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,NOW(),?,?,?,?,?,?)`;
+
+        const values = [
+            data.SupProfileImage, data.SupName, data.SupGuardianName, data.SupDOB, data.SupGuardianContactNo,
+            data.SupStateName, data.SupDistName, data.SupCity, data.SupBlockName, data.SupPO, data.SupPS,
+            data.SupGramPanchayet, data.SupVillage, data.SupPincode, data.SupContactNo, data.SupMailId,
+            data.SupBankName, data.SupBranchName, data.SupAcctNo, data.SupIFSCode, data.SupPanNo, data.SupAadharNo,
+            data.SupJoiningAmt, data.SupWalletBalance, data.SupSignupUserName, data.SupSignupEmail, data.SupSignupPassword,
+            data.SupCreatedByAuthRegId || null, 
+            mappedStateNGORegId, // 👈 INJECTED HERE Automatically
+            data.DistNGORegId || null, 
+            data.SupIsActive || 1, data.SupAprovedBy || null, data.SupAprovedDate || null, data.SupRegNo || null
+        ];
+
+        db.query(insertQuery, values, (err, result) => {
+            if (err) { console.error("❌ createSupervisor DB Error:", err.message); return res.status(500).json({ error: err.message }); }
+            const newId = result.insertId;
+
+            if (data.SupProfileImage && !data.SupProfileImage.startsWith('ID:')) {
+                const taggedImage = `ID:${newId}||${data.SupProfileImage}`;
+                db.query('UPDATE suvervisor_reg SET SupProfileImage=? WHERE SupRegId=?', [taggedImage, newId], () => { });
+            }
+
+            if (data.SupSignupUserName && data.SupSignupPassword && data.SupSignupEmail) {
+                const signupQuery = `INSERT INTO userssignup (UserSignUpRole, SignupUserName, UserSignUpEmail, UserSignUpPassword, UserSignIsActive, UserAtuorizedRegId, ProfileRegId) VALUES (?, ?, ?, ?, 1, ?, ?)`;
+                const signupValues = ['Supervisor', data.SupSignupUserName, data.SupSignupEmail, data.SupSignupPassword, data.SupCreatedByAuthRegId || null, newId];
+                db.query(signupQuery, signupValues, (signupErr) => {
+                    if (signupErr) console.error("❌ Auto-Signup DB Error (Supervisor):", signupErr.message);
+                });
+            }
+            res.json({ message: 'Supervisor added successfully', id: newId });
+        });
     });
 };
 
+// 👇 UPDATED: Automatically re-maps StateNGORegId during update if state changes
 exports.updateSupervisor = (req, res) => {
     const { id } = req.params;
     const data = req.body;
@@ -590,35 +607,53 @@ exports.updateSupervisor = (req, res) => {
         data.SupProfileImage = `ID:${id}||${data.SupProfileImage}`;
     }
 
-    const updateQuery = `UPDATE suvervisor_reg SET 
-        SupProfileImage=?, SupName=?, SupGuardianName=?, SupDOB=?, SupGuardianContactNo=?, 
-        SupStateName=?, SupDistName=?, SupCity=?, SupBlockName=?, SupPO=?, SupPS=?, 
-        SupGramPanchayet=?, SupVillage=?, SupPincode=?, SupContactNo=?, SupMailId=?, 
-        SupBankName=?, SupBranchName=?, SupAcctNo=?, SupIFSCode=?, SupPanNo=?, SupAadharNo=?, 
-        SupJoiningAmt=?, SupWalletBalance=?, SupSignupUserName=?, SupSignupEmail=?, SupSignupPassword=?,
-        SupIsActive=?, SupAprovedBy=?, SupAprovedDate=?, SupRegNo=?
-        WHERE SupRegId=?`;
+    // Look up StateNGORegId dynamically based on the state selected
+    const findStateMappingQuery = `
+        SELECT snr.StateNGORegId
+        FROM state_ngo_reg snr
+        JOIN state s ON snr.StateNGOStateId = s.StateId
+        WHERE s.StateName = ? LIMIT 1
+    `;
 
-    const values = [
-        data.SupProfileImage, data.SupName, data.SupGuardianName, data.SupDOB, data.SupGuardianContactNo,
-        data.SupStateName, data.SupDistName, data.SupCity, data.SupBlockName, data.SupPO, data.SupPS,
-        data.SupGramPanchayet, data.SupVillage, data.SupPincode, data.SupContactNo, data.SupMailId,
-        data.SupBankName, data.SupBranchName, data.SupAcctNo, data.SupIFSCode, data.SupPanNo, data.SupAadharNo,
-        data.SupJoiningAmt, data.SupWalletBalance, data.SupSignupUserName, data.SupSignupEmail, data.SupSignupPassword,
-        data.SupIsActive, data.SupAprovedBy, data.SupAprovedDate, data.SupRegNo, id
-    ];
-
-    db.query(updateQuery, values, (err) => {
-        if (err) { console.error("❌ updateSupervisor DB Error:", err.message); return res.status(500).json({ error: err.message }); }
-
-        if (data.SupSignupPassword && data.SupSignupEmail) {
-            const signupQuery = `UPDATE userssignup SET UserSignUpPassword=? WHERE UserSignUpEmail=? AND UserSignUpRole='Supervisor'`;
-            const signupValues = [data.SupSignupPassword, data.SupSignupEmail];
-            db.query(signupQuery, signupValues, (signupErr) => {
-                if (signupErr) console.error("❌ Auto-Update Signup DB Error (Supervisor):", signupErr.message);
-            });
+    db.query(findStateMappingQuery, [data.SupStateName], (err, mappingResult) => {
+        if (err) {
+            console.error("❌ Error mapping StateNGORegId on Supervisor Update:", err.message);
+            return res.status(500).json({ error: 'Database error while resolving State ID.' });
         }
-        res.json({ message: 'Supervisor updated successfully' });
+
+        const mappedStateNGORegId = mappingResult.length > 0 ? mappingResult[0].StateNGORegId : null;
+
+        const updateQuery = `UPDATE suvervisor_reg SET 
+            SupProfileImage=?, SupName=?, SupGuardianName=?, SupDOB=?, SupGuardianContactNo=?, 
+            SupStateName=?, SupDistName=?, SupCity=?, SupBlockName=?, SupPO=?, SupPS=?, 
+            SupGramPanchayet=?, SupVillage=?, SupPincode=?, SupContactNo=?, SupMailId=?, 
+            SupBankName=?, SupBranchName=?, SupAcctNo=?, SupIFSCode=?, SupPanNo=?, SupAadharNo=?, 
+            SupJoiningAmt=?, SupWalletBalance=?, SupSignupUserName=?, SupSignupEmail=?, SupSignupPassword=?,
+            StateNGORegId=?, SupIsActive=?, SupAprovedBy=?, SupAprovedDate=?, SupRegNo=?
+            WHERE SupRegId=?`;
+
+        const values = [
+            data.SupProfileImage, data.SupName, data.SupGuardianName, data.SupDOB, data.SupGuardianContactNo,
+            data.SupStateName, data.SupDistName, data.SupCity, data.SupBlockName, data.SupPO, data.SupPS,
+            data.SupGramPanchayet, data.SupVillage, data.SupPincode, data.SupContactNo, data.SupMailId,
+            data.SupBankName, data.SupBranchName, data.SupAcctNo, data.SupIFSCode, data.SupPanNo, data.SupAadharNo,
+            data.SupJoiningAmt, data.SupWalletBalance, data.SupSignupUserName, data.SupSignupEmail, data.SupSignupPassword,
+            mappedStateNGORegId, // 👈 Re-mapped ID injected on Update
+            data.SupIsActive, data.SupAprovedBy, data.SupAprovedDate, data.SupRegNo, id
+        ];
+
+        db.query(updateQuery, values, (err) => {
+            if (err) { console.error("❌ updateSupervisor DB Error:", err.message); return res.status(500).json({ error: err.message }); }
+
+            if (data.SupSignupPassword && data.SupSignupEmail) {
+                const signupQuery = `UPDATE userssignup SET UserSignUpPassword=? WHERE UserSignUpEmail=? AND UserSignUpRole='Supervisor'`;
+                const signupValues = [data.SupSignupPassword, data.SupSignupEmail];
+                db.query(signupQuery, signupValues, (signupErr) => {
+                    if (signupErr) console.error("❌ Auto-Update Signup DB Error (Supervisor):", signupErr.message);
+                });
+            }
+            res.json({ message: 'Supervisor updated successfully' });
+        });
     });
 };
 

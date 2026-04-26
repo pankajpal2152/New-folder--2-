@@ -65,7 +65,6 @@ const PasswordInput = ({ label, id, error, placeholder, disabled, ...props }) =>
     );
 };
 
-// 👇 Updated: Accept externalFilters as a prop
 const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
     const { filterMotherNgo, filterState, filterDistrict, filterSupervisor } = externalFilters || {};
 
@@ -88,15 +87,14 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
     const selectedState = watch("state");
     const fullNameValue = watch("fullName");
 
-    // ✅ Dynamic auto-sync User Name to Full Name
+    // Dynamic auto-sync User Name to Full Name
     useEffect(() => {
         setValue("userName", fullNameValue || "", { shouldValidate: true });
     }, [fullNameValue, setValue]);
 
-    // 👇 Updated: Smart mapping for States based on external filter
+    // Smart mapping for States based on external filter
     useEffect(() => {
         if (filterState) {
-            // Lock the form to only show and select the exact state from external filter
             setDbStates([filterState]);
             setValue("state", filterState, { shouldValidate: true });
         } else {
@@ -106,10 +104,9 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
         }
     }, [filterState, setValue]);
 
-    // 👇 Updated: Smart mapping for Districts based on external filter
+    // Smart mapping for Districts based on external filter
     useEffect(() => {
         if (filterDistrict) {
-            // Lock the form to only show and select the exact district from external filter
             setDbDistricts([filterDistrict]);
             setValue("district", filterDistrict, { shouldValidate: true });
         } else if (selectedState && selectedState.value && !filterState) {
@@ -149,7 +146,6 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
         const loggedInUser = getSafeUser ? getSafeUser() : null;
         const currentUserId = loggedInUser ? (loggedInUser.UserSignUpId || loggedInUser.id) : null;
 
-        // EXACT MAPPING TO NEW DB COLUMNS
         const dbPayload = {
             AsthaMaProfileImage: profileImage === DUMMY_AVATAR ? null : profileImage,
             AsthaMaUserName: data.fullName,
@@ -182,9 +178,7 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
             AsthaMaJoiningAmt: parseInt(data.joiningAmount) || 105,
             AsthaMaWalletBalance: parseInt(data.walletBalance) || 0,
 
-            StateNGORegId: null, // Backend will auto-resolve this!
-            
-            // 👇 Updated: Link to selected NGO and Supervisor automatically
+            StateNGORegId: null, 
             DistNGORegId: filterMotherNgo ? filterMotherNgo.value : null,
             SupRegId: filterSupervisor ? filterSupervisor.value : null,
             
@@ -226,14 +220,12 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
                 <h5>Astha Maa Registration</h5>
             </div>
 
-            {/* 👇 New UI check: Force user to select Supervisor first */}
             {!filterSupervisor && (
                 <div style={{ padding: '12px 24px', backgroundColor: '#fff3cd', color: '#856404', borderBottom: '1px solid #ffeeba' }}>
                     <strong>Notice:</strong> Please select a <strong>Supervisor</strong> from the top filters before filling out this registration form.
                 </div>
             )}
 
-            {/* 👇 Form elements visually disabled and unclickable until a Supervisor is picked */}
             <div style={{ ...styles.cardBody, opacity: !filterSupervisor ? 0.6 : 1, pointerEvents: !filterSupervisor ? 'none' : 'auto' }}>
                 <div style={styles.profileSection}>
                     <img src={profileImage} alt="Profile Avatar" style={styles.avatar} />
@@ -276,7 +268,6 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
                         <div style={styles.inputGroup}>
                             <label style={styles.label}>Select State</label>
                             <Controller name="state" control={control} render={({ field }) => (
-                                {/* 👇 Updated: Disable if filtered externally */}
                                 <Select {...field} options={dbStates} styles={styles.selectStyles(!!errors.state)} placeholder="Select State" isDisabled={!!filterState} />
                             )} />
                             {errors.state && <p style={styles.errorText}>{errors.state.message}</p>}
@@ -284,7 +275,6 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
                         <div style={styles.inputGroup}>
                             <label style={styles.label}>District</label>
                             <Controller name="district" control={control} render={({ field }) => (
-                                {/* 👇 Updated: Disable if filtered externally */}
                                 <Select {...field} options={dbDistricts} styles={styles.selectStyles(!!errors.district)} placeholder="Select District" isDisabled={!!filterDistrict || !selectedState} />
                             )} />
                             {errors.district && <p style={styles.errorText}>{errors.district.message}</p>}
@@ -352,7 +342,6 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
 
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '16px', marginTop: '32px' }}>
                         <button type="button" style={styles.btnOutline} onClick={handleCancelAsthaMaa}>Cancel</button>
-                        {/* 👇 Disabled submit if no Supervisor is selected */}
                         <button type="submit" style={{ ...styles.btnPrimary, opacity: !filterSupervisor ? 0.5 : 1 }} disabled={!filterSupervisor}>Submit</button>
                     </div>
                 </form>

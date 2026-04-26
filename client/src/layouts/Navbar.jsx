@@ -14,7 +14,8 @@ const extractBase64 = (dbString) => {
 const Navbar = () => {
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const [profileImage, setProfileImage] = useState('');
-    const [userRole, setUserRole] = useState(''); // ✅ Added state to hold the user's role
+    const [userRole, setUserRole] = useState('');
+    const [userName, setUserName] = useState(''); // ✅ Added state to hold the user's name
     const dropdownRef = useRef(null);
 
     // Default placeholder if no image is uploaded
@@ -26,11 +27,12 @@ const Navbar = () => {
 
         if (userStr) {
             const user = JSON.parse(userStr);
-            
-            // ✅ Set the role to display in the Navbar
-            setUserRole(user.role || '');
 
-            // 2. Fetch their specific profile image from the database (Now pointing to asthadidireginfo via /asthadidi)
+            // ✅ Set the role and the specific SignupUserName to display in the Navbar
+            setUserRole(user.role || user.UserSignUpRole || '');
+            setUserName(user.SignupUserName || user.username || ''); // Pulls exact DB name
+
+            // 2. Fetch their specific profile image from the database
             const fetchProfileImage = async () => {
                 try {
                     const res = await fetch(`${API_BASE_URL}/asthadidi`);
@@ -45,7 +47,7 @@ const Navbar = () => {
                         setProfileImage(cleanImage);
                     } else {
                         // Create a nice fallback avatar using their username
-                        setProfileImage(`https://api.dicebear.com/8.x/initials/svg?seed=${user.username || 'User'}&backgroundColor=696cff`);
+                        setProfileImage(`https://api.dicebear.com/8.x/initials/svg?seed=${user.SignupUserName || user.username || 'User'}&backgroundColor=696cff`);
                     }
                 } catch (error) {
                     console.error("Failed to fetch profile image from DB", error);
@@ -103,9 +105,19 @@ const Navbar = () => {
         rightControls: {
             display: 'flex',
             alignItems: 'center',
-            gap: '16px'
+            gap: '12px' // Spacing between name, role badge, and logout
         },
-        // ✅ NEW STYLE: Professional badge for the user role
+        // ✅ NEW STYLE: For the user's name text
+        nameBadge: {
+            color: '#566a7f',
+            fontSize: '0.95rem',
+            fontWeight: '600',
+            display: 'flex',
+            alignItems: 'center',
+            marginRight: '4px',
+            textTransform: 'uppercase'
+        },
+        // Professional badge for the user role
         roleBadge: {
             backgroundColor: '#e7e7ff',
             color: '#696cff',
@@ -181,7 +193,8 @@ const Navbar = () => {
             transition: '0.2s',
             display: 'flex',
             alignItems: 'center',
-            gap: '8px'
+            gap: '8px',
+            marginLeft: '8px'
         }
     };
 
@@ -193,38 +206,22 @@ const Navbar = () => {
             </div>
 
             <div style={styles.rightControls}>
-                
-                {/* ✅ DYNAMIC ROLE BADGE */}
+
+                {/* ✅ DISPLAY LOGGED IN USERNAME */}
+                {userName && (
+                    <div style={styles.nameBadge}>
+                        👤 {userName}
+                    </div>
+                )}
+
+                {/* DYNAMIC ROLE BADGE */}
                 {userRole && (
                     <div style={styles.roleBadge}>
                         {userRole}
                     </div>
                 )}
 
-                {/* --- HIDING THE PROFILE ICON AS REQUESTED ---
-                <div
-                    style={styles.avatarContainer}
-                    ref={dropdownRef}
-                    onClick={() => setDropdownOpen(!dropdownOpen)}
-                >
-                    <div style={styles.avatar}>
-                        <div style={styles.onlineIndicator}></div>
-                    </div>
-
-                    <div style={styles.dropdownMenu}>
-                        <div
-                            style={styles.menuItem}
-                            onClick={handleLogout}
-                            onMouseEnter={(e) => { e.target.style.backgroundColor = 'rgba(255, 62, 29, 0.08)' }}
-                            onMouseLeave={(e) => { e.target.style.backgroundColor = 'transparent' }}
-                        >
-                            <span style={{ marginRight: '8px' }}>🚪</span> Logout
-                        </div>
-                    </div>
-                </div> 
-                */}
-
-                {/* --- NEW DIRECT LOGOUT BUTTON --- */}
+                {/* DIRECT LOGOUT BUTTON */}
                 <button
                     style={styles.logoutBtn}
                     onClick={handleLogout}

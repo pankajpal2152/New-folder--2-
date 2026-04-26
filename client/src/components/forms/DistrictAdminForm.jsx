@@ -28,14 +28,12 @@ export const ngoSchema = z.object({
     secretaryMobile: z.string().regex(indianPhoneRegex, "Valid phone required"),
     secretaryAadhar: z.string().length(12, "Must be exactly 12 digits").regex(/^\d+$/, "Numbers only"),
     
-    // ✅ Added the new Bank Account Holder Name field
     bankAccountHolderName: z.string().min(1, "Account Holder Name is required"),
     bankName: z.string().min(1, "Bank Name is required"),
     accountNo: z.string().min(1, "Account Number is required"),
     ifsCode: z.string().min(1, "IFS Code is required"),
     bankAddress: z.string().min(1, "Bank Address is required"),
 
-    // Login Credentials
     userName: z.string().min(1, "User Name is required"),
     ngoEmail: z.string().email("Valid login email required"),
     password: z.string().min(1, "Password is required")
@@ -94,7 +92,6 @@ const DistrictAdminForm = ({ onSuccess }) => {
     const [dbStates, setDbStates] = useState([]);
     const [dbDistricts, setDbDistricts] = useState([]);
 
-    // State for PDF Document Uploads
     const [regCertPdf, setRegCertPdf] = useState(null);
     const [panPdf, setPanPdf] = useState(null);
     const [darpanPdf, setDarpanPdf] = useState(null);
@@ -110,7 +107,6 @@ const DistrictAdminForm = ({ onSuccess }) => {
     const selectedState = watch("state");
     const ngoNameValue = watch("ngoName");
 
-    // Automatically syncs User Name to NGO Name
     useEffect(() => {
         setValue("userName", ngoNameValue || "", { shouldValidate: true });
     }, [ngoNameValue, setValue]);
@@ -173,24 +169,20 @@ const DistrictAdminForm = ({ onSuccess }) => {
             DistNGOSDPMailId: data.secretaryEmail,
             DistNGOSDPPhoneNo: data.secretaryMobile,
             DistNGOSDPAadhaarNo: data.secretaryAadhar,
-            
-            // ✅ Mapped new Account Holder Name Field
             DistNGOBankAcctHolderName: data.bankAccountHolderName,
             DistNGOBankName: data.bankName,
             DistNGOAcctNo: data.accountNo,
             DistNGOIFSCode: data.ifsCode,
             DistNGOBankAdd: data.bankAddress,
-
             DistNGORecCertificate: regCertPdf,
             DistNGOPanPic: panPdf,
             DistNGODarpanPic: darpanPdf,
-
             DistNGOSignupUserName: data.userName,
             DistNGOSignupEmail: data.ngoEmail,
             DistNGOSignupPassword: data.password,
             DistNGOCreatedByAuthRegId: currentUserId,
             DistNGOIsActive: 1,
-            StateNGORegId: null,
+            StateNGORegId: null, // BACKEND WILL NOW AUTOMATICALLY OVERRIDE THIS VALUE
             DistNGOAprovedBy: null,
             DistNGOAprovedDate: null,
             DistNGOGenRegNo: null
@@ -264,13 +256,13 @@ const DistrictAdminForm = ({ onSuccess }) => {
                             )} />
                         </div>
                         <div style={styles.inputGroup}>
-                            <label style={styles.label}>Which District Name <span style={{ color: '#ff3e1d' }}>*</span></label>
+                            <label style={styles.label}>Willing to work which district Name <span style={{ color: '#ff3e1d' }}>*</span></label>
                             <Controller name="district" control={control} render={({ field }) => (
                                 <Select {...field} options={dbDistricts} styles={styles.selectStyles(!!errors.district)} placeholder="Select District" isDisabled={!selectedState} />
                             )} />
                         </div>
                         <Controller name="blockName" control={control} render={({ field }) => (
-                            <FormInput label={<>Which Block Name <span style={{ color: '#ff3e1d' }}>* (Can type multiple)</span></>} id="blockName" error={errors.blockName} type="text" {...field} />
+                            <FormInput label={<>Willing to work which Block Name <span style={{ color: '#ff3e1d' }}>* (Can type multiple)</span></>} id="blockName" error={errors.blockName} type="text" {...field} />
                         )} />
 
                         <Controller name="ngoRegAddress" control={control} render={({ field }) => (
@@ -320,7 +312,6 @@ const DistrictAdminForm = ({ onSuccess }) => {
 
                     <h6 style={styles.sectionHeader}>Banking & Account Setup</h6>
                     <div style={styles.formGrid}>
-                        {/* ✅ Added Form Input UI for the newly requested field */}
                         <Controller name="bankAccountHolderName" control={control} render={({ field }) => (
                             <FormInput label={<>Account Holder Name <span style={{ color: '#ff3e1d' }}>*</span></>} id="bankAccountHolderName" error={errors.bankAccountHolderName} type="text" {...field} />
                         )} />

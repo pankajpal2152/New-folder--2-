@@ -98,7 +98,7 @@ const AccountTab = () => {
             fetch(`${API_BASE_URL}/filter/districts/${filterState.value}`).then(res => res.json()).then(data => {
                 setDbDistricts(data.map(d => ({ value: d.DistId, label: d.DistName })));
             }).catch(() => { });
-        } else if (appUserRole !== 'Astha Didi') {
+        } else if (appUserRole !== 'Astha Didi' && appUserRole !== 'Supervisor') {
             setDbDistricts([]);
             setFilterDistrict(null);
             setFilterSupervisor(null);
@@ -120,7 +120,6 @@ const AccountTab = () => {
                 return dbMotherNgos.filter(ngo => String(ngo.value) === String(currentSupervisor.motherNgoId));
             }
         }
-        // 👇 NEW: Keep Astha Didi logic clean in the background
         if (appUserRole === 'Astha Didi' && loggedInProfileId && dbAsthaDidis.length > 0) {
             const currentDidi = dbAsthaDidis.find(ad => String(ad.value) === String(loggedInProfileId));
             if (currentDidi && currentDidi.motherNgoId) {
@@ -204,12 +203,31 @@ const AccountTab = () => {
         }
     }, [filterSupervisor, filteredAsthaDidiOptions, filterAsthaDidi]);
 
-    // 👇 NEW: Auto-select context for Astha Didi so the Astha Maa form unlocks immediately
+    // 👇 NEW: Auto-select context for Supervisor to strictly map and lock their own dropdown options
     useEffect(() => {
-        if (appUserRole === 'Astha Didi' && loggedInProfileId && dbAsthaDidis.length > 0 && !filterAsthaDidi) {
+        if (appUserRole === 'Supervisor' && loggedInProfileId && dbSupervisors.length > 0 && dbStates.length > 0 && !filterSupervisor) {
+            const mySupProfile = dbSupervisors.find(sup => String(sup.value) === String(loggedInProfileId));
+            if (mySupProfile) {
+                setFilterSupervisor(mySupProfile);
+                setFilterMotherNgo({ 
+                    value: mySupProfile.motherNgoId, 
+                    stateName: mySupProfile.stateName, 
+                    districtName: mySupProfile.distName 
+                });
+                
+                const matchedState = dbStates.find(s => s.label.trim().toLowerCase() === String(mySupProfile.stateName).trim().toLowerCase());
+                if (matchedState) setFilterState(matchedState);
+                
+                setFilterDistrict({ label: mySupProfile.distName, value: null });
+            }
+        }
+    }, [appUserRole, loggedInProfileId, dbSupervisors, dbStates, filterSupervisor]);
+
+    // Auto-select context for Astha Didi
+    useEffect(() => {
+        if (appUserRole === 'Astha Didi' && loggedInProfileId && dbAsthaDidis.length > 0 && dbStates.length > 0 && !filterAsthaDidi) {
             const myDidiProfile = dbAsthaDidis.find(ad => String(ad.value) === String(loggedInProfileId));
             if (myDidiProfile) {
-                // Populate all parent context behind the scenes
                 setFilterAsthaDidi(myDidiProfile);
                 setFilterSupervisor({ value: myDidiProfile.supRegId });
                 setFilterMotherNgo({ 
@@ -233,19 +251,24 @@ const AccountTab = () => {
     const handleRoleChange = (selected) => {
         setAdminActiveView(selected.value);
         
-        // 👇 Prevent clearing background data when an Astha Didi interacts
+        // Prevent clearing background data when locked roles interact
         if (appUserRole === 'Astha Didi') return;
+        if (appUserRole === 'Supervisor') {
+            setFilterAsthaDidi(null); 
+            return;
+        }
 
-        if (appUserRole === 'District Administrator' || appUserRole === 'Supervisor') {
+        if (appUserRole === 'District Administrator') {
             setFilterSupervisor(null); 
             setFilterAsthaDidi(null);
-        } else {
-            setFilterMotherNgo(null);
-            setFilterState(null);
-            setFilterDistrict(null);
-            setFilterSupervisor(null);
-            setFilterAsthaDidi(null);
+            return;
         }
+
+        setFilterMotherNgo(null);
+        setFilterState(null);
+        setFilterDistrict(null);
+        setFilterSupervisor(null);
+        setFilterAsthaDidi(null);
     };
 
     const handleMotherNgoChange = (selected) => {
@@ -313,7 +336,10 @@ const AccountTab = () => {
     }
 
     const canSeeFilters = appUserRole === 'State Super Administrator' || appUserRole.toLowerCase() === 'developer' || appUserRole === 'District Administrator' || appUserRole === 'Supervisor';
+    
+    // 👇 NEW: Specific locks ensuring upper-tier users cannot change lower-tier dropdowns
     const isLockedRole = appUserRole === 'District Administrator' || appUserRole === 'Supervisor';
+    const isSupervisorLocked = appUserRole === 'Supervisor';
     
     const isMotherNgoVisible = ['Supervisor', 'Astha Maa', 'Astha Didi'].includes(adminActiveView);
     const isSupervisorVisible = ['Astha Maa', 'Astha Didi'].includes(adminActiveView);
@@ -399,8 +425,8 @@ const AccountTab = () => {
                                         options={filteredSupervisorOptions} 
                                         value={filterSupervisor} 
                                         onChange={handleSupervisorChange} 
-                                        isDisabled={!filterDistrict} 
-                                        isClearable 
+                                        isDisabled={!filterDistrict || isSupervisorLocked} // 👇 NEW: Supervisor Dropdown Locked 
+                                        isClearable={!isSupervisorLocked} 
                                         placeholder="All Supervisors" 
                                         styles={{ ...styles.selectStyles(false), menuPortal: base => ({ ...base, zIndex: 99999 }) }} 
                                         menuPortalTarget={document.body} 
@@ -443,6 +469,7 @@ const AccountTab = () => {
             ) : adminActiveView === 'Astha Maa' ? (
                 <>
                     <AsthaMaaForm onSuccess={handleFormSuccess} externalFilters={{ filterMotherNgo, filterState, filterDistrict, filterSupervisor, filterAsthaDidi }} />
+                    {/* The table automatically receives the filterAsthaDidi state and handles the frontend filtering. */}
                     <AsthaMaaTable refreshTrigger={refreshTrigger} externalFilters={{ filterMotherNgo, filterState, filterDistrict, filterSupervisor, filterAsthaDidi }} />
                 </>
             ) : (

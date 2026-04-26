@@ -27,17 +27,19 @@ exports.login = (req, res) => {
         if (results.length === 0) return res.status(400).json({ error: 'User not found or role mismatch' });
 
         const user = results[0];
-        
+
+        // Check password against the mapped column
         if (password !== user.UserSignUpPassword) {
             return res.status(400).json({ error: 'Incorrect password' });
         }
 
+        // Returning ALL columns exactly as they appear in the database for Local Storage
         res.status(200).json({
             message: 'Login successful',
-            user: { 
-                id: user.UserSignUpId, 
-                role: user.UserSignUpRole, 
-                username: user.SignupUserName || user.UserSignUpEmail.split('@')[0], 
+            user: {
+                id: user.UserSignUpId,
+                role: user.UserSignUpRole,
+                username: user.SignupUserName || user.UserSignUpEmail.split('@')[0],
                 email: user.UserSignUpEmail,
                 UserSignUpId: user.UserSignUpId,
                 UserSignUpRole: user.UserSignUpRole,
@@ -53,6 +55,7 @@ exports.login = (req, res) => {
 };
 
 exports.getUserInfo = (req, res) => {
+    // SMART FILTER: Only select roles where ActStatus is exactly 1
     db.query('SELECT * FROM userinfo WHERE ActStatus = 1', (err, results) => {
         if (err) {
             return res.status(500).json({ error: 'Database error while fetching roles' });
@@ -167,48 +170,69 @@ exports.getAsthaDidi = (req, res) => {
     });
 };
 
+// 👇 UPDATED: Automatically maps StateNGORegId during creation for Astha Didi
 exports.createAsthaDidi = (req, res) => {
     const data = req.body;
-    const insertQuery = `INSERT INTO \`asthadidi_reg\` (
-        AsthaDidiProfileImage, AsthaDidiUserName, AsthaDidiGuardianName, AsthaDidiDOB, AsthaDidiGuardianContactNo, 
-        AsthaDidiStateName, AsthaDidiDistName, AsthaDidiCity, AsthaDidiBlockName, AsthaDidiPO, AsthaDidiPS, 
-        AsthaDidiGramPanchayet, AsthaDidiVillage, AsthaDidiPincode, AsthaDidiContactNo, AsthaDidiMailId, 
-        AsthaDidiBankName, AsthaDidiBranchName, AsthaDidiBankAcctNo, AsthaDidiIFSCode, AsthaDidiPanNo, AsthaDidiAadharNo, 
-        AsthaDidiJoiningAmt, AsthaDidiWalletBalance, AsthaDidiSignupUserName, AsthaDidiSignupEmail, AsthaDidiSignupPassword, 
-        AsthaDidiCreatedByAuthRegId, AsthaDidiCreatedDate, StateNGORegId, DistNGORegId, SupRegId, AsthaDidiIsActive, 
-        AsthaDidiAprovedBy, AsthaDidiAprovalDate, AsthaDidiRegNo
-    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,NOW(),?,?,?,?,?,?,?)`;
 
-    const values = [
-        data.AsthaDidiProfileImage, data.AsthaDidiUserName, data.AsthaDidiGuardianName, data.AsthaDidiDOB, data.AsthaDidiGuardianContactNo,
-        data.AsthaDidiStateName, data.AsthaDidiDistName, data.AsthaDidiCity, data.AsthaDidiBlockName, data.AsthaDidiPO, data.AsthaDidiPS,
-        data.AsthaDidiGramPanchayet, data.AsthaDidiVillage, data.AsthaDidiPincode, data.AsthaDidiContactNo, data.AsthaDidiMailId,
-        data.AsthaDidiBankName, data.AsthaDidiBranchName, data.AsthaDidiBankAcctNo, data.AsthaDidiIFSCode, data.AsthaDidiPanNo, data.AsthaDidiAadharNo,
-        data.AsthaDidiJoiningAmt, data.AsthaDidiWalletBalance, data.AsthaDidiSignupUserName, data.AsthaDidiSignupEmail, data.AsthaDidiSignupPassword,
-        data.AsthaDidiCreatedByAuthRegId || null, data.StateNGORegId || null, data.DistNGORegId || null, data.SupRegId || null,
-        data.AsthaDidiIsActive || 1, data.AsthaDidiAprovedBy || null, data.AsthaDidiAprovalDate || null, data.AsthaDidiRegNo || null
-    ];
+    const findStateMappingQuery = `
+        SELECT snr.StateNGORegId
+        FROM state_ngo_reg snr
+        JOIN state s ON snr.StateNGOStateId = s.StateId
+        WHERE s.StateName = ? LIMIT 1
+    `;
 
-    db.query(insertQuery, values, (err, result) => {
-        if (err) { console.error("❌ createAsthaDidi Primary DB Error:", err.message); return res.status(500).json({ error: err.message }); }
-        const newId = result.insertId;
-
-        if (data.AsthaDidiProfileImage && !data.AsthaDidiProfileImage.startsWith('ID:')) {
-            const taggedImage = `ID:${newId}||${data.AsthaDidiProfileImage}`;
-            db.query('UPDATE `asthadidi_reg` SET AsthaDidiProfileImage=? WHERE AsthaDidiRegId=?', [taggedImage, newId], () => { });
+    db.query(findStateMappingQuery, [data.AsthaDidiStateName], (err, mappingResult) => {
+        if (err) {
+            console.error("❌ Error mapping StateNGORegId for Astha Didi:", err.message);
+            return res.status(500).json({ error: 'Database error while resolving State ID.' });
         }
 
-        if (data.AsthaDidiSignupUserName && data.AsthaDidiSignupPassword && data.AsthaDidiSignupEmail) {
-            const signupQuery = `INSERT INTO userssignup (UserSignUpRole, SignupUserName, UserSignUpEmail, UserSignUpPassword, UserSignIsActive, UserAtuorizedRegId, ProfileRegId) VALUES (?, ?, ?, ?, 1, ?, ?)`;
-            const signupValues = ['Astha Didi', data.AsthaDidiSignupUserName, data.AsthaDidiSignupEmail, data.AsthaDidiSignupPassword, data.AsthaDidiCreatedByAuthRegId || null, newId];
-            db.query(signupQuery, signupValues, (signupErr) => {
-                if (signupErr) console.error("❌ Auto-Signup DB Error (Astha Didi):", signupErr.message);
-            });
-        }
-        res.json({ message: 'Astha Didi added successfully', id: newId });
+        const mappedStateNGORegId = mappingResult.length > 0 ? mappingResult[0].StateNGORegId : null;
+
+        const insertQuery = `INSERT INTO \`asthadidi_reg\` (
+            AsthaDidiProfileImage, AsthaDidiUserName, AsthaDidiGuardianName, AsthaDidiDOB, AsthaDidiGuardianContactNo, 
+            AsthaDidiStateName, AsthaDidiDistName, AsthaDidiCity, AsthaDidiBlockName, AsthaDidiPO, AsthaDidiPS, 
+            AsthaDidiGramPanchayet, AsthaDidiVillage, AsthaDidiPincode, AsthaDidiContactNo, AsthaDidiMailId, 
+            AsthaDidiBankName, AsthaDidiBranchName, AsthaDidiBankAcctNo, AsthaDidiIFSCode, AsthaDidiPanNo, AsthaDidiAadharNo, 
+            AsthaDidiJoiningAmt, AsthaDidiWalletBalance, AsthaDidiSignupUserName, AsthaDidiSignupEmail, AsthaDidiSignupPassword, 
+            AsthaDidiCreatedByAuthRegId, AsthaDidiCreatedDate, StateNGORegId, DistNGORegId, SupRegId, AsthaDidiIsActive, 
+            AsthaDidiAprovedBy, AsthaDidiAprovalDate, AsthaDidiRegNo
+        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,NOW(),?,?,?,?,?,?,?)`;
+
+        const values = [
+            data.AsthaDidiProfileImage, data.AsthaDidiUserName, data.AsthaDidiGuardianName, data.AsthaDidiDOB, data.AsthaDidiGuardianContactNo,
+            data.AsthaDidiStateName, data.AsthaDidiDistName, data.AsthaDidiCity, data.AsthaDidiBlockName, data.AsthaDidiPO, data.AsthaDidiPS,
+            data.AsthaDidiGramPanchayet, data.AsthaDidiVillage, data.AsthaDidiPincode, data.AsthaDidiContactNo, data.AsthaDidiMailId,
+            data.AsthaDidiBankName, data.AsthaDidiBranchName, data.AsthaDidiBankAcctNo, data.AsthaDidiIFSCode, data.AsthaDidiPanNo, data.AsthaDidiAadharNo,
+            data.AsthaDidiJoiningAmt, data.AsthaDidiWalletBalance, data.AsthaDidiSignupUserName, data.AsthaDidiSignupEmail, data.AsthaDidiSignupPassword,
+            data.AsthaDidiCreatedByAuthRegId || null,
+            mappedStateNGORegId, // 👈 INJECTED HERE Automatically
+            data.DistNGORegId || null, data.SupRegId || null,
+            data.AsthaDidiIsActive || 1, data.AsthaDidiAprovedBy || null, data.AsthaDidiAprovalDate || null, data.AsthaDidiRegNo || null
+        ];
+
+        db.query(insertQuery, values, (err, result) => {
+            if (err) { console.error("❌ createAsthaDidi Primary DB Error:", err.message); return res.status(500).json({ error: err.message }); }
+            const newId = result.insertId;
+
+            if (data.AsthaDidiProfileImage && !data.AsthaDidiProfileImage.startsWith('ID:')) {
+                const taggedImage = `ID:${newId}||${data.AsthaDidiProfileImage}`;
+                db.query('UPDATE `asthadidi_reg` SET AsthaDidiProfileImage=? WHERE AsthaDidiRegId=?', [taggedImage, newId], () => { });
+            }
+
+            if (data.AsthaDidiSignupUserName && data.AsthaDidiSignupPassword && data.AsthaDidiSignupEmail) {
+                const signupQuery = `INSERT INTO userssignup (UserSignUpRole, SignupUserName, UserSignUpEmail, UserSignUpPassword, UserSignIsActive, UserAtuorizedRegId, ProfileRegId) VALUES (?, ?, ?, ?, 1, ?, ?)`;
+                const signupValues = ['Astha Didi', data.AsthaDidiSignupUserName, data.AsthaDidiSignupEmail, data.AsthaDidiSignupPassword, data.AsthaDidiCreatedByAuthRegId || null, newId];
+                db.query(signupQuery, signupValues, (signupErr) => {
+                    if (signupErr) console.error("❌ Auto-Signup DB Error (Astha Didi):", signupErr.message);
+                });
+            }
+            res.json({ message: 'Astha Didi added successfully', id: newId });
+        });
     });
 };
 
+// 👇 UPDATED: Automatically re-maps StateNGORegId during update for Astha Didi
 exports.updateAsthaDidi = (req, res) => {
     const { id } = req.params;
     const data = req.body;
@@ -217,35 +241,52 @@ exports.updateAsthaDidi = (req, res) => {
         data.AsthaDidiProfileImage = `ID:${id}||${data.AsthaDidiProfileImage}`;
     }
 
-    const updateQuery = `UPDATE \`asthadidi_reg\` SET 
-        AsthaDidiProfileImage=?, AsthaDidiUserName=?, AsthaDidiGuardianName=?, AsthaDidiDOB=?, AsthaDidiGuardianContactNo=?, 
-        AsthaDidiStateName=?, AsthaDidiDistName=?, AsthaDidiCity=?, AsthaDidiBlockName=?, AsthaDidiPO=?, AsthaDidiPS=?, 
-        AsthaDidiGramPanchayet=?, AsthaDidiVillage=?, AsthaDidiPincode=?, AsthaDidiContactNo=?, AsthaDidiMailId=?, 
-        AsthaDidiBankName=?, AsthaDidiBranchName=?, AsthaDidiBankAcctNo=?, AsthaDidiIFSCode=?, AsthaDidiPanNo=?, AsthaDidiAadharNo=?, 
-        AsthaDidiJoiningAmt=?, AsthaDidiWalletBalance=?, AsthaDidiSignupUserName=?, AsthaDidiSignupEmail=?, AsthaDidiSignupPassword=?, 
-        AsthaDidiIsActive=?, AsthaDidiAprovedBy=?, AsthaDidiAprovalDate=?, AsthaDidiRegNo=?
-        WHERE AsthaDidiRegId=?`;
+    const findStateMappingQuery = `
+        SELECT snr.StateNGORegId
+        FROM state_ngo_reg snr
+        JOIN state s ON snr.StateNGOStateId = s.StateId
+        WHERE s.StateName = ? LIMIT 1
+    `;
 
-    const values = [
-        data.AsthaDidiProfileImage, data.AsthaDidiUserName, data.AsthaDidiGuardianName, data.AsthaDidiDOB, data.AsthaDidiGuardianContactNo,
-        data.AsthaDidiStateName, data.AsthaDidiDistName, data.AsthaDidiCity, data.AsthaDidiBlockName, data.AsthaDidiPO, data.AsthaDidiPS,
-        data.AsthaDidiGramPanchayet, data.AsthaDidiVillage, data.AsthaDidiPincode, data.AsthaDidiContactNo, data.AsthaDidiMailId,
-        data.AsthaDidiBankName, data.AsthaDidiBranchName, data.AsthaDidiBankAcctNo, data.AsthaDidiIFSCode, data.AsthaDidiPanNo, data.AsthaDidiAadharNo,
-        data.AsthaDidiJoiningAmt, data.AsthaDidiWalletBalance, data.AsthaDidiSignupUserName, data.AsthaDidiSignupEmail, data.AsthaDidiSignupPassword,
-        data.AsthaDidiIsActive, data.AsthaDidiAprovedBy, data.AsthaDidiAprovalDate, data.AsthaDidiRegNo, id
-    ];
-
-    db.query(updateQuery, values, (err) => {
-        if (err) { console.error("❌ updateAsthaDidi Primary DB Error:", err.message); return res.status(500).json({ error: err.message }); }
-
-        if (data.AsthaDidiSignupPassword && data.AsthaDidiSignupEmail) {
-            const signupQuery = `UPDATE userssignup SET UserSignUpPassword=? WHERE UserSignUpEmail=? AND UserSignUpRole='Astha Didi'`;
-            const signupValues = [data.AsthaDidiSignupPassword, data.AsthaDidiSignupEmail];
-            db.query(signupQuery, signupValues, (signupErr) => {
-                if (signupErr) console.error("❌ Auto-Update Signup DB Error (Astha Didi):", signupErr.message);
-            });
+    db.query(findStateMappingQuery, [data.AsthaDidiStateName], (err, mappingResult) => {
+        if (err) {
+            console.error("❌ Error mapping StateNGORegId on Astha Didi Update:", err.message);
+            return res.status(500).json({ error: 'Database error while resolving State ID.' });
         }
-        res.json({ message: 'Record updated successfully' });
+
+        const mappedStateNGORegId = mappingResult.length > 0 ? mappingResult[0].StateNGORegId : null;
+
+        const updateQuery = `UPDATE \`asthadidi_reg\` SET 
+            AsthaDidiProfileImage=?, AsthaDidiUserName=?, AsthaDidiGuardianName=?, AsthaDidiDOB=?, AsthaDidiGuardianContactNo=?, 
+            AsthaDidiStateName=?, AsthaDidiDistName=?, AsthaDidiCity=?, AsthaDidiBlockName=?, AsthaDidiPO=?, AsthaDidiPS=?, 
+            AsthaDidiGramPanchayet=?, AsthaDidiVillage=?, AsthaDidiPincode=?, AsthaDidiContactNo=?, AsthaDidiMailId=?, 
+            AsthaDidiBankName=?, AsthaDidiBranchName=?, AsthaDidiBankAcctNo=?, AsthaDidiIFSCode=?, AsthaDidiPanNo=?, AsthaDidiAadharNo=?, 
+            AsthaDidiJoiningAmt=?, AsthaDidiWalletBalance=?, AsthaDidiSignupUserName=?, AsthaDidiSignupEmail=?, AsthaDidiSignupPassword=?, 
+            StateNGORegId=?, AsthaDidiIsActive=?, AsthaDidiAprovedBy=?, AsthaDidiAprovalDate=?, AsthaDidiRegNo=?
+            WHERE AsthaDidiRegId=?`;
+
+        const values = [
+            data.AsthaDidiProfileImage, data.AsthaDidiUserName, data.AsthaDidiGuardianName, data.AsthaDidiDOB, data.AsthaDidiGuardianContactNo,
+            data.AsthaDidiStateName, data.AsthaDidiDistName, data.AsthaDidiCity, data.AsthaDidiBlockName, data.AsthaDidiPO, data.AsthaDidiPS,
+            data.AsthaDidiGramPanchayet, data.AsthaDidiVillage, data.AsthaDidiPincode, data.AsthaDidiContactNo, data.AsthaDidiMailId,
+            data.AsthaDidiBankName, data.AsthaDidiBranchName, data.AsthaDidiBankAcctNo, data.AsthaDidiIFSCode, data.AsthaDidiPanNo, data.AsthaDidiAadharNo,
+            data.AsthaDidiJoiningAmt, data.AsthaDidiWalletBalance, data.AsthaDidiSignupUserName, data.AsthaDidiSignupEmail, data.AsthaDidiSignupPassword,
+            mappedStateNGORegId, // 👈 Re-mapped ID injected on Update
+            data.AsthaDidiIsActive, data.AsthaDidiAprovedBy, data.AsthaDidiAprovalDate, data.AsthaDidiRegNo, id
+        ];
+
+        db.query(updateQuery, values, (err) => {
+            if (err) { console.error("❌ updateAsthaDidi Primary DB Error:", err.message); return res.status(500).json({ error: err.message }); }
+
+            if (data.AsthaDidiSignupPassword && data.AsthaDidiSignupEmail) {
+                const signupQuery = `UPDATE userssignup SET UserSignUpPassword=? WHERE UserSignUpEmail=? AND UserSignUpRole='Astha Didi'`;
+                const signupValues = [data.AsthaDidiSignupPassword, data.AsthaDidiSignupEmail];
+                db.query(signupQuery, signupValues, (signupErr) => {
+                    if (signupErr) console.error("❌ Auto-Update Signup DB Error (Astha Didi):", signupErr.message);
+                });
+            }
+            res.json({ message: 'Record updated successfully' });
+        });
     });
 };
 
@@ -287,48 +328,69 @@ exports.getAsthaMaa = (req, res) => {
     });
 };
 
+// 👇 UPDATED: Automatically maps StateNGORegId during creation for Astha Maa
 exports.createAsthaMaa = (req, res) => {
     const data = req.body;
-    const insertQuery = `INSERT INTO asthama_reg (
-        AsthaMaProfileImage, AsthaMaUserName, AsthaMaGuardianName, AsthaMaDOB, AsthaMaGuardianContactNo, 
-        AsthaMaStateName, AsthaMaDistName, AsthaMaCity, AsthaMaBlockName, AsthaMaPO, AsthaMaPS, 
-        AsthaMaGramPanchayet, AsthaMaVillage, AsthaMaPincode, AsthaMaContactNo, AsthaMaMailId, 
-        AsthaMaBankName, AsthaMaBranchName, AsthaMaBankAcctNo, AsthaMaIFSCode, AsthaMaPanNo, AsthaMaAadharNo, 
-        AsthaMaJoiningAmt, AsthaMaWalletBalance, AsthaMaSignupUserName, AsthaMaSignupEmail, AsthaMaSignupPassword, 
-        AsthaMaCreatedByAuthRegId, AsthaMaCreatedDate, StateNGORegId, DistNGORegId, SupRegId, AsthaDidiRegId, AsthaMaIsActive, 
-        AsthaMaAprovedBy, AsthaMaAprovalDate, AsthaMaRegNo
-    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,NOW(),?,?,?,?,?,?,?,?)`;
 
-    const values = [
-        data.AsthaMaProfileImage, data.AsthaMaUserName, data.AsthaMaGuardianName, data.AsthaMaDOB, data.AsthaMaGuardianContactNo,
-        data.AsthaMaStateName, data.AsthaMaDistName, data.AsthaMaCity, data.AsthaMaBlockName, data.AsthaMaPO, data.AsthaMaPS,
-        data.AsthaMaGramPanchayet, data.AsthaMaVillage, data.AsthaMaPincode, data.AsthaMaContactNo, data.AsthaMaMailId,
-        data.AsthaMaBankName, data.AsthaMaBranchName, data.AsthaMaBankAcctNo, data.AsthaMaIFSCode, data.AsthaMaPanNo, data.AsthaMaAadharNo,
-        data.AsthaMaJoiningAmt, data.AsthaMaWalletBalance, data.AsthaMaSignupUserName, data.AsthaMaSignupEmail, data.AsthaMaSignupPassword,
-        data.AsthaMaCreatedByAuthRegId || null, data.StateNGORegId || null, data.DistNGORegId || null, data.SupRegId || null, data.AsthaDidiRegId || null,
-        data.AsthaMaIsActive || 1, data.AsthaMaAprovedBy || null, data.AsthaMaAprovalDate || null, data.AsthaMaRegNo || null
-    ];
+    const findStateMappingQuery = `
+        SELECT snr.StateNGORegId
+        FROM state_ngo_reg snr
+        JOIN state s ON snr.StateNGOStateId = s.StateId
+        WHERE s.StateName = ? LIMIT 1
+    `;
 
-    db.query(insertQuery, values, (err, result) => {
-        if (err) { console.error("❌ createAsthaMaa Primary DB Error:", err.message); return res.status(500).json({ error: err.message }); }
-        const newId = result.insertId;
-
-        if (data.AsthaMaProfileImage && !data.AsthaMaProfileImage.startsWith('ID:')) {
-            const taggedImage = `ID:${newId}||${data.AsthaMaProfileImage}`;
-            db.query('UPDATE asthama_reg SET AsthaMaProfileImage=? WHERE AsthaMaRegId=?', [taggedImage, newId], () => { });
+    db.query(findStateMappingQuery, [data.AsthaMaStateName], (err, mappingResult) => {
+        if (err) {
+            console.error("❌ Error mapping StateNGORegId for Astha Maa:", err.message);
+            return res.status(500).json({ error: 'Database error while resolving State ID.' });
         }
 
-        if (data.AsthaMaSignupUserName && data.AsthaMaSignupPassword && data.AsthaMaSignupEmail) {
-            const signupQuery = `INSERT INTO userssignup (UserSignUpRole, SignupUserName, UserSignUpEmail, UserSignUpPassword, UserSignIsActive, UserAtuorizedRegId, ProfileRegId) VALUES (?, ?, ?, ?, 1, ?, ?)`;
-            const signupValues = ['Astha Maa', data.AsthaMaSignupUserName, data.AsthaMaSignupEmail, data.AsthaMaSignupPassword, data.AsthaMaCreatedByAuthRegId || null, newId];
-            db.query(signupQuery, signupValues, (signupErr) => {
-                if (signupErr) console.error("❌ Auto-Signup DB Error (Astha Maa):", signupErr.message);
-            });
-        }
-        res.json({ message: 'Astha Maa added successfully', id: newId });
+        const mappedStateNGORegId = mappingResult.length > 0 ? mappingResult[0].StateNGORegId : null;
+
+        const insertQuery = `INSERT INTO asthama_reg (
+            AsthaMaProfileImage, AsthaMaUserName, AsthaMaGuardianName, AsthaMaDOB, AsthaMaGuardianContactNo, 
+            AsthaMaStateName, AsthaMaDistName, AsthaMaCity, AsthaMaBlockName, AsthaMaPO, AsthaMaPS, 
+            AsthaMaGramPanchayet, AsthaMaVillage, AsthaMaPincode, AsthaMaContactNo, AsthaMaMailId, 
+            AsthaMaBankName, AsthaMaBranchName, AsthaMaBankAcctNo, AsthaMaIFSCode, AsthaMaPanNo, AsthaMaAadharNo, 
+            AsthaMaJoiningAmt, AsthaMaWalletBalance, AsthaMaSignupUserName, AsthaMaSignupEmail, AsthaMaSignupPassword, 
+            AsthaMaCreatedByAuthRegId, AsthaMaCreatedDate, StateNGORegId, DistNGORegId, SupRegId, AsthaDidiRegId, AsthaMaIsActive, 
+            AsthaMaAprovedBy, AsthaMaAprovalDate, AsthaMaRegNo
+        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,NOW(),?,?,?,?,?,?,?,?)`;
+
+        const values = [
+            data.AsthaMaProfileImage, data.AsthaMaUserName, data.AsthaMaGuardianName, data.AsthaMaDOB, data.AsthaMaGuardianContactNo,
+            data.AsthaMaStateName, data.AsthaMaDistName, data.AsthaMaCity, data.AsthaMaBlockName, data.AsthaMaPO, data.AsthaMaPS,
+            data.AsthaMaGramPanchayet, data.AsthaMaVillage, data.AsthaMaPincode, data.AsthaMaContactNo, data.AsthaMaMailId,
+            data.AsthaMaBankName, data.AsthaMaBranchName, data.AsthaMaBankAcctNo, data.AsthaMaIFSCode, data.AsthaMaPanNo, data.AsthaMaAadharNo,
+            data.AsthaMaJoiningAmt, data.AsthaMaWalletBalance, data.AsthaMaSignupUserName, data.AsthaMaSignupEmail, data.AsthaMaSignupPassword,
+            data.AsthaMaCreatedByAuthRegId || null,
+            mappedStateNGORegId, // 👈 INJECTED HERE Automatically
+            data.DistNGORegId || null, data.SupRegId || null, data.AsthaDidiRegId || null,
+            data.AsthaMaIsActive || 1, data.AsthaMaAprovedBy || null, data.AsthaMaAprovalDate || null, data.AsthaMaRegNo || null
+        ];
+
+        db.query(insertQuery, values, (err, result) => {
+            if (err) { console.error("❌ createAsthaMaa Primary DB Error:", err.message); return res.status(500).json({ error: err.message }); }
+            const newId = result.insertId;
+
+            if (data.AsthaMaProfileImage && !data.AsthaMaProfileImage.startsWith('ID:')) {
+                const taggedImage = `ID:${newId}||${data.AsthaMaProfileImage}`;
+                db.query('UPDATE asthama_reg SET AsthaMaProfileImage=? WHERE AsthaMaRegId=?', [taggedImage, newId], () => { });
+            }
+
+            if (data.AsthaMaSignupUserName && data.AsthaMaSignupPassword && data.AsthaMaSignupEmail) {
+                const signupQuery = `INSERT INTO userssignup (UserSignUpRole, SignupUserName, UserSignUpEmail, UserSignUpPassword, UserSignIsActive, UserAtuorizedRegId, ProfileRegId) VALUES (?, ?, ?, ?, 1, ?, ?)`;
+                const signupValues = ['Astha Maa', data.AsthaMaSignupUserName, data.AsthaMaSignupEmail, data.AsthaMaSignupPassword, data.AsthaMaCreatedByAuthRegId || null, newId];
+                db.query(signupQuery, signupValues, (signupErr) => {
+                    if (signupErr) console.error("❌ Auto-Signup DB Error (Astha Maa):", signupErr.message);
+                });
+            }
+            res.json({ message: 'Astha Maa added successfully', id: newId });
+        });
     });
 };
 
+// 👇 UPDATED: Automatically re-maps StateNGORegId during update for Astha Maa
 exports.updateAsthaMaa = (req, res) => {
     const { id } = req.params;
     const data = req.body;
@@ -337,35 +399,52 @@ exports.updateAsthaMaa = (req, res) => {
         data.AsthaMaProfileImage = `ID:${id}||${data.AsthaMaProfileImage}`;
     }
 
-    const updateQuery = `UPDATE asthama_reg SET 
-        AsthaMaProfileImage=?, AsthaMaUserName=?, AsthaMaGuardianName=?, AsthaMaDOB=?, AsthaMaGuardianContactNo=?, 
-        AsthaMaStateName=?, AsthaMaDistName=?, AsthaMaCity=?, AsthaMaBlockName=?, AsthaMaPO=?, AsthaMaPS=?, 
-        AsthaMaGramPanchayet=?, AsthaMaVillage=?, AsthaMaPincode=?, AsthaMaContactNo=?, AsthaMaMailId=?, 
-        AsthaMaBankName=?, AsthaMaBranchName=?, AsthaMaBankAcctNo=?, AsthaMaIFSCode=?, AsthaMaPanNo=?, AsthaMaAadharNo=?, 
-        AsthaMaJoiningAmt=?, AsthaMaWalletBalance=?, AsthaMaSignupUserName=?, AsthaMaSignupEmail=?, AsthaMaSignupPassword=?, 
-        AsthaMaIsActive=?, AsthaMaAprovedBy=?, AsthaMaAprovalDate=?, AsthaMaRegNo=?
-        WHERE AsthaMaRegId=?`;
+    const findStateMappingQuery = `
+        SELECT snr.StateNGORegId
+        FROM state_ngo_reg snr
+        JOIN state s ON snr.StateNGOStateId = s.StateId
+        WHERE s.StateName = ? LIMIT 1
+    `;
 
-    const values = [
-        data.AsthaMaProfileImage, data.AsthaMaUserName, data.AsthaMaGuardianName, data.AsthaMaDOB, data.AsthaMaGuardianContactNo,
-        data.AsthaMaStateName, data.AsthaMaDistName, data.AsthaMaCity, data.AsthaMaBlockName, data.AsthaMaPO, data.AsthaMaPS,
-        data.AsthaMaGramPanchayet, data.AsthaMaVillage, data.AsthaMaPincode, data.AsthaMaContactNo, data.AsthaMaMailId,
-        data.AsthaMaBankName, data.AsthaMaBranchName, data.AsthaMaBankAcctNo, data.AsthaMaIFSCode, data.AsthaMaPanNo, data.AsthaMaAadharNo,
-        data.AsthaMaJoiningAmt, data.AsthaMaWalletBalance, data.AsthaMaSignupUserName, data.AsthaMaSignupEmail, data.AsthaMaSignupPassword,
-        data.AsthaMaIsActive, data.AsthaMaAprovedBy, data.AsthaMaAprovalDate, data.AsthaMaRegNo, id
-    ];
-
-    db.query(updateQuery, values, (err) => {
-        if (err) { console.error("❌ updateAsthaMaa Primary DB Error:", err.message); return res.status(500).json({ error: err.message }); }
-
-        if (data.AsthaMaSignupPassword && data.AsthaMaSignupEmail) {
-            const signupQuery = `UPDATE userssignup SET UserSignUpPassword=? WHERE UserSignUpEmail=? AND UserSignUpRole='Astha Maa'`;
-            const signupValues = [data.AsthaMaSignupPassword, data.AsthaMaSignupEmail];
-            db.query(signupQuery, signupValues, (signupErr) => {
-                if (signupErr) console.error("❌ Auto-Update Signup DB Error (Astha Maa):", signupErr.message);
-            });
+    db.query(findStateMappingQuery, [data.AsthaMaStateName], (err, mappingResult) => {
+        if (err) {
+            console.error("❌ Error mapping StateNGORegId on Astha Maa Update:", err.message);
+            return res.status(500).json({ error: 'Database error while resolving State ID.' });
         }
-        res.json({ message: 'Record updated successfully' });
+
+        const mappedStateNGORegId = mappingResult.length > 0 ? mappingResult[0].StateNGORegId : null;
+
+        const updateQuery = `UPDATE asthama_reg SET 
+            AsthaMaProfileImage=?, AsthaMaUserName=?, AsthaMaGuardianName=?, AsthaMaDOB=?, AsthaMaGuardianContactNo=?, 
+            AsthaMaStateName=?, AsthaMaDistName=?, AsthaMaCity=?, AsthaMaBlockName=?, AsthaMaPO=?, AsthaMaPS=?, 
+            AsthaMaGramPanchayet=?, AsthaMaVillage=?, AsthaMaPincode=?, AsthaMaContactNo=?, AsthaMaMailId=?, 
+            AsthaMaBankName=?, AsthaMaBranchName=?, AsthaMaBankAcctNo=?, AsthaMaIFSCode=?, AsthaMaPanNo=?, AsthaMaAadharNo=?, 
+            AsthaMaJoiningAmt=?, AsthaMaWalletBalance=?, AsthaMaSignupUserName=?, AsthaMaSignupEmail=?, AsthaMaSignupPassword=?, 
+            StateNGORegId=?, AsthaMaIsActive=?, AsthaMaAprovedBy=?, AsthaMaAprovalDate=?, AsthaMaRegNo=?
+            WHERE AsthaMaRegId=?`;
+
+        const values = [
+            data.AsthaMaProfileImage, data.AsthaMaUserName, data.AsthaMaGuardianName, data.AsthaMaDOB, data.AsthaMaGuardianContactNo,
+            data.AsthaMaStateName, data.AsthaMaDistName, data.AsthaMaCity, data.AsthaMaBlockName, data.AsthaMaPO, data.AsthaMaPS,
+            data.AsthaMaGramPanchayet, data.AsthaMaVillage, data.AsthaMaPincode, data.AsthaMaContactNo, data.AsthaMaMailId,
+            data.AsthaMaBankName, data.AsthaMaBranchName, data.AsthaMaBankAcctNo, data.AsthaMaIFSCode, data.AsthaMaPanNo, data.AsthaMaAadharNo,
+            data.AsthaMaJoiningAmt, data.AsthaMaWalletBalance, data.AsthaMaSignupUserName, data.AsthaMaSignupEmail, data.AsthaMaSignupPassword,
+            mappedStateNGORegId, // 👈 Re-mapped ID injected on Update
+            data.AsthaMaIsActive, data.AsthaMaAprovedBy, data.AsthaMaAprovalDate, data.AsthaMaRegNo, id
+        ];
+
+        db.query(updateQuery, values, (err) => {
+            if (err) { console.error("❌ updateAsthaMaa Primary DB Error:", err.message); return res.status(500).json({ error: err.message }); }
+
+            if (data.AsthaMaSignupPassword && data.AsthaMaSignupEmail) {
+                const signupQuery = `UPDATE userssignup SET UserSignUpPassword=? WHERE UserSignUpEmail=? AND UserSignUpRole='Astha Maa'`;
+                const signupValues = [data.AsthaMaSignupPassword, data.AsthaMaSignupEmail];
+                db.query(signupQuery, signupValues, (signupErr) => {
+                    if (signupErr) console.error("❌ Auto-Update Signup DB Error (Astha Maa):", signupErr.message);
+                });
+            }
+            res.json({ message: 'Record updated successfully' });
+        });
     });
 };
 
@@ -475,7 +554,7 @@ exports.updateDistrictAdmin = (req, res) => {
             WHERE DistNGORegId=?`;
 
         const values = [
-            data.DistNGOName, data.DistNGORegDate, data.DistNGORegNo, data.DistNGOPanNo, data.DistNGODarpanId, data.DistNGOMailId, data.DistNGOPhoneNo, data.DistNGORegAddress, data.DistNGOWorkingAddress, data.DistNGOStateName, data.DistNGODistName, data.DistNGOBlockName, data.DistNGOSDPName, data.DistNGOSDPMailId, data.DistNGOSDPPhoneNo, data.DistNGOSDPAadhaarNo, data.DistNGOBankAcctHolderName, data.DistNGOBankName, data.DistNGOAcctNo, data.DistNGOIFSCode, data.DistNGOBankAdd, data.DistNGORecCertificate, data.DistNGOPanPic, data.DistNGODarpanPic, data.DistNGOSignupUserName, data.DistNGOSignupEmail, data.DistNGOSignupPassword, 
+            data.DistNGOName, data.DistNGORegDate, data.DistNGORegNo, data.DistNGOPanNo, data.DistNGODarpanId, data.DistNGOMailId, data.DistNGOPhoneNo, data.DistNGORegAddress, data.DistNGOWorkingAddress, data.DistNGOStateName, data.DistNGODistName, data.DistNGOBlockName, data.DistNGOSDPName, data.DistNGOSDPMailId, data.DistNGOSDPPhoneNo, data.DistNGOSDPAadhaarNo, data.DistNGOBankAcctHolderName, data.DistNGOBankName, data.DistNGOAcctNo, data.DistNGOIFSCode, data.DistNGOBankAdd, data.DistNGORecCertificate, data.DistNGOPanPic, data.DistNGODarpanPic, data.DistNGOSignupUserName, data.DistNGOSignupEmail, data.DistNGOSignupPassword,
             mappedStateNGORegId,
             data.DistNGOIsActive, data.DistNGOAprovedBy, data.DistNGOAprovedDate, data.DistNGOGenRegNo, id
         ];
@@ -534,11 +613,9 @@ exports.getSupervisor = (req, res) => {
     });
 };
 
-// 👇 UPDATED: Automatically maps StateNGORegId during creation
 exports.createSupervisor = (req, res) => {
     const data = req.body;
 
-    // STEP 1: Look up StateNGORegId dynamically based on the state selected
     const findStateMappingQuery = `
         SELECT snr.StateNGORegId
         FROM state_ngo_reg snr
@@ -552,7 +629,6 @@ exports.createSupervisor = (req, res) => {
             return res.status(500).json({ error: 'Database error while resolving State ID.' });
         }
 
-        // Extract the ID if found, otherwise default to null
         const mappedStateNGORegId = mappingResult.length > 0 ? mappingResult[0].StateNGORegId : null;
 
         const insertQuery = `INSERT INTO suvervisor_reg (
@@ -571,9 +647,9 @@ exports.createSupervisor = (req, res) => {
             data.SupGramPanchayet, data.SupVillage, data.SupPincode, data.SupContactNo, data.SupMailId,
             data.SupBankName, data.SupBranchName, data.SupAcctNo, data.SupIFSCode, data.SupPanNo, data.SupAadharNo,
             data.SupJoiningAmt, data.SupWalletBalance, data.SupSignupUserName, data.SupSignupEmail, data.SupSignupPassword,
-            data.SupCreatedByAuthRegId || null, 
-            mappedStateNGORegId, // 👈 INJECTED HERE Automatically
-            data.DistNGORegId || null, 
+            data.SupCreatedByAuthRegId || null,
+            mappedStateNGORegId,
+            data.DistNGORegId || null,
             data.SupIsActive || 1, data.SupAprovedBy || null, data.SupAprovedDate || null, data.SupRegNo || null
         ];
 
@@ -598,7 +674,6 @@ exports.createSupervisor = (req, res) => {
     });
 };
 
-// 👇 UPDATED: Automatically re-maps StateNGORegId during update if state changes
 exports.updateSupervisor = (req, res) => {
     const { id } = req.params;
     const data = req.body;
@@ -607,7 +682,6 @@ exports.updateSupervisor = (req, res) => {
         data.SupProfileImage = `ID:${id}||${data.SupProfileImage}`;
     }
 
-    // Look up StateNGORegId dynamically based on the state selected
     const findStateMappingQuery = `
         SELECT snr.StateNGORegId
         FROM state_ngo_reg snr
@@ -638,7 +712,7 @@ exports.updateSupervisor = (req, res) => {
             data.SupGramPanchayet, data.SupVillage, data.SupPincode, data.SupContactNo, data.SupMailId,
             data.SupBankName, data.SupBranchName, data.SupAcctNo, data.SupIFSCode, data.SupPanNo, data.SupAadharNo,
             data.SupJoiningAmt, data.SupWalletBalance, data.SupSignupUserName, data.SupSignupEmail, data.SupSignupPassword,
-            mappedStateNGORegId, // 👈 Re-mapped ID injected on Update
+            mappedStateNGORegId,
             data.SupIsActive, data.SupAprovedBy, data.SupAprovedDate, data.SupRegNo, id
         ];
 

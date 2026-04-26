@@ -249,12 +249,12 @@ const AccountTab = () => {
         adminOptions = [
             { value: 'Supervisor', label: 'Supervisor' },
             { value: 'Astha Didi', label: 'Astha Didi' },
-            { value: 'Astha Maa', label: 'Astha Maa' }
+            // { value: 'Astha Maa', label: 'Astha Maa' }
         ];
     } else if (appUserRole === 'Supervisor') {
         adminOptions = [
             { value: 'Astha Didi', label: 'Astha Didi' },
-            // { value: 'Astha Maa', label: 'Astha Maa' }
+            { value: 'Astha Maa', label: 'Astha Maa' }
         ];
     } else if (appUserRole === 'Astha Didi') {
         adminOptions = [

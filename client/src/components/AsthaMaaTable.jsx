@@ -289,9 +289,15 @@ const AsthaMaaTable = ({ refreshTrigger, externalFilters }) => {
             data = data.filter(member => String(member.AsthaMaIsActive) !== '0');
 
             const user = getSafeUser();
-            // ✅ DB MAPPING: Only show Astha Maas created by the logged-in Astha Didi
-            if (user && user.role === 'Astha Didi') {
-                data = data.filter(member => String(member.AsthaMaCreatedByAuthRegId) === String(user.id || user.UserSignUpId));
+            if (user) {
+                // Only show Astha Maas created by the logged-in Astha Didi
+                if (user.role === 'Astha Didi') {
+                    data = data.filter(member => String(member.AsthaMaCreatedByAuthRegId) === String(user.id || user.UserSignUpId));
+                } 
+                // ✅ DB MAPPING: Only show the profile of the logged-in Astha Maa
+                else if (user.role === 'Astha Maa') {
+                    data = data.filter(member => String(member.AsthaMaRegId) === String(user.ProfileRegId));
+                }
             }
             setMembers(data);
         } catch (error) { toast.error("Failed to load table data.", { position: "top-right" }); }
@@ -302,8 +308,8 @@ const AsthaMaaTable = ({ refreshTrigger, externalFilters }) => {
 
     // STRICT DATA VISIBILITY: 
     const filteredMembers = useMemo(() => {
-        // ✅ BYPASS EXCEPTION: Astha Didi doesn't have external filters, so allow data through!
-        if (userRole !== 'Astha Didi') {
+        // ✅ BYPASS EXCEPTION: Astha Didi & Astha Maa don't have external filters, allow data through!
+        if (userRole !== 'Astha Didi' && userRole !== 'Astha Maa') {
             if (!externalFilters?.filterMotherNgo || !externalFilters?.filterState || !externalFilters?.filterDistrict || !externalFilters?.filterSupervisor) {
                 return []; // Array is forcibly empty for Admins/Supervisors until filters are picked
             }
@@ -318,8 +324,6 @@ const AsthaMaaTable = ({ refreshTrigger, externalFilters }) => {
                 );
             }
 
-            // Default matches to true. If filters exist, apply them. 
-            // (Astha Didi has no filters, so these remain true)
             let matchesState = true;
             if (externalFilters?.filterState) {
                 const dbState = member.AsthaMaStateName ? String(member.AsthaMaStateName).trim().toLowerCase() : "";
@@ -608,8 +612,8 @@ const AsthaMaaTable = ({ refreshTrigger, externalFilters }) => {
                                     {currentMembers.length === 0 && (
                                         <tr>
                                             <td colSpan="30" style={{ ...styles.td, textAlign: 'center' }}>
-                                                {/* ✅ DYNAMIC EMPTY STATE TEXT: Astha Didi gets a normal message, others get the strict filter warning */}
-                                                {(userRole !== 'Astha Didi' && (!externalFilters?.filterMotherNgo || !externalFilters?.filterState || !externalFilters?.filterDistrict || !externalFilters?.filterSupervisor))
+                                                {/* ✅ DYNAMIC EMPTY STATE TEXT: Astha Didi & Astha Maa get a normal message, others get the strict filter warning */}
+                                                {(userRole !== 'Astha Didi' && userRole !== 'Astha Maa' && (!externalFilters?.filterMotherNgo || !externalFilters?.filterState || !externalFilters?.filterDistrict || !externalFilters?.filterSupervisor))
                                                     ? "Please select all filters above (DISTRICT NGO, State, District, and Supervisor) to view data."
                                                     : "No members found. Try clearing your search filters!"}
                                             </td>

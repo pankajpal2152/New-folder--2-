@@ -240,7 +240,8 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
                     </div>
                 </div>
 
-                <form onSubmit={handleSubmit(onSubmitAsthaMaa, onErrorAsthaMaa)}>
+                {/* 👇 FIX: Added autoComplete="off" to the form tag */}
+                <form onSubmit={handleSubmit(onSubmitAsthaMaa, onErrorAsthaMaa)} autoComplete="off">
                     <h6 style={styles.sectionHeader}>Astha Maa Information</h6>
                     <div style={styles.formGrid}>
                         <Controller name="joiningAmount" control={control} render={({ field }) => (
@@ -312,10 +313,12 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
                             <FormInput label={<>User Name <span style={{ color: '#ff3e1d' }}>*</span></>} id="userName" error={errors.userName} type="text" readOnly disabled={true} {...field} />
                         )} />
                         <Controller name="email" control={control} render={({ field }) => (
-                            <FormInput label={<>Email ID (For Login) <span style={{ color: '#ff3e1d' }}>*</span></>} id="email" error={errors.email} placeholder="Email ID" type="email" maxLength={100} {...field} />
+                            <FormInput label={<>Email ID (For Login) <span style={{ color: '#ff3e1d' }}>*</span></>} id="email" error={errors.email} placeholder="Email ID" type="email" maxLength={100} autoComplete="off" {...field} />
                         )} />
+                        
+                        {/* 👇 FIX: Added autoComplete="new-password" here */}
                         <Controller name="password" control={control} render={({ field }) => (
-                            <PasswordInput label={<>Set Password <span style={{ color: '#ff3e1d' }}>*</span></>} id="password" error={errors.password} {...field} />
+                            <PasswordInput label={<>Set Password <span style={{ color: '#ff3e1d' }}>*</span></>} id="password" error={errors.password} autoComplete="new-password" {...field} />
                         )} />
                     </div>
 
@@ -343,7 +346,6 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
 
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '16px', marginTop: '32px' }}>
                         <button type="button" style={styles.btnOutline} onClick={handleCancelAsthaMaa}>Cancel</button>
-                        {/* 👇 Disabled submit if no Astha Didi is selected */}
                         <button type="submit" style={{ ...styles.btnPrimary, opacity: !filterAsthaDidi ? 0.5 : 1 }} disabled={!filterAsthaDidi}>Submit</button>
                     </div>
                 </form>

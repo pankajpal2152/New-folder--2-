@@ -254,7 +254,8 @@ const AsthaDidiForm = ({ onSuccess, externalFilters }) => {
                     </div>
                 </div>
 
-                <form onSubmit={handleSubmit(onSubmitAsthaDidi, onErrorAsthaDidi)}>
+                {/* 👇 FIX: Added autoComplete="off" to the form element */}
+                <form onSubmit={handleSubmit(onSubmitAsthaDidi, onErrorAsthaDidi)} autoComplete="off">
                     <h6 style={styles.sectionHeader}>Astha Didi Information</h6>
                     <div style={styles.formGrid}>
                         <Controller name="joiningAmount" control={control} render={({ field }) => (
@@ -328,11 +329,15 @@ const AsthaDidiForm = ({ onSuccess, externalFilters }) => {
                         <Controller name="userName" control={control} render={({ field }) => (
                             <FormInput label={<>User Name <span style={{ color: '#ff3e1d' }}>*</span></>} id="userName" error={errors.userName} type="text" readOnly disabled {...field} />
                         )} />
+                        
+                        {/* 👇 FIX: Added autoComplete="off" to the email input */}
                         <Controller name="email" control={control} render={({ field }) => (
-                            <FormInput label={<>Email ID (For Login) <span style={{ color: '#ff3e1d' }}>*</span></>} id="email" error={errors.email} placeholder="Email ID" type="email" maxLength={100} {...field} />
+                            <FormInput label={<>Email ID (For Login) <span style={{ color: '#ff3e1d' }}>*</span></>} id="email" error={errors.email} placeholder="Email ID" type="email" maxLength={100} autoComplete="off" {...field} />
                         )} />
+                        
+                        {/* 👇 FIX: Added autoComplete="new-password" to the password input */}
                         <Controller name="password" control={control} render={({ field }) => (
-                            <PasswordInput label={<>Set New Password <span style={{ color: '#ff3e1d' }}>* (Don't forget it!)</span></>} id="password" error={errors.password} {...field} />
+                            <PasswordInput label={<>Set New Password <span style={{ color: '#ff3e1d' }}>* (Don't forget it!)</span></>} id="password" error={errors.password} autoComplete="new-password" {...field} />
                         )} />
                     </div>
 

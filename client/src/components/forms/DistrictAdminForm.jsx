@@ -220,7 +220,8 @@ const DistrictAdminForm = ({ onSuccess }) => {
                 <h5>District Administrator Registration</h5>
             </div>
             <div style={styles.cardBody}>
-                <form onSubmit={handleSubmit(onSubmitDistrictAdmin, onError)}>
+                {/* Added autoComplete="off" to the main form to prevent general history autofill */}
+                <form onSubmit={handleSubmit(onSubmitDistrictAdmin, onError)} autoComplete="off">
 
                     <h6 style={styles.sectionHeader}>NGO Details</h6>
                     <div style={styles.formGrid}>
@@ -302,11 +303,15 @@ const DistrictAdminForm = ({ onSuccess }) => {
                         <Controller name="userName" control={control} render={({ field }) => (
                             <FormInput label={<>User Name <span style={{ color: '#ff3e1d' }}>*</span></>} id="userName" error={errors.userName} type="text" readOnly disabled={true} {...field} />
                         )} />
+                        
+                        {/* Added autoComplete="off" to stop email suggestions */}
                         <Controller name="ngoEmail" control={control} render={({ field }) => (
-                            <FormInput label={<>Email ID (For Login) <span style={{ color: '#ff3e1d' }}>*</span></>} id="ngoEmail" error={errors.ngoEmail} type="email" {...field} />
+                            <FormInput label={<>Email ID (For Login) <span style={{ color: '#ff3e1d' }}>*</span></>} id="ngoEmail" error={errors.ngoEmail} type="email" autoComplete="off" {...field} />
                         )} />
+                        
+                        {/* Added autoComplete="new-password" to stop the browser from filling in the user's saved login password */}
                         <Controller name="password" control={control} render={({ field }) => (
-                            <PasswordInput label={<>Set New Password <span style={{ color: '#ff3e1d' }}>* (Don't forget it!)</span></>} id="password" error={errors.password} {...field} />
+                            <PasswordInput label={<>Set New Password <span style={{ color: '#ff3e1d' }}>* (Don't forget it!)</span></>} id="password" error={errors.password} autoComplete="new-password" {...field} />
                         )} />
                     </div>
 

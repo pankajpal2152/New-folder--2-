@@ -60,7 +60,8 @@ const AccountTab = () => {
             setAppUserRole('');
         }
 
-        fetch(`${API_BASE_URL}/filter/states`).then(res => res.json()).then(data => {
+        // FETCH FIX: Changed from /filter/states to /states to get the full list
+        fetch(`${API_BASE_URL}/states`).then(res => res.json()).then(data => {
             setDbStates(data.map(s => ({ value: s.StateId, label: s.StateName })));
         }).catch(() => { });
 
@@ -95,7 +96,8 @@ const AccountTab = () => {
     // Fetch STRICT Districts dynamically when State changes
     useEffect(() => {
         if (filterState && filterState.value) {
-            fetch(`${API_BASE_URL}/filter/districts/${filterState.value}`).then(res => res.json()).then(data => {
+            // FETCH FIX: Changed from /filter/districts/ to /districts/ to get the full list
+            fetch(`${API_BASE_URL}/districts/${filterState.value}`).then(res => res.json()).then(data => {
                 setDbDistricts(data.map(d => ({ value: d.DistId, label: d.DistName })));
             }).catch(() => { });
         } else if (appUserRole !== 'Astha Didi') {

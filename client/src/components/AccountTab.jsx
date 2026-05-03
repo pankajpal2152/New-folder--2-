@@ -149,6 +149,11 @@ const AccountTab = () => {
     }, [dbDistricts, filterMotherNgo]);
 
     const filteredSupervisorOptions = useMemo(() => {
+        // 👇 FIX: If the logged-in user is a Supervisor, strictly return ONLY their profile!
+        if (appUserRole === 'Supervisor' && loggedInProfileId) {
+            return dbSupervisors.filter(sup => String(sup.value) === String(loggedInProfileId));
+        }
+
         return dbSupervisors.filter(sup => {
             let matches = true;
             if (filterMotherNgo) {
@@ -170,7 +175,7 @@ const AccountTab = () => {
             }
             return matches;
         });
-    }, [dbSupervisors, filterMotherNgo, filterState, filterDistrict]);
+    }, [dbSupervisors, filterMotherNgo, filterState, filterDistrict, appUserRole, loggedInProfileId]); // Added dependencies
 
     const filteredAsthaDidiOptions = useMemo(() => {
         return dbAsthaDidis.filter(ad => {
@@ -199,6 +204,13 @@ const AccountTab = () => {
     useEffect(() => {
         if (filterState && filteredDistrictOptions.length === 1 && !filterDistrict) setFilterDistrict(filteredDistrictOptions[0]);
     }, [filterState, filteredDistrictOptions, filterDistrict]);
+
+    // 👇 FIX: Auto-select the Supervisor if there is only 1 in the list (which is true when logged in as Supervisor)
+    useEffect(() => {
+        if (filteredSupervisorOptions.length === 1 && !filterSupervisor) {
+            setFilterSupervisor(filteredSupervisorOptions[0]);
+        }
+    }, [filteredSupervisorOptions, filterSupervisor]);
 
     useEffect(() => {
         if (filterSupervisor && filteredAsthaDidiOptions.length === 1 && !filterAsthaDidi) {
@@ -397,12 +409,13 @@ const AccountTab = () => {
                             {isSupervisorVisible && (
                                 <div style={{ width: '100%', maxWidth: '200px' }}>
                                     <label style={{ ...styles.label, marginBottom: '8px', display: 'block' }}>Supervisor</label>
+                                    {/* 👇 FIX: Disabled the dropdown and removed the Clear button if logged in as Supervisor */}
                                     <Select 
                                         options={filteredSupervisorOptions} 
                                         value={filterSupervisor} 
                                         onChange={handleSupervisorChange} 
-                                        isDisabled={!filterDistrict} 
-                                        isClearable 
+                                        isDisabled={!filterDistrict || appUserRole === 'Supervisor'} 
+                                        isClearable={appUserRole !== 'Supervisor'} 
                                         placeholder="All Supervisors" 
                                         styles={{ ...styles.selectStyles(false), menuPortal: base => ({ ...base, zIndex: 99999 }) }} 
                                         menuPortalTarget={document.body} 

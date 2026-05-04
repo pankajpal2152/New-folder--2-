@@ -585,7 +585,11 @@ const SupervisorTable = ({ refreshTrigger, externalFilters }) => {
                                             <td style={styles.stickyRightTd}>
                                                 <button onClick={() => openModal('view', row)} style={styles.actionBtn}>👁️</button>
                                                 <button onClick={() => openModal('edit', row)} style={styles.actionBtn}>✏️</button>
-                                                <button onClick={() => openModal('delete', row)} style={styles.actionBtn}>🗑️</button>
+                                                
+                                                {userRole === 'State Super Administrator' && (
+                                                    <button onClick={() => openModal('delete', row)} style={styles.actionBtn}>🗑️</button>
+                                                )}
+                                                
                                                 {Number(row.SupIsActive) !== 2 && (
                                                     <button onClick={() => openModal('approve', row)} style={styles.actionBtn}>✅</button>
                                                 )}

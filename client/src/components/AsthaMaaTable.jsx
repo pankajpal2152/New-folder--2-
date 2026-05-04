@@ -597,13 +597,11 @@ const AsthaMaaTable = ({ refreshTrigger, externalFilters }) => {
                                                 <button onClick={() => openModal('view', row)} style={styles.actionBtn}>👁️</button>
                                                 <button onClick={() => openModal('edit', row)} style={styles.actionBtn}>✏️</button>
                                                 
-                                                {/* IMPLEMENTED RBAC FIX: Delete button hidden if role is Astha Didi OR Astha Maa */}
-                                                {userRole !== 'Astha Didi' && userRole !== 'Astha Maa' && (
+                                                {userRole === 'State Super Administrator' && (
                                                     <button onClick={() => openModal('delete', row)} style={styles.actionBtn}>🗑️</button>
                                                 )}
                                                 
-                                                {/* IMPLEMENTED RBAC FIX: Approve button hidden if role is Astha Didi OR Astha Maa */}
-                                                {Number(row.AsthaMaIsActive) !== 2 && userRole !== 'Astha Didi' && userRole !== 'Astha Maa' && (
+                                                {Number(row.AsthaMaIsActive) !== 2 && userRole === 'Astha Didi' && (
                                                     <button onClick={() => openModal('approve', row)} style={styles.actionBtn}>✅</button>
                                                 )}
                                             </td>

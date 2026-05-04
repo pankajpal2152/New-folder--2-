@@ -603,7 +603,7 @@ const MembersTable = ({ refreshTrigger, externalFilters }) => {
                                                 <button onClick={() => openModal('view', row)} style={styles.actionBtn}>👁️</button>
                                                 <button onClick={() => openModal('edit', row)} style={styles.actionBtn}>✏️</button>
 
-                                                {userRole !== 'Astha Didi' && (
+                                                {userRole === 'State Super Administrator' && (
                                                     <button onClick={() => openModal('delete', row)} style={styles.actionBtn}>🗑️</button>
                                                 )}
 

@@ -15,6 +15,9 @@ const formatDisplayDate = (dbDateStr) => {
 
 const AsthaDidiModal = ({ member, mode, onClose, onSuccess }) => {
     const isView = mode === 'view';
+    // ✅ Logic to lock fields in both View and Edit modes
+    const isReadOnlyField = isView || mode === 'edit';
+
     const cleanInitialImage = extractBase64(member.AsthaDidiProfileImage) || DUMMY_AVATAR;
     const [profileImage, setProfileImage] = useState(cleanInitialImage);
     const fileInputRef = useRef(null);
@@ -31,14 +34,24 @@ const AsthaDidiModal = ({ member, mode, onClose, onSuccess }) => {
             sdwOf: member.AsthaDidiGuardianName || '',
             dob: member.AsthaDidiDOB ? String(member.AsthaDidiDOB).substring(0, 10) : '',
             guardianContactNo: member.AsthaDidiGuardianContactNo || '',
-            state: null, district: null, city: member.AsthaDidiCity || '', block: member.AsthaDidiBlockName || '',
-            postOffice: member.AsthaDidiPO || '', policeStation: member.AsthaDidiPS || '', gramPanchayet: member.AsthaDidiGramPanchayet || '',
-            village: member.AsthaDidiVillage || '', pinCode: String(member.AsthaDidiPincode || ''), mobileNo: member.AsthaDidiContactNo || '',
+            state: null, 
+            district: null, 
+            city: member.AsthaDidiCity || '', 
+            block: member.AsthaDidiBlockName || '',
+            postOffice: member.AsthaDidiPO || '', 
+            policeStation: member.AsthaDidiPS || '', 
+            gramPanchayet: member.AsthaDidiGramPanchayet || '',
+            village: member.AsthaDidiVillage || '', 
+            pinCode: String(member.AsthaDidiPincode || ''), 
+            mobileNo: member.AsthaDidiContactNo || '',
             email: member.AsthaDidiSignupEmail || member.AsthaDidiMailId || '',
             userName: member.AsthaDidiSignupUserName || '',
             password: member.AsthaDidiSignupPassword || '',
-            bankName: member.AsthaDidiBankName || '', branchName: member.AsthaDidiBranchName || '',
-            accountNo: member.AsthaDidiBankAcctNo || '', ifsCode: member.AsthaDidiIFSCode || '', panNo: member.AsthaDidiPanNo || '',
+            bankName: member.AsthaDidiBankName || '', 
+            branchName: member.AsthaDidiBranchName || '',
+            accountNo: member.AsthaDidiBankAcctNo || '', 
+            ifsCode: member.AsthaDidiIFSCode || '', 
+            panNo: member.AsthaDidiPanNo || '',
             aadharNo: member.AsthaDidiAadharNo || '',
             deactivateConfirm: false
         }
@@ -46,29 +59,57 @@ const AsthaDidiModal = ({ member, mode, onClose, onSuccess }) => {
 
     const selectedState = watch("state");
 
+    // ✅ FIXED: Sequential Address Initialization Logic
     useEffect(() => {
-        fetch(`${API_BASE_URL}/states`).then(res => res.json()).then(data => {
-            const formattedStates = data.map(s => ({ value: s.StateId, label: s.StateName }));
-            setDbStates(formattedStates);
-            if (member.AsthaDidiStateName) {
-                const matchedState = formattedStates.find(s => s.label === member.AsthaDidiStateName);
-                if (matchedState) setValue("state", matchedState);
-            }
-        });
-    }, [member.AsthaDidiStateName, setValue]);
+        const initializeAddressFields = async () => {
+            try {
+                // 1. Fetch States
+                const stateRes = await fetch(`${API_BASE_URL}/states`);
+                const stateData = await stateRes.json();
+                const formattedStates = stateData.map(s => ({ value: s.StateId, label: s.StateName }));
+                setDbStates(formattedStates);
 
+                // 2. Map State from Database (AsthaDidiStateName)
+                if (member.AsthaDidiStateName) {
+                    const matchedState = formattedStates.find(s => s.label.trim() === member.AsthaDidiStateName.trim());
+                    if (matchedState) {
+                        setValue("state", matchedState);
+
+                        // 3. Fetch Districts for that state
+                        const distRes = await fetch(`${API_BASE_URL}/districts/${matchedState.value}`);
+                        const distData = await distRes.json();
+                        const formattedDistricts = distData.map(d => ({ value: d.DistId, label: d.DistName }));
+                        setDbDistricts(formattedDistricts);
+
+                        // 4. Map District from Database (AsthaDidiDistName)
+                        if (member.AsthaDidiDistName) {
+                            const matchedDist = formattedDistricts.find(d => d.label.trim() === member.AsthaDidiDistName.trim());
+                            if (matchedDist) {
+                                setValue("district", matchedDist);
+                            }
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error("Initialization error in Astha Didi Modal:", err);
+            }
+        };
+
+        initializeAddressFields();
+    }, [member, setValue]);
+
+    // Handle manual state changes if needed (though disabled in Edit)
     useEffect(() => {
         if (selectedState && selectedState.value) {
-            fetch(`${API_BASE_URL}/districts/${selectedState.value}`).then(res => res.json()).then(data => {
-                const formattedDistricts = data.map(d => ({ value: d.DistId, label: d.DistName }));
-                setDbDistricts(formattedDistricts);
-                if (member.AsthaDidiDistName) {
-                    const matchedDist = formattedDistricts.find(d => d.label === member.AsthaDidiDistName);
-                    if (matchedDist) setValue("district", matchedDist);
-                }
-            });
-        } else { setDbDistricts([]); }
-    }, [selectedState, member.AsthaDidiDistName, setValue]);
+            fetch(`${API_BASE_URL}/districts/${selectedState.value}`)
+                .then(res => res.json())
+                .then(data => {
+                    const formattedDistricts = data.map(d => ({ value: d.DistId, label: d.DistName }));
+                    setDbDistricts(formattedDistricts);
+                })
+                .catch(() => { });
+        }
+    }, [selectedState]);
 
     const handleUploadClick = () => {
         if (!isView && fileInputRef.current) fileInputRef.current.click();
@@ -102,14 +143,32 @@ const AsthaDidiModal = ({ member, mode, onClose, onSuccess }) => {
         const dbPayload = {
             ...member,
             AsthaDidiProfileImage: profileImage === DUMMY_AVATAR ? null : profileImage,
-            AsthaDidiUserName: data.fullName, AsthaDidiGuardianName: data.sdwOf || "", AsthaDidiDOB: data.dob, AsthaDidiGuardianContactNo: data.guardianContactNo || "",
-            AsthaDidiStateName: stateName, AsthaDidiDistName: districtName, AsthaDidiCity: data.city || "", AsthaDidiBlockName: data.block || "",
-            AsthaDidiPO: data.postOffice || "", AsthaDidiPS: data.policeStation || "", AsthaDidiGramPanchayet: data.gramPanchayet || "",
-            AsthaDidiVillage: data.village || "", AsthaDidiPincode: parseInt(data.pinCode), AsthaDidiContactNo: data.mobileNo, AsthaDidiMailId: data.email,
-            AsthaDidiSignupUserName: data.userName, AsthaDidiSignupEmail: data.email, AsthaDidiSignupPassword: data.password,
-            AsthaDidiBankName: data.bankName || "", AsthaDidiBranchName: data.branchName || "", AsthaDidiBankAcctNo: data.accountNo || "0",
-            AsthaDidiIFSCode: data.ifsCode || "", AsthaDidiPanNo: data.panNo || "", AsthaDidiAadharNo: data.aadharNo,
-            AsthaDidiJoiningAmt: parseInt(data.joiningAmount) || 5000, AsthaDidiWalletBalance: parseInt(data.walletBalance) || 0,
+            AsthaDidiUserName: data.fullName, 
+            AsthaDidiGuardianName: data.sdwOf || "", 
+            AsthaDidiDOB: data.dob, 
+            AsthaDidiGuardianContactNo: data.guardianContactNo || "",
+            AsthaDidiStateName: stateName, 
+            AsthaDidiDistName: districtName, 
+            AsthaDidiCity: data.city || "", 
+            AsthaDidiBlockName: data.block || "",
+            AsthaDidiPO: data.postOffice || "", 
+            AsthaDidiPS: data.policeStation || "", 
+            AsthaDidiGramPanchayet: data.gramPanchayet || "",
+            AsthaDidiVillage: data.village || "", 
+            AsthaDidiPincode: parseInt(data.pinCode), 
+            AsthaDidiContactNo: data.mobileNo, 
+            AsthaDidiMailId: data.email,
+            AsthaDidiSignupUserName: data.userName, 
+            AsthaDidiSignupEmail: data.email, 
+            AsthaDidiSignupPassword: data.password,
+            AsthaDidiBankName: data.bankName || "", 
+            AsthaDidiBranchName: data.branchName || "", 
+            AsthaDidiBankAcctNo: data.accountNo || "0",
+            AsthaDidiIFSCode: data.ifsCode || "", 
+            AsthaDidiPanNo: data.panNo || "", 
+            AsthaDidiAadharNo: data.aadharNo,
+            AsthaDidiJoiningAmt: parseInt(data.joiningAmount) || 5000, 
+            AsthaDidiWalletBalance: parseInt(data.walletBalance) || 0,
             AsthaDidiCreatedByAuthRegId: currentUserId
         };
 
@@ -122,7 +181,7 @@ const AsthaDidiModal = ({ member, mode, onClose, onSuccess }) => {
             });
             toast.dismiss('update');
             if (res.ok) { toast.success("Member updated successfully!", { position: "top-right" }); onSuccess(); }
-            else { toast.error("Failed to update. Check backend logs.", { position: "top-right" }); }
+            else { toast.error("Failed to update.", { position: "top-right" }); }
         } catch (error) { toast.dismiss('update'); toast.error("Network error.", { position: "top-right" }); }
     };
 
@@ -177,12 +236,14 @@ const AsthaDidiModal = ({ member, mode, onClose, onSuccess }) => {
                                     <Select 
                                         {...field} 
                                         options={dbStates} 
+                                        placeholder={member.AsthaDidiStateName || "Select..."}
                                         styles={{
                                             ...styles.selectStyles(!!errors.state),
                                             menuPortal: base => ({ ...base, zIndex: 99999 }),
                                             menu: base => ({ ...base, zIndex: 99999 })
                                         }} 
-                                        isDisabled={isView} 
+                                        // ✅ LOCKED in both Edit and View
+                                        isDisabled={isReadOnlyField} 
                                         menuPortalTarget={document.body}
                                         menuPosition="fixed"
                                     />
@@ -194,12 +255,14 @@ const AsthaDidiModal = ({ member, mode, onClose, onSuccess }) => {
                                     <Select 
                                         {...field} 
                                         options={dbDistricts} 
+                                        placeholder={member.AsthaDidiDistName || "Select..."}
                                         styles={{
                                             ...styles.selectStyles(!!errors.district),
                                             menuPortal: base => ({ ...base, zIndex: 99999 }),
                                             menu: base => ({ ...base, zIndex: 99999 })
                                         }} 
-                                        isDisabled={isView || !selectedState} 
+                                        // ✅ LOCKED in both Edit and View
+                                        isDisabled={isReadOnlyField} 
                                         menuPortalTarget={document.body}
                                         menuPosition="fixed"
                                     />
@@ -288,7 +351,6 @@ const MembersTable = ({ refreshTrigger, externalFilters }) => {
             if (!res.ok) throw new Error("Failed to fetch table data");
             let data = await res.json();
 
-            // Filter out deactivated rows
             data = data.filter(member => String(member.AsthaDidiIsActive) !== '0');
 
             const user = getSafeUser();
@@ -310,11 +372,9 @@ const MembersTable = ({ refreshTrigger, externalFilters }) => {
 
     useEffect(() => { fetchMembers(); }, [refreshTrigger]);
 
-    // STRICT DATA VISIBILITY: Check if all expected filters are chosen before rendering rows!
     const filteredMembers = useMemo(() => {
-        // If the user has NOT successfully chosen the entire chain, block the data
         if (!externalFilters?.filterMotherNgo || !externalFilters?.filterState || !externalFilters?.filterDistrict || !externalFilters?.filterSupervisor) {
-            return []; // Array is forcibly empty
+            return []; 
         }
 
         return members.filter((member) => {
@@ -431,7 +491,7 @@ const MembersTable = ({ refreshTrigger, externalFilters }) => {
                     }
                 }
             } catch (e) {
-                console.error("Error fetching state/dist IDs for approval generation:", e);
+                console.error("Error generating ID:", e);
             }
 
             const aadhar = member.AsthaDidiAadharNo || '000000000000';
@@ -446,35 +506,27 @@ const MembersTable = ({ refreshTrigger, externalFilters }) => {
     const confirmDelete = async () => {
         try {
             toast.loading("Deleting...", { toastId: 'delete' });
-
             const payload = { ...selectedRow, AsthaDidiIsActive: "0" };
-
             Object.keys(payload).forEach(key => {
                 if (key !== 'AsthaDidiAprovalDate' && typeof payload[key] === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(payload[key])) {
                     payload[key] = payload[key].substring(0, 10);
                 }
             });
-
             const res = await fetch(`${API_BASE_URL}/asthadidi/${selectedRow.AsthaDidiRegId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
             });
-
             toast.dismiss('delete');
             if (res.ok) {
                 toast.success("Member deleted.");
                 setMembers(prev => prev.filter(m => m.AsthaDidiRegId !== selectedRow.AsthaDidiRegId));
                 closeModal();
-            }
-            else { toast.error("Failed to delete."); }
+            } else { toast.error("Failed to delete."); }
         } catch (error) { toast.dismiss('delete'); toast.error("Network error."); }
     };
 
     const confirmApprove = async () => {
         try {
             toast.loading("Approving...", { toastId: 'approve' });
-
             const payload = {
                 ...selectedRow,
                 AsthaDidiIsActive: 2,
@@ -482,13 +534,11 @@ const MembersTable = ({ refreshTrigger, externalFilters }) => {
                 AsthaDidiAprovalDate: approvalData.dbDate,
                 AsthaDidiAprovedBy: String(userId)
             };
-
             Object.keys(payload).forEach(key => {
                 if (key !== 'AsthaDidiAprovalDate' && typeof payload[key] === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(payload[key])) {
                     payload[key] = payload[key].substring(0, 10);
                 }
             });
-
             const res = await fetch(`${API_BASE_URL}/asthadidi/${selectedRow.AsthaDidiRegId}`, {
                 method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
             });
@@ -512,7 +562,6 @@ const MembersTable = ({ refreshTrigger, externalFilters }) => {
                 <button onClick={fetchMembers} style={styles.btnOutline}>Refresh Data</button>
             </div>
             <div style={styles.cardBody}>
-
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '20px', paddingBottom: '20px', borderBottom: '1px solid #e0e0e0' }}>
                     <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
                         <input
@@ -602,11 +651,9 @@ const MembersTable = ({ refreshTrigger, externalFilters }) => {
                                             <td style={styles.stickyRightTd}>
                                                 <button onClick={() => openModal('view', row)} style={styles.actionBtn}>👁️</button>
                                                 <button onClick={() => openModal('edit', row)} style={styles.actionBtn}>✏️</button>
-
                                                 {userRole === 'State Super Administrator' && (
                                                     <button onClick={() => openModal('delete', row)} style={styles.actionBtn}>🗑️</button>
                                                 )}
-
                                                 {Number(row.AsthaDidiIsActive) !== 2 && userRole !== 'Astha Didi' && (
                                                     <button onClick={() => openModal('approve', row)} style={styles.actionBtn}>✅</button>
                                                 )}
@@ -617,8 +664,8 @@ const MembersTable = ({ refreshTrigger, externalFilters }) => {
                                         <tr>
                                             <td colSpan="31" style={{ ...styles.td, textAlign: 'center' }}>
                                                 {(!externalFilters?.filterMotherNgo || !externalFilters?.filterState || !externalFilters?.filterDistrict || !externalFilters?.filterSupervisor)
-                                                    ? "Please select all filters above (DISTRICT NGO, State, District, and Supervisor) to view data."
-                                                    : "No members found. Try clearing your search filters!"}
+                                                    ? "Please select all filters above to view data."
+                                                    : "No members found."}
                                             </td>
                                         </tr>
                                     )}
@@ -665,16 +712,13 @@ const MembersTable = ({ refreshTrigger, externalFilters }) => {
                 <div style={styles.modalOverlay}>
                     <div style={{ ...styles.modalContent, maxWidth: '450px', textAlign: 'center' }}>
                         <h4 style={{ color: '#71dd37', marginBottom: '16px' }}>Approve Astha Didi</h4>
-
                         <div style={{ textAlign: 'left', background: '#f8f9fa', padding: '16px', borderRadius: '8px', marginBottom: '20px', fontSize: '0.9rem', color: '#566a7f', lineHeight: '1.6' }}>
                             <p style={{ margin: '6px 0' }}><strong>Candidate Name:</strong> {selectedRow.AsthaDidiUserName}</p>
                             <p style={{ margin: '6px 0' }}><strong>Approval ID:</strong> <span style={{ color: '#696cff', fontWeight: 'bold' }}>{approvalData.id}</span></p>
                             <p style={{ margin: '6px 0' }}><strong>Approval Date:</strong> {approvalData.dbDate || 'Loading...'}</p>
                             <p style={{ margin: '6px 0' }}><strong>Authorized Approver:</strong> {userName}</p>
                         </div>
-
                         <p style={{ marginBottom: '20px', color: '#697a8d' }}>Do you want to confirm this approval and store this data?</p>
-
                         <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
                             <button onClick={closeModal} style={styles.btnOutline}>Cancel</button>
                             <button onClick={confirmApprove} style={styles.btnSuccess} disabled={approvalData.id === 'Generating...'}>Confirm Approval</button>

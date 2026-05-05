@@ -48,7 +48,8 @@ const DistrictAdminModal = ({ member, mode, onClose, onSuccess }) => {
             ngoMobile: member.DistNGOPhoneNo || '',
             ngoRegAddress: member.DistNGORegAddress || '',
             ngoWorkingAddress: member.DistNGOWorkingAddress || '',
-            state: null, district: null,
+            state: null, 
+            district: null,
             blockName: member.DistNGOBlockName || '',
             sdpName: member.DistNGOSDPName || '',
             secretaryEmail: member.DistNGOSDPMailId || '',
@@ -74,29 +75,56 @@ const DistrictAdminModal = ({ member, mode, onClose, onSuccess }) => {
         }
     }, [ngoNameValue, setValue, isView]);
 
+    // ✅ FIXED: Fetch states and then immediately fetch districts if state name exists
     useEffect(() => {
-        fetch(`${API_BASE_URL}/states`).then(res => res.json()).then(data => {
-            const formattedStates = data.map(s => ({ value: s.StateId, label: s.StateName }));
-            setDbStates(formattedStates);
-            if (member.DistNGOStateName) {
-                const matchedState = formattedStates.find(s => s.label === member.DistNGOStateName);
-                if (matchedState) setValue("state", matchedState);
-            }
-        });
-    }, [member.DistNGOStateName, setValue]);
+        const initializeAddressFields = async () => {
+            try {
+                const res = await fetch(`${API_BASE_URL}/states`);
+                const data = await res.json();
+                const formattedStates = data.map(s => ({ value: s.StateId, label: s.StateName }));
+                setDbStates(formattedStates);
 
+                if (member.DistNGOStateName) {
+                    const matchedState = formattedStates.find(s => s.label === member.DistNGOStateName);
+                    if (matchedState) {
+                        setValue("state", matchedState);
+                        
+                        // Immediately fetch districts for this state to populate the dropdown list
+                        const distRes = await fetch(`${API_BASE_URL}/districts/${matchedState.value}`);
+                        const distData = await distRes.json();
+                        const formattedDistricts = distData.map(d => ({ value: d.DistId, label: d.DistName }));
+                        setDbDistricts(formattedDistricts);
+
+                        // Now find and set the district value from the freshly loaded list
+                        if (member.DistNGODistName) {
+                            const matchedDist = formattedDistricts.find(d => d.label === member.DistNGODistName);
+                            if (matchedDist) setValue("district", matchedDist);
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error("Error initializing modal address fields:", err);
+            }
+        };
+
+        initializeAddressFields();
+    }, [member.DistNGOStateName, member.DistNGODistName, setValue]);
+
+    // Handle manual state changes by the user
     useEffect(() => {
         if (selectedState && selectedState.value) {
-            fetch(`${API_BASE_URL}/districts/${selectedState.value}`).then(res => res.json()).then(data => {
-                const formattedDistricts = data.map(d => ({ value: d.DistId, label: d.DistName }));
-                setDbDistricts(formattedDistricts);
-                if (member.DistNGODistName) {
-                    const matchedDist = formattedDistricts.find(d => d.label === member.DistNGODistName);
-                    if (matchedDist) setValue("district", matchedDist);
-                }
-            });
-        } else { setDbDistricts([]); }
-    }, [selectedState, member.DistNGODistName, setValue]);
+            // Only fetch if the current districts list doesn't match the selected state (prevents infinite loops)
+            fetch(`${API_BASE_URL}/districts/${selectedState.value}`)
+                .then(res => res.json())
+                .then(data => {
+                    const formattedDistricts = data.map(d => ({ value: d.DistId, label: d.DistName }));
+                    setDbDistricts(formattedDistricts);
+                })
+                .catch(() => { });
+        } else {
+            setDbDistricts([]);
+        }
+    }, [selectedState]);
 
     const handlePdfUpload = async (event, setPdfState) => {
         if (isView) return;
@@ -359,11 +387,9 @@ const DistrictAdminTable = ({ refreshTrigger, externalFilters }) => {
 
     useEffect(() => { fetchMembers(); }, [refreshTrigger]);
 
-    // STRICT DATA VISIBILITY: Check if State and District filters are chosen before rendering rows!
     const filteredMembers = useMemo(() => {
-        // Only State and District filters are required for District Admin table
         if (!externalFilters?.filterState || !externalFilters?.filterDistrict) {
-            return []; // Array is forcibly empty
+            return [];
         }
 
         return members.filter((member) => {
@@ -586,11 +612,9 @@ const DistrictAdminTable = ({ refreshTrigger, externalFilters }) => {
                                         <td style={styles.stickyRightTd}>
                                             <button onClick={() => openModal('view', row)} style={styles.actionBtn}>👁️</button>
                                             <button onClick={() => openModal('edit', row)} style={styles.actionBtn}>✏️</button>
-                                            
                                             {userRole === 'State Super Administrator' && (
                                                 <button onClick={() => openModal('delete', row)} style={styles.actionBtn}>🗑️</button>
                                             )}
-                                            
                                             {Number(row.DistNGOIsActive) !== 2 && (
                                                 <button onClick={() => openModal('approve', row)} style={styles.actionBtn}>✅</button>
                                             )}
@@ -632,16 +656,13 @@ const DistrictAdminTable = ({ refreshTrigger, externalFilters }) => {
                 <div style={styles.modalOverlay}>
                     <div style={{ ...styles.modalContent, maxWidth: '450px', textAlign: 'center' }}>
                         <h4 style={{ color: '#71dd37', marginBottom: '16px' }}>Approve District Administrator</h4>
-
                         <div style={{ textAlign: 'left', background: '#f8f9fa', padding: '16px', borderRadius: '8px', marginBottom: '20px', fontSize: '0.9rem', color: '#566a7f', lineHeight: '1.6' }}>
                             <p style={{ margin: '6px 0' }}><strong>Candidate Name:</strong> {selectedRow.DistNGOName}</p>
                             <p style={{ margin: '6px 0' }}><strong>Approval ID:</strong> <span style={{ color: '#696cff', fontWeight: 'bold' }}>{approvalData.id}</span></p>
                             <p style={{ margin: '6px 0' }}><strong>Approval Date:</strong> {approvalData.dbDate || 'Loading...'}</p>
                             <p style={{ margin: '6px 0' }}><strong>Authorized Approver:</strong> {userName}</p>
                         </div>
-
                         <p style={{ marginBottom: '20px', color: '#697a8d' }}>Do you want to confirm this approval and store this data?</p>
-
                         <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
                             <button onClick={closeModal} style={styles.btnOutline}>Cancel</button>
                             <button onClick={confirmApprove} style={styles.btnSuccess} disabled={approvalData.id === 'Generating...'}>Confirm Approval</button>

@@ -28,6 +28,9 @@ const handleViewPdf = (base64String) => {
 
 const DistrictAdminModal = ({ member, mode, onClose, onSuccess }) => {
     const isView = mode === 'view';
+    // Mode 'edit' logic for specific fields
+    const isReadOnlyField = isView || mode === 'edit';
+
     const [dbStates, setDbStates] = useState([]);
     const [dbDistricts, setDbDistricts] = useState([]);
 
@@ -75,30 +78,24 @@ const DistrictAdminModal = ({ member, mode, onClose, onSuccess }) => {
         }
     }, [ngoNameValue, setValue, isView]);
 
-    // ✅ FIXED INITIALIZATION LOGIC
-    // This effect handles the sequence: Fetch States -> Find Matched State -> Fetch Districts -> Find Matched District
     useEffect(() => {
         const initializeModalData = async () => {
             try {
-                // 1. Fetch States
                 const stateRes = await fetch(`${API_BASE_URL}/states`);
                 const stateData = await stateRes.json();
                 const formattedStates = stateData.map(s => ({ value: s.StateId, label: s.StateName }));
                 setDbStates(formattedStates);
 
-                // 2. Set Default State from DB
                 if (member.DistNGOStateName) {
                     const matchedState = formattedStates.find(s => s.label.trim() === member.DistNGOStateName.trim());
                     if (matchedState) {
                         setValue("state", matchedState);
 
-                        // 3. Immediately Fetch Districts for this state
                         const distRes = await fetch(`${API_BASE_URL}/districts/${matchedState.value}`);
                         const distData = await distRes.json();
                         const formattedDistricts = distData.map(d => ({ value: d.DistId, label: d.DistName }));
                         setDbDistricts(formattedDistricts);
 
-                        // 4. Set Default District (e.g., Birbhum) from DB
                         if (member.DistNGODistName) {
                             const matchedDist = formattedDistricts.find(d => d.label.trim() === member.DistNGODistName.trim());
                             if (matchedDist) {
@@ -115,7 +112,6 @@ const DistrictAdminModal = ({ member, mode, onClose, onSuccess }) => {
         initializeModalData();
     }, [member, setValue]);
 
-    // Handle manual state changes after the modal is already open
     useEffect(() => {
         if (selectedState && selectedState.value) {
             fetch(`${API_BASE_URL}/districts/${selectedState.value}`)
@@ -233,7 +229,8 @@ const DistrictAdminModal = ({ member, mode, onClose, onSuccess }) => {
                                             menuPortal: base => ({ ...base, zIndex: 99999 }),
                                             menu: base => ({ ...base, zIndex: 99999 })
                                         }} 
-                                        isDisabled={isView} 
+                                        // ✅ FIXED: Disabled in both View and Edit mode
+                                        isDisabled={isReadOnlyField} 
                                         menuPortalTarget={document.body}
                                         menuPosition="fixed"
                                     />
@@ -251,7 +248,8 @@ const DistrictAdminModal = ({ member, mode, onClose, onSuccess }) => {
                                             menuPortal: base => ({ ...base, zIndex: 99999 }),
                                             menu: base => ({ ...base, zIndex: 99999 })
                                         }} 
-                                        isDisabled={isView || !selectedState} 
+                                        // ✅ FIXED: Disabled in both View and Edit mode
+                                        isDisabled={isReadOnlyField} 
                                         menuPortalTarget={document.body}
                                         menuPosition="fixed"
                                     />

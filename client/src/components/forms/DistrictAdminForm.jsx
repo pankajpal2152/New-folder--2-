@@ -149,6 +149,12 @@ const DistrictAdminForm = ({ onSuccess }) => {
     };
 
     const onSubmitDistrictAdmin = async (data) => {
+        // ✅ NEW: Mandatory Document Check Implementation
+        if (!regCertPdf || !panPdf || !darpanPdf) {
+            toast.error("Required: Please upload all three mandatory documents (Reg Cert, PAN, and Darpan PDF) before submitting.", { position: "top-right" });
+            return;
+        }
+
         const loggedInUser = getSafeUser ? getSafeUser() : null;
         const currentUserId = loggedInUser ? (loggedInUser.UserSignUpId || loggedInUser.id) : null;
 
@@ -220,7 +226,6 @@ const DistrictAdminForm = ({ onSuccess }) => {
                 <h5>District Administrator Registration</h5>
             </div>
             <div style={styles.cardBody}>
-                {/* Added autoComplete="off" to the main form to prevent general history autofill */}
                 <form onSubmit={handleSubmit(onSubmitDistrictAdmin, onError)} autoComplete="off">
 
                     <h6 style={styles.sectionHeader}>NGO Details</h6>
@@ -303,13 +308,9 @@ const DistrictAdminForm = ({ onSuccess }) => {
                         <Controller name="userName" control={control} render={({ field }) => (
                             <FormInput label={<>User Name <span style={{ color: '#ff3e1d' }}>*</span></>} id="userName" error={errors.userName} type="text" readOnly disabled={true} {...field} />
                         )} />
-                        
-                        {/* Added autoComplete="off" to stop email suggestions */}
                         <Controller name="ngoEmail" control={control} render={({ field }) => (
                             <FormInput label={<>Email ID (For Login) <span style={{ color: '#ff3e1d' }}>*</span></>} id="ngoEmail" error={errors.ngoEmail} type="email" autoComplete="off" {...field} />
                         )} />
-                        
-                        {/* Added autoComplete="new-password" to stop the browser from filling in the user's saved login password */}
                         <Controller name="password" control={control} render={({ field }) => (
                             <PasswordInput label={<>Set New Password <span style={{ color: '#ff3e1d' }}>* (Don't forget it!)</span></>} id="password" error={errors.password} autoComplete="new-password" {...field} />
                         )} />
@@ -337,7 +338,7 @@ const DistrictAdminForm = ({ onSuccess }) => {
                     <h6 style={styles.sectionHeader}>Documents</h6>
                     <div style={styles.formGrid}>
                         <div style={styles.inputGroup}>
-                            <label style={styles.label}>Reg Cert PDF</label>
+                            <label style={styles.label}>Reg Cert PDF <span style={{ color: '#ff3e1d' }}>*</span></label>
                             <input type="file" accept="application/pdf" onChange={(e) => handlePdfUpload(e, setRegCertPdf)} style={styles.input(false)} />
                             {regCertPdf && (
                                 <div style={{ display: 'flex', alignItems: 'center', marginTop: '8px' }}>
@@ -347,7 +348,7 @@ const DistrictAdminForm = ({ onSuccess }) => {
                             )}
                         </div>
                         <div style={styles.inputGroup}>
-                            <label style={styles.label}>NGO PAN PDF</label>
+                            <label style={styles.label}>NGO PAN PDF <span style={{ color: '#ff3e1d' }}>*</span></label>
                             <input type="file" accept="application/pdf" onChange={(e) => handlePdfUpload(e, setPanPdf)} style={styles.input(false)} />
                             {panPdf && (
                                 <div style={{ display: 'flex', alignItems: 'center', marginTop: '8px' }}>
@@ -357,7 +358,7 @@ const DistrictAdminForm = ({ onSuccess }) => {
                             )}
                         </div>
                         <div style={styles.inputGroup}>
-                            <label style={styles.label}>Darpan PDF</label>
+                            <label style={styles.label}>Darpan PDF <span style={{ color: '#ff3e1d' }}>*</span></label>
                             <input type="file" accept="application/pdf" onChange={(e) => handlePdfUpload(e, setDarpanPdf)} style={styles.input(false)} />
                             {darpanPdf && (
                                 <div style={{ display: 'flex', alignItems: 'center', marginTop: '8px' }}>

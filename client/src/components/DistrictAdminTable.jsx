@@ -75,45 +75,49 @@ const DistrictAdminModal = ({ member, mode, onClose, onSuccess }) => {
         }
     }, [ngoNameValue, setValue, isView]);
 
-    // ✅ FIXED: Fetch states and then immediately fetch districts if state name exists
+    // ✅ FIXED INITIALIZATION LOGIC
+    // This effect handles the sequence: Fetch States -> Find Matched State -> Fetch Districts -> Find Matched District
     useEffect(() => {
-        const initializeAddressFields = async () => {
+        const initializeModalData = async () => {
             try {
-                const res = await fetch(`${API_BASE_URL}/states`);
-                const data = await res.json();
-                const formattedStates = data.map(s => ({ value: s.StateId, label: s.StateName }));
+                // 1. Fetch States
+                const stateRes = await fetch(`${API_BASE_URL}/states`);
+                const stateData = await stateRes.json();
+                const formattedStates = stateData.map(s => ({ value: s.StateId, label: s.StateName }));
                 setDbStates(formattedStates);
 
+                // 2. Set Default State from DB
                 if (member.DistNGOStateName) {
-                    const matchedState = formattedStates.find(s => s.label === member.DistNGOStateName);
+                    const matchedState = formattedStates.find(s => s.label.trim() === member.DistNGOStateName.trim());
                     if (matchedState) {
                         setValue("state", matchedState);
-                        
-                        // Immediately fetch districts for this state to populate the dropdown list
+
+                        // 3. Immediately Fetch Districts for this state
                         const distRes = await fetch(`${API_BASE_URL}/districts/${matchedState.value}`);
                         const distData = await distRes.json();
                         const formattedDistricts = distData.map(d => ({ value: d.DistId, label: d.DistName }));
                         setDbDistricts(formattedDistricts);
 
-                        // Now find and set the district value from the freshly loaded list
+                        // 4. Set Default District (e.g., Birbhum) from DB
                         if (member.DistNGODistName) {
-                            const matchedDist = formattedDistricts.find(d => d.label === member.DistNGODistName);
-                            if (matchedDist) setValue("district", matchedDist);
+                            const matchedDist = formattedDistricts.find(d => d.label.trim() === member.DistNGODistName.trim());
+                            if (matchedDist) {
+                                setValue("district", matchedDist);
+                            }
                         }
                     }
                 }
             } catch (err) {
-                console.error("Error initializing modal address fields:", err);
+                console.error("Initialization Error:", err);
             }
         };
 
-        initializeAddressFields();
-    }, [member.DistNGOStateName, member.DistNGODistName, setValue]);
+        initializeModalData();
+    }, [member, setValue]);
 
-    // Handle manual state changes by the user
+    // Handle manual state changes after the modal is already open
     useEffect(() => {
         if (selectedState && selectedState.value) {
-            // Only fetch if the current districts list doesn't match the selected state (prevents infinite loops)
             fetch(`${API_BASE_URL}/districts/${selectedState.value}`)
                 .then(res => res.json())
                 .then(data => {
@@ -121,8 +125,6 @@ const DistrictAdminModal = ({ member, mode, onClose, onSuccess }) => {
                     setDbDistricts(formattedDistricts);
                 })
                 .catch(() => { });
-        } else {
-            setDbDistricts([]);
         }
     }, [selectedState]);
 
@@ -225,6 +227,7 @@ const DistrictAdminModal = ({ member, mode, onClose, onSuccess }) => {
                                     <Select 
                                         {...field} 
                                         options={dbStates} 
+                                        placeholder={member.DistNGOStateName || "Select..."}
                                         styles={{
                                             ...styles.selectStyles(!!errors.state),
                                             menuPortal: base => ({ ...base, zIndex: 99999 }),
@@ -242,6 +245,7 @@ const DistrictAdminModal = ({ member, mode, onClose, onSuccess }) => {
                                     <Select 
                                         {...field} 
                                         options={dbDistricts} 
+                                        placeholder={member.DistNGODistName || "Select..."}
                                         styles={{
                                             ...styles.selectStyles(!!errors.district),
                                             menuPortal: base => ({ ...base, zIndex: 99999 }),
@@ -494,9 +498,13 @@ const DistrictAdminTable = ({ refreshTrigger, externalFilters }) => {
                 ...selectedRow,
                 DistNGOIsActive: 2,
                 DistNGOGenRegNo: approvalData.id,
-                DistNGOAprovedDate: approvalData.dbDate,
                 DistNGOAprovedBy: String(userId)
             };
+
+            const d = new Date();
+            const utc = d.getTime() + (d.getTimezoneOffset() * 60000);
+            const istDate = new Date(utc + (3600000 * 5.5));
+            payload.DistNGOAprovedDate = istDate.toISOString().split('T')[0];
 
             Object.keys(payload).forEach(key => {
                 if (key !== 'DistNGOAprovedDate' && typeof payload[key] === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(payload[key])) {

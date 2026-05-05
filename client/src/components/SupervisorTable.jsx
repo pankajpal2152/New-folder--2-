@@ -15,6 +15,9 @@ const formatDisplayDate = (dbDateStr) => {
 
 const SupervisorModal = ({ member, mode, onClose, onSuccess }) => {
     const isView = mode === 'view';
+    // Logic to lock specific fields in both View and Edit modes
+    const isReadOnlyField = isView || mode === 'edit';
+
     const cleanInitialImage = extractBase64(member.SupProfileImage) || DUMMY_AVATAR;
     const [profileImage, setProfileImage] = useState(cleanInitialImage);
     const fileInputRef = useRef(null);
@@ -31,14 +34,24 @@ const SupervisorModal = ({ member, mode, onClose, onSuccess }) => {
             sdwOf: member.SupGuardianName || '',
             dob: member.SupDOB ? String(member.SupDOB).substring(0, 10) : '',
             guardianContactNo: member.SupGuardianContactNo || '',
-            state: null, district: null, city: member.SupCity || '', block: member.SupBlockName || '',
-            postOffice: member.SupPO || '', policeStation: member.SupPS || '', gramPanchayet: member.SupGramPanchayet || '',
-            village: member.SupVillage || '', pinCode: String(member.SupPincode || ''), mobileNo: member.SupContactNo || '',
+            state: null, 
+            district: null, 
+            city: member.SupCity || '', 
+            block: member.SupBlockName || '',
+            postOffice: member.SupPO || '', 
+            policeStation: member.SupPS || '', 
+            gramPanchayet: member.SupGramPanchayet || '',
+            village: member.SupVillage || '', 
+            pinCode: String(member.SupPincode || ''), 
+            mobileNo: member.SupContactNo || '',
             email: member.SupSignupEmail || member.SupMailId || '',
             userName: member.SupSignupUserName || member.SupName || '',
             password: member.SupSignupPassword || '',
-            bankName: member.SupBankName || '', branchName: member.SupBranchName || '',
-            accountNo: member.SupAcctNo || '', ifsCode: member.SupIFSCode || '', panNo: member.SupPanNo || '',
+            bankName: member.SupBankName || '', 
+            branchName: member.SupBranchName || '',
+            accountNo: member.SupAcctNo || '', 
+            ifsCode: member.SupIFSCode || '', 
+            panNo: member.SupPanNo || '',
             aadharNo: member.SupAadharNo || ''
         }
     });
@@ -52,29 +65,58 @@ const SupervisorModal = ({ member, mode, onClose, onSuccess }) => {
         }
     }, [fullNameValue, setValue, isView]);
 
+    // ✅ FIXED: Sequential Address Initialization Logic
+    // Ensures State fetches first, then Districts fetch, then the specific DB value (Birbhum) is set.
     useEffect(() => {
-        fetch(`${API_BASE_URL}/states`).then(res => res.json()).then(data => {
-            const formattedStates = data.map(s => ({ value: s.StateId, label: s.StateName }));
-            setDbStates(formattedStates);
-            if (member.SupStateName) {
-                const matchedState = formattedStates.find(s => s.label === member.SupStateName);
-                if (matchedState) setValue("state", matchedState);
-            }
-        });
-    }, [member.SupStateName, setValue]);
+        const initializeAddressFields = async () => {
+            try {
+                // 1. Fetch all available states
+                const stateRes = await fetch(`${API_BASE_URL}/states`);
+                const stateData = await stateRes.json();
+                const formattedStates = stateData.map(s => ({ value: s.StateId, label: s.StateName }));
+                setDbStates(formattedStates);
 
+                // 2. Map State from Database (SupStateName)
+                if (member.SupStateName) {
+                    const matchedState = formattedStates.find(s => s.label.trim() === member.SupStateName.trim());
+                    if (matchedState) {
+                        setValue("state", matchedState);
+
+                        // 3. Immediately fetch districts belonging to this specific state
+                        const distRes = await fetch(`${API_BASE_URL}/districts/${matchedState.value}`);
+                        const distData = await distRes.json();
+                        const formattedDistricts = distData.map(d => ({ value: d.DistId, label: d.DistName }));
+                        setDbDistricts(formattedDistricts);
+
+                        // 4. Map District from Database (SupDistName)
+                        if (member.SupDistName) {
+                            const matchedDist = formattedDistricts.find(d => d.label.trim() === member.SupDistName.trim());
+                            if (matchedDist) {
+                                setValue("district", matchedDist);
+                            }
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error("Initialization error in Supervisor Modal:", err);
+            }
+        };
+
+        initializeAddressFields();
+    }, [member, setValue]);
+
+    // Handle manual state changes if user interacts (though disabled in Edit, needed for robustness)
     useEffect(() => {
         if (selectedState && selectedState.value) {
-            fetch(`${API_BASE_URL}/districts/${selectedState.value}`).then(res => res.json()).then(data => {
-                const formattedDistricts = data.map(d => ({ value: d.DistId, label: d.DistName }));
-                setDbDistricts(formattedDistricts);
-                if (member.SupDistName) {
-                    const matchedDist = formattedDistricts.find(d => d.label === member.SupDistName);
-                    if (matchedDist) setValue("district", matchedDist);
-                }
-            });
-        } else { setDbDistricts([]); }
-    }, [selectedState, member.SupDistName, setValue]);
+            fetch(`${API_BASE_URL}/districts/${selectedState.value}`)
+                .then(res => res.json())
+                .then(data => {
+                    const formattedDistricts = data.map(d => ({ value: d.DistId, label: d.DistName }));
+                    setDbDistricts(formattedDistricts);
+                })
+                .catch(() => { });
+        }
+    }, [selectedState]);
 
     const handleUploadClick = () => {
         if (!isView && fileInputRef.current) fileInputRef.current.click();
@@ -100,9 +142,6 @@ const SupervisorModal = ({ member, mode, onClose, onSuccess }) => {
     const onSubmit = async (data) => {
         if (isView) { onClose(); return; }
 
-        const stateName = data.state ? data.state.label : "";
-        const districtName = data.district ? data.district.label : "";
-
         const dbPayload = {
             ...member,
             SupProfileImage: profileImage === DUMMY_AVATAR ? null : profileImage,
@@ -110,8 +149,8 @@ const SupervisorModal = ({ member, mode, onClose, onSuccess }) => {
             SupGuardianName: data.sdwOf || "",
             SupDOB: data.dob,
             SupGuardianContactNo: data.guardianContactNo || "",
-            SupStateName: stateName,
-            SupDistName: districtName,
+            SupStateName: data.state ? data.state.label : "",
+            SupDistName: data.district ? data.district.label : "",
             SupCity: data.city || "",
             SupBlockName: data.block || "",
             SupPO: data.postOffice || "",
@@ -142,9 +181,9 @@ const SupervisorModal = ({ member, mode, onClose, onSuccess }) => {
                 method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(dbPayload)
             });
             toast.dismiss('updateSup');
-            if (res.ok) { toast.success("Supervisor updated successfully!", { position: "top-right" }); onSuccess(); }
-            else { toast.error("Failed to update.", { position: "top-right" }); }
-        } catch (error) { toast.dismiss('updateSup'); toast.error("Network error.", { position: "top-right" }); }
+            if (res.ok) { toast.success("Supervisor updated successfully!"); onSuccess(); }
+            else { toast.error("Failed to update."); }
+        } catch (error) { toast.dismiss('updateSup'); toast.error("Network error."); }
     };
 
     return (
@@ -199,12 +238,14 @@ const SupervisorModal = ({ member, mode, onClose, onSuccess }) => {
                                     <Select 
                                         {...field} 
                                         options={dbStates} 
+                                        placeholder={member.SupStateName || "Select..."}
                                         styles={{
                                             ...styles.selectStyles(!!errors.state),
                                             menuPortal: base => ({ ...base, zIndex: 99999 }),
                                             menu: base => ({ ...base, zIndex: 99999 })
                                         }} 
-                                        isDisabled={isView} 
+                                        // ✅ FIXED: Disabled in Edit and View mode
+                                        isDisabled={isReadOnlyField} 
                                         menuPortalTarget={document.body}
                                         menuPosition="fixed"
                                     />
@@ -216,12 +257,14 @@ const SupervisorModal = ({ member, mode, onClose, onSuccess }) => {
                                     <Select 
                                         {...field} 
                                         options={dbDistricts} 
+                                        placeholder={member.SupDistName || "Select..."}
                                         styles={{
                                             ...styles.selectStyles(!!errors.district),
                                             menuPortal: base => ({ ...base, zIndex: 99999 }),
                                             menu: base => ({ ...base, zIndex: 99999 })
                                         }} 
-                                        isDisabled={isView || !selectedState} 
+                                        // ✅ FIXED: Disabled in Edit and View mode
+                                        isDisabled={isReadOnlyField} 
                                         menuPortalTarget={document.body}
                                         menuPosition="fixed"
                                     />
@@ -265,6 +308,8 @@ const SupervisorModal = ({ member, mode, onClose, onSuccess }) => {
     );
 };
 
+// ... [SupervisorTable component continues with unchanged logic as in your original file] ...
+
 const SupervisorTable = ({ refreshTrigger, externalFilters }) => {
     const [members, setMembers] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -303,17 +348,15 @@ const SupervisorTable = ({ refreshTrigger, externalFilters }) => {
 
             data = data.filter(member => String(member.SupIsActive) !== '0');
             setMembers(data);
-        } catch (error) { toast.error("Failed to load supervisor data.", { position: "top-right" }); }
+        } catch (error) { toast.error("Failed to load supervisor data."); }
         finally { setLoading(false); }
     };
 
     useEffect(() => { fetchMembers(); }, [refreshTrigger]);
 
-    // STRICT DATA VISIBILITY: Check if all expected filters are chosen before rendering rows!
     const filteredMembers = useMemo(() => {
-        // Only 3 filters are required for Supervisor table (Mother NGO, State, District)
         if (!externalFilters?.filterMotherNgo || !externalFilters?.filterState || !externalFilters?.filterDistrict) {
-            return []; // Array is forcibly empty
+            return [];
         }
 
         return members.filter((member) => {
@@ -421,7 +464,7 @@ const SupervisorTable = ({ refreshTrigger, externalFilters }) => {
                     }
                 }
             } catch (e) {
-                console.error("Error fetching state/dist IDs for approval generation:", e);
+                console.error("Error fetching state/dist IDs:", e);
             }
 
             const aadhar = member.SupAadharNo || '000000000000';
@@ -436,19 +479,15 @@ const SupervisorTable = ({ refreshTrigger, externalFilters }) => {
     const confirmDelete = async () => {
         try {
             toast.loading("Deleting...", { toastId: 'deleteSup' });
-
             const payload = { ...selectedRow, SupIsActive: "0" };
-
             Object.keys(payload).forEach(key => {
                 if (typeof payload[key] === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(payload[key])) {
                     payload[key] = payload[key].substring(0, 10);
                 }
             });
-
             const res = await fetch(`${API_BASE_URL}/supervisor/${selectedRow.SupRegId}`, {
                 method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
             });
-
             toast.dismiss('deleteSup');
             if (res.ok) { toast.success("Member deleted."); setMembers(prev => prev.filter(m => m.SupRegId !== selectedRow.SupRegId)); closeModal(); }
             else { toast.error("Failed to delete."); }
@@ -458,7 +497,6 @@ const SupervisorTable = ({ refreshTrigger, externalFilters }) => {
     const confirmApprove = async () => {
         try {
             toast.loading("Approving...", { toastId: 'approveSup' });
-
             const payload = { 
                 ...selectedRow, 
                 SupIsActive: 2, 
@@ -466,13 +504,11 @@ const SupervisorTable = ({ refreshTrigger, externalFilters }) => {
                 SupAprovedDate: approvalData.dbDate, 
                 SupAprovedBy: String(userId) 
             };
-
             Object.keys(payload).forEach(key => {
                 if (key !== 'SupAprovedDate' && typeof payload[key] === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(payload[key])) {
                     payload[key] = payload[key].substring(0, 10);
                 }
             });
-
             const res = await fetch(`${API_BASE_URL}/supervisor/${selectedRow.SupRegId}`, {
                 method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
             });
@@ -585,11 +621,9 @@ const SupervisorTable = ({ refreshTrigger, externalFilters }) => {
                                             <td style={styles.stickyRightTd}>
                                                 <button onClick={() => openModal('view', row)} style={styles.actionBtn}>👁️</button>
                                                 <button onClick={() => openModal('edit', row)} style={styles.actionBtn}>✏️</button>
-                                                
                                                 {userRole === 'State Super Administrator' && (
                                                     <button onClick={() => openModal('delete', row)} style={styles.actionBtn}>🗑️</button>
                                                 )}
-                                                
                                                 {Number(row.SupIsActive) !== 2 && (
                                                     <button onClick={() => openModal('approve', row)} style={styles.actionBtn}>✅</button>
                                                 )}
@@ -648,16 +682,13 @@ const SupervisorTable = ({ refreshTrigger, externalFilters }) => {
                 <div style={styles.modalOverlay}>
                     <div style={{ ...styles.modalContent, maxWidth: '450px', textAlign: 'center' }}>
                         <h4 style={{ color: '#71dd37', marginBottom: '16px' }}>Approve Supervisor</h4>
-
                         <div style={{ textAlign: 'left', background: '#f8f9fa', padding: '16px', borderRadius: '8px', marginBottom: '20px', fontSize: '0.9rem', color: '#566a7f', lineHeight: '1.6' }}>
                             <p style={{ margin: '6px 0' }}><strong>Candidate Name:</strong> {selectedRow.SupName}</p>
                             <p style={{ margin: '6px 0' }}><strong>Approval ID:</strong> <span style={{ color: '#696cff', fontWeight: 'bold' }}>{approvalData.id}</span></p>
                             <p style={{ margin: '6px 0' }}><strong>Approval Date:</strong> {approvalData.dbDate || 'Loading...'}</p>
                             <p style={{ margin: '6px 0' }}><strong>Authorized Approver:</strong> {userName}</p>
                         </div>
-
                         <p style={{ marginBottom: '20px', color: '#697a8d' }}>Do you want to confirm this approval and store this data?</p>
-
                         <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
                             <button onClick={closeModal} style={styles.btnOutline}>Cancel</button>
                             <button onClick={confirmApprove} style={styles.btnSuccess} disabled={approvalData.id === 'Generating...'}>Confirm Approval</button>

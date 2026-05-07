@@ -1,13 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import Select from 'react-select';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-
-import { styles, FormInput } from '../config/constants';
-import { PasswordInput } from '../components/AccountSharedUtils';
+import { Search, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import "bootstrap/dist/css/bootstrap.min.css";
 
 // ==========================================
 // 1. VALIDATION SCHEMA
@@ -15,7 +14,7 @@ import { PasswordInput } from '../components/AccountSharedUtils';
 const accessSchema = z.object({
     acctHead: z.object({ value: z.any(), label: z.string() }, { required_error: "Please select an Account Head (Role)" }),
     
-    // Parent Lineage (Context)
+    // Parent Lineage
     stateNgo: z.object({ value: z.any(), label: z.string(), stateName: z.string(), distName: z.string() }).nullable().optional(),
     distNgo: z.object({ value: z.any(), label: z.string() }).nullable().optional(),
     supervisor: z.object({ value: z.any(), label: z.string() }).nullable().optional(),
@@ -24,8 +23,8 @@ const accessSchema = z.object({
     // Identity & Location
     state: z.object({ value: z.any(), label: z.string() }, { required_error: "State is required" }),
     district: z.object({ value: z.any(), label: z.string() }, { required_error: "District is required" }),
-    entityName: z.string().optional(), // For District NGO Name if applicable
-    acctName: z.string().min(2, "Account Name (Person) is required"),
+    entityName: z.string().optional(),
+    acctName: z.string().min(2, "Account Name is required"),
     
     // Login
     userName: z.string().min(3, "Username must be at least 3 characters"),
@@ -34,53 +33,44 @@ const accessSchema = z.object({
 
 const AccessControl = () => {
     // ==========================================
-    // 2. STATE (Data & Selections)
+    // 2. STATE 
     // ==========================================
     const [dbAcctHeads, setDbAcctHeads] = useState([]);
-    
-    // Parent Hierarchy Data
     const [dbStateNgos, setDbStateNgos] = useState([]);
     const [dbDistNgos, setDbDistNgos] = useState([]);
     const [dbSupervisors, setDbSupervisors] = useState([]);
     const [dbAsthaDidis, setDbAsthaDidis] = useState([]);
-    
-    // Location Data
     const [dbStates, setDbStates] = useState([]);
     const [dbDistricts, setDbDistricts] = useState([]);
     
-    // Checkbox state for multi-district assignment
     const [availableDistricts, setAvailableDistricts] = useState([]);
     const [selectedDistricts, setSelectedDistricts] = useState([]);
 
-    // Table Data State
     const [accessRecords, setAccessRecords] = useState([]);
+    const [searchTerm, setSearchTerm] = useState("");
+    const [sortConfig, setSortConfig] = useState({ key: null, direction: 'ascending' });
 
     const { control, handleSubmit, watch, reset, formState: { errors } } = useForm({
         resolver: zodResolver(accessSchema),
         mode: 'onChange',
         defaultValues: {
-            acctHead: null,
-            stateNgo: null, distNgo: null, supervisor: null, asthaDidi: null,
-            state: null, district: null,
-            entityName: '', acctName: '',
-            userName: '', password: ''
+            acctHead: null, stateNgo: null, distNgo: null, supervisor: null, asthaDidi: null,
+            state: null, district: null, entityName: '', acctName: '', userName: '', password: ''
         }
     });
 
-    // Watchers for dynamic UI rendering
     const watchedRole = watch('acctHead');
     const watchedStateNgo = watch('stateNgo');
 
-    // Determine which parent dropdowns to show based on selected role
     const roleValue = watchedRole?.value;
     const showStateNgo = roleValue === 'DIST_ADMIN' || roleValue === 'SUPERVISOR' || roleValue === 'ASTHA_DIDI' || roleValue === 'ASTHA_MAA';
     const showDistNgo = roleValue === 'SUPERVISOR' || roleValue === 'ASTHA_DIDI' || roleValue === 'ASTHA_MAA';
     const showSupervisor = roleValue === 'ASTHA_DIDI' || roleValue === 'ASTHA_MAA';
     const showAsthaDidi = roleValue === 'ASTHA_MAA';
-    const showEntityName = roleValue === 'DIST_ADMIN'; // Only show "District NGO Name" if creating a Dist Admin
+    const showEntityName = roleValue === 'DIST_ADMIN'; 
 
     // ==========================================
-    // 3. UI MOCK DATA INITIALIZATION
+    // 3. INITIALIZATION (MOCK DATA)
     // ==========================================
     useEffect(() => {
         setDbAcctHeads([
@@ -90,22 +80,17 @@ const AccessControl = () => {
             { value: 'ASTHA_MAA', label: 'Astha Maa' }
         ]);
         
-        // Mock Mother NGOs WITH their associated state/district data to auto-fill
         setDbStateNgos([
             { value: '1', label: 'Mother NGO India', stateName: 'West Bengal', distName: 'Kolkata' },
             { value: '2', label: 'State Level Care Foundation', stateName: 'Maharashtra', distName: 'Mumbai' }
         ]);
-        
         setDbDistNgos([{ value: '1', label: 'Birbhum Welfare Society' }, { value: '2', label: 'Kolkata Care' }]);
         setDbSupervisors([{ value: '1', label: 'Ramesh Singh' }, { value: '2', label: 'Sita Roy' }]);
         setDbAsthaDidis([{ value: '1', label: 'Anjali Das' }, { value: '2', label: 'Priya Sen' }]);
-        
         setDbStates([{ value: 'WB', label: 'West Bengal' }, { value: 'MH', label: 'Maharashtra' }]);
         setDbDistricts([{ value: 'BIR', label: 'Birbhum' }, { value: 'KOL', label: 'Kolkata' }, { value: 'BAN', label: 'Bankura' }]);
-        
         setAvailableDistricts(['Alipurduar', 'Bankura', 'Birbhum', 'Cooch Behar', 'Dakshin Dinajpur', 'Darjeeling', 'Hooghly', 'Howrah', 'Jalpaiguri', 'Jhargram', 'Kolkata']);
 
-        // Mock Table Data (Matches the Excel Sheet Structure)
         setAccessRecords([
             { id: 1, role: 'District Administrator', motherNgo: 'Mother NGO India', distNgo: 'Birbhum Welfare Society', state: 'West Bengal', district: 'Birbhum, Bankura', acctName: 'Rajesh Sharma', userName: 'rajesh_admin' },
             { id: 2, role: 'Supervisor', motherNgo: 'Mother NGO India', distNgo: 'Birbhum Welfare Society', state: 'West Bengal', district: 'Birbhum', acctName: 'Sita Roy', userName: 'sita_sup' },
@@ -114,7 +99,47 @@ const AccessControl = () => {
     }, []);
 
     // ==========================================
-    // 4. EVENT HANDLERS
+    // 4. TABLE SORTING & FILTERING
+    // ==========================================
+    const handleSort = (key) => {
+        let direction = 'ascending';
+        if (sortConfig.key === key && sortConfig.direction === 'ascending') {
+            direction = 'descending';
+        }
+        setSortConfig({ key, direction });
+    };
+
+    const sortedAndFilteredRecords = useMemo(() => {
+        let filtered = accessRecords;
+        if (searchTerm.trim()) {
+            const lowercasedSearch = searchTerm.toLowerCase();
+            filtered = accessRecords.filter(record => 
+                Object.values(record).some(val => 
+                    val && val.toString().toLowerCase().includes(lowercasedSearch)
+                )
+            );
+        }
+
+        if (sortConfig.key !== null) {
+            filtered.sort((a, b) => {
+                const valA = a[sortConfig.key] || "";
+                const valB = b[sortConfig.key] || "";
+                if (valA < valB) return sortConfig.direction === 'ascending' ? -1 : 1;
+                if (valA > valB) return sortConfig.direction === 'ascending' ? 1 : -1;
+                return 0;
+            });
+        }
+        return filtered;
+    }, [accessRecords, searchTerm, sortConfig]);
+
+    const renderSortIcon = (columnName) => {
+        if (sortConfig.key !== columnName) return <ArrowUpDown size={14} className="ms-1 text-muted" />;
+        if (sortConfig.direction === 'ascending') return <ArrowUp size={14} className="ms-1 text-primary" />;
+        return <ArrowDown size={14} className="ms-1 text-primary" />;
+    };
+
+    // ==========================================
+    // 5. EVENT HANDLERS
     // ==========================================
     const handleDistrictToggle = (district) => {
         setSelectedDistricts(prev => prev.includes(district) ? prev.filter(d => d !== district) : [...prev, district]);
@@ -122,6 +147,11 @@ const AccessControl = () => {
 
     const handleSelectAllDistricts = () => {
         setSelectedDistricts(selectedDistricts.length === availableDistricts.length ? [] : [...availableDistricts]);
+    };
+
+    const handleResetForm = () => {
+        reset();
+        setSelectedDistricts([]);
     };
 
     const onSubmit = (data) => {
@@ -140,7 +170,6 @@ const AccessControl = () => {
         console.log("🚀 READY TO SEND TO DB:", finalPayload);
         toast.success(`Access Rule Created for ${watchedRole.label}!`);
         
-        // Temporarily add to the table for UI feedback
         setAccessRecords(prev => [{
             id: Date.now(),
             role: data.acctHead.label,
@@ -152,248 +181,311 @@ const AccessControl = () => {
             userName: data.userName
         }, ...prev]);
 
-        reset();
-        setSelectedDistricts([]);
+        handleResetForm();
     };
 
     const onError = () => {
         toast.error("Please fill in all required red fields.");
     };
 
+    // Custom React-Select styles to match Bootstrap form-control-sm
+    const customSelectStyles = (hasError) => ({
+        control: (base) => ({
+            ...base,
+            minHeight: '31px',
+            height: '31px',
+            fontSize: '0.875rem',
+            borderColor: hasError ? '#dc3545' : '#ced4da',
+            boxShadow: 'none',
+            '&:hover': { borderColor: hasError ? '#dc3545' : '#86b7fe' }
+        }),
+        valueContainer: (base) => ({ ...base, padding: '0 8px' }),
+        input: (base) => ({ ...base, margin: 0, padding: 0 }),
+        indicatorSeparator: () => ({ display: 'none' }),
+        dropdownIndicator: (base) => ({ ...base, padding: '4px' }),
+        menu: (base) => ({ ...base, zIndex: 9999 })
+    });
+
     return (
-        <div style={{ padding: '20px', maxWidth: '1400px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <div className="emp-wrapper">
             <ToastContainer autoClose={3000} pauseOnHover={false} />
             
-            {/* ========================================== */}
-            {/* FORM SECTION */}
-            {/* ========================================== */}
-            <div style={styles.card}>
-                <div style={styles.cardHeader}>
-                    <h5 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        🔐 Complex Nested Access Control Panel
-                    </h5>
-                </div>
+            {/* CSS STYLES DIRECTLY INJECTED TO MATCH EMPLOYEE MANAGEMENT */}
+            <style>{`
+                .emp-wrapper { background-color: #f5f5f9; min-height: 100vh; padding: 20px; font-family: "Public Sans", sans-serif; }
+                .emp-card { background: #fff; border: none; border-radius: 8px; box-shadow: 0 2px 6px 0 rgba(67, 89, 113, 0.12); width: 100%; margin-bottom: 24px; overflow: hidden; }
+                .emp-card-header { background-color: #0E87CC; color: white; padding: 1.25rem 1.5rem; display: flex; justify-content: space-between; align-items: center; }
+                .emp-card-body { padding: 1.5rem; }
+                .emp-card-footer { background-color: #f8f9fa; padding: 1rem 1.5rem; border-top: 1px solid #e9ecef; display: flex; justify-content: flex-end; gap: 0.5rem; }
+                .emp-label { font-weight: 600; font-size: 0.8rem; margin-bottom: 0.25rem; color: #566a7f; display: block; text-transform: uppercase; letter-spacing: 0.25px;}
+                p.PerInfo { background-color: #0E87CC; color: whitesmoke; padding: 8px 12px; font-weight: bold; border-radius: 4px; font-size: 0.95rem; margin-bottom: 16px; margin-top: 24px; }
+                .cursor-pointer { cursor: pointer; }
+                .sortable-header:hover { background-color: #e9ecef !important; transition: background-color 0.2s; }
+                .error-text { color: #dc3545; font-size: 0.75rem; margin-top: 4px; margin-bottom: 0; }
+                .matrix-container { background-color: #f8f9fa; border: 1px solid #e9ecef; border-radius: 6px; padding: 16px; margin-top: 16px; }
+            `}</style>
 
-                <div style={styles.cardBody}>
-                    <form onSubmit={handleSubmit(onSubmit, onError)} autoComplete="off">
-                        
-                        {/* --- TOP: SELECT ROLE --- */}
-                        <div style={{ marginBottom: '24px', maxWidth: '400px' }}>
-                            <label style={styles.label}>Account Head (Target Role to Assign) <span style={{ color: '#ff3e1d' }}>*</span></label>
-                            <Controller name="acctHead" control={control} render={({ field }) => (
-                                <Select {...field} options={dbAcctHeads} placeholder="Select Role..." styles={styles.selectStyles(!!errors.acctHead)} />
-                            )} />
-                            {errors.acctHead && <p style={styles.errorText}>{errors.acctHead.message}</p>}
-                        </div>
-
-                        {/* --- ROW 1: PARENT LINEAGE (DYNAMIC CONTEXT) --- */}
-                        {watchedRole && (
-                            <>
-                                <h6 style={styles.sectionHeader}>1. Parent Lineage Tracking (Organization Context)</h6>
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '24px' }}>
-                                    
-                                    {showStateNgo && (
-                                        <>
-                                            <div style={styles.inputGroup}>
-                                                <label style={styles.label}>State NGO (Mother) <span style={{ color: '#ff3e1d' }}>*</span></label>
-                                                <Controller name="stateNgo" control={control} render={({ field }) => (
-                                                    <Select {...field} options={dbStateNgos} placeholder="Select Mother NGO..." styles={styles.selectStyles(false)} isClearable />
-                                                )} />
-                                            </div>
-
-                                            {/* Auto-Fetched & Disabled State Input */}
-                                            <div style={styles.inputGroup}>
-                                                <label style={styles.label}>Mother NGO State</label>
-                                                <input 
-                                                    type="text" 
-                                                    style={styles.inputDisabled} 
-                                                    value={watchedStateNgo ? watchedStateNgo.stateName : ''} 
-                                                    placeholder="Auto-fetched..." 
-                                                    disabled 
-                                                    readOnly 
-                                                />
-                                            </div>
-
-                                            {/* Auto-Fetched & Disabled District Input */}
-                                            <div style={styles.inputGroup}>
-                                                <label style={styles.label}>Mother NGO District</label>
-                                                <input 
-                                                    type="text" 
-                                                    style={styles.inputDisabled} 
-                                                    value={watchedStateNgo ? watchedStateNgo.distName : ''} 
-                                                    placeholder="Auto-fetched..." 
-                                                    disabled 
-                                                    readOnly 
-                                                />
-                                            </div>
-                                        </>
-                                    )}
-
-                                    {showDistNgo && (
-                                        <div style={styles.inputGroup}>
-                                            <label style={styles.label}>District NGO <span style={{ color: '#ff3e1d' }}>*</span></label>
-                                            <Controller name="distNgo" control={control} render={({ field }) => (
-                                                <Select {...field} options={dbDistNgos} placeholder="Select Dist NGO..." styles={styles.selectStyles(false)} isClearable />
-                                            )} />
-                                        </div>
-                                    )}
-
-                                    {showSupervisor && (
-                                        <div style={styles.inputGroup}>
-                                            <label style={styles.label}>Supervisor <span style={{ color: '#ff3e1d' }}>*</span></label>
-                                            <Controller name="supervisor" control={control} render={({ field }) => (
-                                                <Select {...field} options={dbSupervisors} placeholder="Select Supervisor..." styles={styles.selectStyles(false)} isClearable />
-                                            )} />
-                                        </div>
-                                    )}
-
-                                    {showAsthaDidi && (
-                                        <div style={styles.inputGroup}>
-                                            <label style={styles.label}>Astha Didi <span style={{ color: '#ff3e1d' }}>*</span></label>
-                                            <Controller name="asthaDidi" control={control} render={({ field }) => (
-                                                <Select {...field} options={dbAsthaDidis} placeholder="Select Astha Didi..." styles={styles.selectStyles(false)} isClearable />
-                                            )} />
-                                        </div>
-                                    )}
-                                </div>
-                            </>
-                        )}
-
-                        {/* --- ROW 2: IDENTITY & LOCATION --- */}
-                        {watchedRole && (
-                            <>
-                                <h6 style={styles.sectionHeader}>2. Assign Identity & Location</h6>
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '24px' }}>
-                                    
-                                    <div style={styles.inputGroup}>
-                                        <label style={styles.label}>State <span style={{ color: '#ff3e1d' }}>*</span></label>
-                                        <Controller name="state" control={control} render={({ field }) => (
-                                            <Select {...field} options={dbStates} placeholder="Select State..." styles={styles.selectStyles(!!errors.state)} isClearable />
-                                        )} />
-                                        {errors.state && <p style={styles.errorText}>{errors.state.message}</p>}
-                                    </div>
-
-                                    <div style={styles.inputGroup}>
-                                        <label style={styles.label}>District <span style={{ color: '#ff3e1d' }}>*</span></label>
-                                        <Controller name="district" control={control} render={({ field }) => (
-                                            <Select {...field} options={dbDistricts} placeholder="Select District..." styles={styles.selectStyles(!!errors.district)} isClearable />
-                                        )} />
-                                        {errors.district && <p style={styles.errorText}>{errors.district.message}</p>}
-                                    </div>
-
-                                    {showEntityName && (
-                                        <Controller name="entityName" control={control} render={({ field }) => (
-                                            <FormInput label={<>District NGO Name <span style={{ color: '#ff3e1d' }}>*</span></>} id="entityName" error={errors.entityName} placeholder="Enter District NGO Name" type="text" {...field} />
-                                        )} />
-                                    )}
-
-                                    <Controller name="acctName" control={control} render={({ field }) => (
-                                        <FormInput label={<>Account Name (Person) <span style={{ color: '#ff3e1d' }}>*</span></>} id="acctName" error={errors.acctName} placeholder="Enter Person's Name" type="text" {...field} />
-                                    )} />
-                                </div>
-                            </>
-                        )}
-
-                        {/* --- ROW 3: LOGIN CREDENTIALS --- */}
-                        {watchedRole && (
-                            <>
-                                <h6 style={styles.sectionHeader}>3. Login Access Credentials</h6>
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
-                                    <Controller name="userName" control={control} render={({ field }) => (
-                                        <FormInput label={<>User Name (For Login) <span style={{ color: '#ff3e1d' }}>*</span></>} id="userName" error={errors.userName} placeholder="Enter unique username" type="text" autoComplete="off" {...field} />
-                                    )} />
-                                    
-                                    <Controller name="password" control={control} render={({ field }) => (
-                                        <PasswordInput label={<>Password <span style={{ color: '#ff3e1d' }}>*</span></>} id="password" error={errors.password} placeholder="Set secure password" autoComplete="new-password" {...field} />
-                                    )} />
-                                </div>
-                            </>
-                        )}
-
-                        {/* --- ROW 4: MULTI-DISTRICT CHECKBOX MATRIX --- */}
-                        {watchedRole && (roleValue === 'DIST_ADMIN' || roleValue === 'SUPERVISOR') && (
-                            <div style={{ marginTop: '40px', padding: '24px', backgroundColor: '#f8f9fa', borderRadius: '8px', border: '1px solid #d9dee3' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
-                                    <div>
-                                        <h6 style={{ margin: 0, fontSize: '1rem', color: '#566a7f' }}>4. Manage Data Visibility (Permission Matrix)</h6>
-                                        <p style={styles.hintText}>Select which districts this user is allowed to access and manage below them.</p>
-                                    </div>
-                                    <button type="button" onClick={handleSelectAllDistricts} style={{...styles.btnOutline, padding: '4px 12px', fontSize: '0.8rem'}}>
-                                        {selectedDistricts.length === availableDistricts.length ? 'Deselect All' : 'Select All'}
-                                    </button>
-                                </div>
-
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '16px', marginTop: '16px' }}>
-                                    {availableDistricts.map(district => (
-                                        <label key={district} style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '0.9375rem', color: '#697a8d', backgroundColor: selectedDistricts.includes(district) ? 'rgba(105, 108, 255, 0.1)' : '#fff', padding: '8px 12px', borderRadius: '6px', border: selectedDistricts.includes(district) ? '1px solid #696cff' : '1px solid #d9dee3', transition: '0.2s' }}>
-                                            <input type="checkbox" checked={selectedDistricts.includes(district)} onChange={() => handleDistrictToggle(district)} style={{ width: '16px', height: '16px', cursor: 'pointer' }} />
-                                            {district}
-                                        </label>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* --- SUBMIT BUTTON --- */}
-                        {watchedRole && (
-                            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '32px' }}>
-                                <button type="button" style={{...styles.btnOutline, marginRight: '16px'}} onClick={() => reset()}>Reset Form</button>
-                                <button type="submit" style={styles.btnPrimary}>Save Nested Access Rule</button>
-                            </div>
-                        )}
-
-                    </form>
+            {/* HEADER SECTION */}
+            <div className="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 className="fw-bold mb-0 text-dark" style={{fontSize: '1.75rem'}}>Access Control Manager</h2>
+                    <p className="text-muted mb-0">Role & Permission Matrix Configuration</p>
                 </div>
             </div>
 
             {/* ========================================== */}
-            {/* TABLE SECTION (Matches Excel Format) */}
+            {/* FORM SECTION */}
             {/* ========================================== */}
-            <div style={styles.card}>
-                <div style={styles.cardHeader}>
-                    <h5 style={{ margin: 0 }}>📋 Existing Access & Permissions</h5>
+            <div className="emp-card">
+                <div className="emp-card-header">
+                    <h5 className="mb-0 fw-bold d-flex align-items-center">
+                        <span className="me-2">🔐</span> Registration & Permission Form
+                    </h5>
                 </div>
-                <div style={styles.cardBody}>
-                    <div style={styles.tableContainer}>
-                        <table style={styles.table}>
-                            <thead>
+
+                <div className="emp-card-body">
+                    <form id="accessForm" onSubmit={handleSubmit(onSubmit, onError)} className="row g-3">
+                        
+                        {/* --- TOP: SELECT ROLE --- */}
+                        <div className="col-md-4">
+                            <label className="emp-label">Account Head (Target Role) <span className="text-danger">*</span></label>
+                            <Controller name="acctHead" control={control} render={({ field }) => (
+                                <Select {...field} options={dbAcctHeads} placeholder="Select Role..." styles={customSelectStyles(!!errors.acctHead)} />
+                            )} />
+                            {errors.acctHead && <p className="error-text">{errors.acctHead.message}</p>}
+                        </div>
+
+                        {/* --- SECTION 1: PARENT LINEAGE --- */}
+                        {watchedRole && (
+                            <>
+                                <div className="col-12">
+                                    <p className="PerInfo">1. Parent Lineage Tracking (Organization Context)</p>
+                                </div>
+                                
+                                {showStateNgo && (
+                                    <>
+                                        <div className="col-md-4">
+                                            <label className="emp-label">State NGO (Mother) <span className="text-danger">*</span></label>
+                                            <Controller name="stateNgo" control={control} render={({ field }) => (
+                                                <Select {...field} options={dbStateNgos} placeholder="Select Mother NGO..." styles={customSelectStyles(false)} isClearable />
+                                            )} />
+                                        </div>
+                                        <div className="col-md-4">
+                                            <label className="emp-label">Mother NGO State</label>
+                                            <input type="text" className="form-control form-control-sm bg-light text-muted" value={watchedStateNgo ? watchedStateNgo.stateName : ''} placeholder="Auto-fetched..." readOnly />
+                                        </div>
+                                        <div className="col-md-4">
+                                            <label className="emp-label">Mother NGO District</label>
+                                            <input type="text" className="form-control form-control-sm bg-light text-muted" value={watchedStateNgo ? watchedStateNgo.distName : ''} placeholder="Auto-fetched..." readOnly />
+                                        </div>
+                                    </>
+                                )}
+
+                                {showDistNgo && (
+                                    <div className="col-md-4">
+                                        <label className="emp-label">District NGO <span className="text-danger">*</span></label>
+                                        <Controller name="distNgo" control={control} render={({ field }) => (
+                                            <Select {...field} options={dbDistNgos} placeholder="Select Dist NGO..." styles={customSelectStyles(false)} isClearable />
+                                        )} />
+                                    </div>
+                                )}
+
+                                {showSupervisor && (
+                                    <div className="col-md-4">
+                                        <label className="emp-label">Supervisor <span className="text-danger">*</span></label>
+                                        <Controller name="supervisor" control={control} render={({ field }) => (
+                                            <Select {...field} options={dbSupervisors} placeholder="Select Supervisor..." styles={customSelectStyles(false)} isClearable />
+                                        )} />
+                                    </div>
+                                )}
+
+                                {showAsthaDidi && (
+                                    <div className="col-md-4">
+                                        <label className="emp-label">Astha Didi <span className="text-danger">*</span></label>
+                                        <Controller name="asthaDidi" control={control} render={({ field }) => (
+                                            <Select {...field} options={dbAsthaDidis} placeholder="Select Astha Didi..." styles={customSelectStyles(false)} isClearable />
+                                        )} />
+                                    </div>
+                                )}
+                            </>
+                        )}
+
+                        {/* --- SECTION 2: IDENTITY & LOCATION --- */}
+                        {watchedRole && (
+                            <>
+                                <div className="col-12">
+                                    <p className="PerInfo" style={{backgroundColor: '#659EC7'}}>2. Assign Identity & Location</p>
+                                </div>
+                                
+                                <div className="col-md-3">
+                                    <label className="emp-label">State <span className="text-danger">*</span></label>
+                                    <Controller name="state" control={control} render={({ field }) => (
+                                        <Select {...field} options={dbStates} placeholder="Select State..." styles={customSelectStyles(!!errors.state)} isClearable />
+                                    )} />
+                                    {errors.state && <p className="error-text">{errors.state.message}</p>}
+                                </div>
+
+                                <div className="col-md-3">
+                                    <label className="emp-label">District <span className="text-danger">*</span></label>
+                                    <Controller name="district" control={control} render={({ field }) => (
+                                        <Select {...field} options={dbDistricts} placeholder="Select District..." styles={customSelectStyles(!!errors.district)} isClearable />
+                                    )} />
+                                    {errors.district && <p className="error-text">{errors.district.message}</p>}
+                                </div>
+
+                                {showEntityName && (
+                                    <div className="col-md-3">
+                                        <label className="emp-label">District NGO Name <span className="text-danger">*</span></label>
+                                        <Controller name="entityName" control={control} render={({ field }) => (
+                                            <input type="text" className={`form-control form-control-sm ${errors.entityName ? 'is-invalid' : ''}`} placeholder="Enter NGO Name" {...field} />
+                                        )} />
+                                        {errors.entityName && <p className="error-text">{errors.entityName.message}</p>}
+                                    </div>
+                                )}
+
+                                <div className="col-md-3">
+                                    <label className="emp-label">Account Name (Person) <span className="text-danger">*</span></label>
+                                    <Controller name="acctName" control={control} render={({ field }) => (
+                                        <input type="text" className={`form-control form-control-sm ${errors.acctName ? 'is-invalid' : ''}`} placeholder="Enter Person's Name" {...field} />
+                                    )} />
+                                    {errors.acctName && <p className="error-text">{errors.acctName.message}</p>}
+                                </div>
+                            </>
+                        )}
+
+                        {/* --- SECTION 3: LOGIN CREDENTIALS --- */}
+                        {watchedRole && (
+                            <>
+                                <div className="col-12">
+                                    <p className="PerInfo" style={{backgroundColor: '#BAB86C'}}>3. Login Access Credentials</p>
+                                </div>
+                                <div className="col-md-4">
+                                    <label className="emp-label">User Name (For Login) <span className="text-danger">*</span></label>
+                                    <Controller name="userName" control={control} render={({ field }) => (
+                                        <input type="text" autoComplete="off" className={`form-control form-control-sm ${errors.userName ? 'is-invalid' : ''}`} placeholder="Enter username" {...field} />
+                                    )} />
+                                    {errors.userName && <p className="error-text">{errors.userName.message}</p>}
+                                </div>
+                                <div className="col-md-4">
+                                    <label className="emp-label">Password <span className="text-danger">*</span></label>
+                                    <Controller name="password" control={control} render={({ field }) => (
+                                        <input type="password" autoComplete="new-password" className={`form-control form-control-sm ${errors.password ? 'is-invalid' : ''}`} placeholder="Set secure password" {...field} />
+                                    )} />
+                                    {errors.password && <p className="error-text">{errors.password.message}</p>}
+                                </div>
+                            </>
+                        )}
+
+                        {/* --- SECTION 4: MULTI-DISTRICT CHECKBOX MATRIX --- */}
+                        {watchedRole && (roleValue === 'DIST_ADMIN' || roleValue === 'SUPERVISOR') && (
+                            <div className="col-12">
+                                <div className="matrix-container">
+                                    <div className="d-flex justify-content-between align-items-center mb-3">
+                                        <div>
+                                            <h6 className="fw-bold mb-1" style={{ color: '#0E87CC' }}>4. Data Visibility (Permission Matrix)</h6>
+                                            <small className="text-muted">Select which districts this user is allowed to access and manage below them.</small>
+                                        </div>
+                                        <button type="button" onClick={handleSelectAllDistricts} className="btn btn-sm btn-outline-primary">
+                                            {selectedDistricts.length === availableDistricts.length ? 'Deselect All' : 'Select All'}
+                                        </button>
+                                    </div>
+                                    <div className="row g-2">
+                                        {availableDistricts.map(district => (
+                                            <div key={district} className="col-6 col-md-3 col-lg-2">
+                                                <div className={`form-check p-2 rounded border ${selectedDistricts.includes(district) ? 'bg-primary bg-opacity-10 border-primary' : 'bg-white'}`}>
+                                                    <input 
+                                                        className="form-check-input ms-1 cursor-pointer" 
+                                                        type="checkbox" 
+                                                        id={`chk-${district}`}
+                                                        checked={selectedDistricts.includes(district)}
+                                                        onChange={() => handleDistrictToggle(district)}
+                                                    />
+                                                    <label className="form-check-label ms-2 cursor-pointer w-100" htmlFor={`chk-${district}`} style={{fontSize: '0.85rem', fontWeight: '500'}}>
+                                                        {district}
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </form>
+                </div>
+
+                {/* Form Footer */}
+                {watchedRole && (
+                    <div className="emp-card-footer">
+                        <button type="button" className="btn btn-secondary px-4 shadow-sm" onClick={handleResetForm}>Clear Form</button>
+                        <button type="submit" form="accessForm" className="btn btn-primary px-5 shadow-sm fw-bold">Save Access Rule</button>
+                    </div>
+                )}
+            </div>
+
+            {/* ========================================== */}
+            {/* TABLE SECTION */}
+            {/* ========================================== */}
+            <div className="emp-card mt-4">
+                <div className="emp-card-header bg-dark">
+                    <h5 className="mb-0 fw-bold text-white d-flex align-items-center">
+                        <span className="me-2">📋</span> Registered Access Directory
+                    </h5>
+                </div>
+                
+                <div className="emp-card-body p-0">
+                    <div className="p-3 border-bottom d-flex justify-content-end bg-light">
+                        <div className="position-relative" style={{ width: '300px' }}>
+                            <Search size={18} className="position-absolute text-muted" style={{ left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+                            <input
+                                type="text"
+                                className="form-control form-control-sm ps-5"
+                                placeholder="Search all records..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="table-responsive">
+                        <table className="table table-hover align-middle mb-0 bg-white">
+                            <thead className="table-light text-uppercase" style={{ fontSize: "0.85rem" }}>
                                 <tr>
-                                    <th style={styles.th}>Role / Acct Head</th>
-                                    <th style={styles.th}>Mother NGO</th>
-                                    <th style={styles.th}>District NGO</th>
-                                    <th style={styles.th}>Assigned State</th>
-                                    <th style={styles.th}>Assigned District(s)</th>
-                                    <th style={styles.th}>Account Name</th>
-                                    <th style={styles.th}>Username</th>
+                                    <th className="py-3 ps-4 cursor-pointer sortable-header" onClick={() => handleSort('role')}>Role {renderSortIcon('role')}</th>
+                                    <th className="py-3 cursor-pointer sortable-header" onClick={() => handleSort('motherNgo')}>Mother NGO {renderSortIcon('motherNgo')}</th>
+                                    <th className="py-3 cursor-pointer sortable-header" onClick={() => handleSort('distNgo')}>District NGO {renderSortIcon('distNgo')}</th>
+                                    <th className="py-3 cursor-pointer sortable-header" onClick={() => handleSort('state')}>State {renderSortIcon('state')}</th>
+                                    <th className="py-3 cursor-pointer sortable-header" onClick={() => handleSort('district')}>Assigned District(s) {renderSortIcon('district')}</th>
+                                    <th className="py-3 cursor-pointer sortable-header" onClick={() => handleSort('acctName')}>Account Name {renderSortIcon('acctName')}</th>
+                                    <th className="py-3 pe-4 cursor-pointer sortable-header" onClick={() => handleSort('userName')}>Username {renderSortIcon('userName')}</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {accessRecords.map(record => (
-                                    <tr key={record.id} style={{ transition: 'background-color 0.2s' }} onMouseOver={e => e.currentTarget.style.backgroundColor = '#f9f9fb'} onMouseOut={e => e.currentTarget.style.backgroundColor = 'transparent'}>
-                                        <td style={{...styles.td, fontWeight: '600', color: '#696cff'}}>{record.role}</td>
-                                        <td style={styles.td}>{record.motherNgo}</td>
-                                        <td style={styles.td}>{record.distNgo}</td>
-                                        <td style={styles.td}>{record.state}</td>
-                                        <td style={styles.td}>
-                                            {/* Visually format multiple districts if present */}
-                                            {record.district.includes(',') ? (
-                                                <span style={{ backgroundColor: 'rgba(113, 221, 55, 0.16)', color: '#71dd37', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: '600' }}>
-                                                    {record.district} (Multiple)
-                                                </span>
-                                            ) : (
-                                                record.district
-                                            )}
-                                        </td>
-                                        <td style={styles.td}>{record.acctName}</td>
-                                        <td style={styles.td}>{record.userName}</td>
-                                    </tr>
-                                ))}
-                                {accessRecords.length === 0 && (
+                                {sortedAndFilteredRecords.length === 0 ? (
                                     <tr>
-                                        <td colSpan="7" style={{ ...styles.td, textAlign: 'center', padding: '24px' }}>
-                                            No access records found. Create one above!
+                                        <td colSpan="7" className="text-center py-5 text-muted fw-bold">
+                                            {searchTerm ? "No records match your search criteria." : "No access records found. Create one above!"}
                                         </td>
                                     </tr>
+                                ) : (
+                                    sortedAndFilteredRecords.map((record) => (
+                                        <tr key={record.id}>
+                                            <td className="ps-4 text-primary fw-bold">{record.role}</td>
+                                            <td className="text-dark">{record.motherNgo}</td>
+                                            <td className="text-dark">{record.distNgo}</td>
+                                            <td className="text-dark">{record.state}</td>
+                                            <td>
+                                                {record.district.includes(',') ? (
+                                                    <span className="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1">
+                                                        {record.district} (Multiple)
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-dark">{record.district}</span>
+                                                )}
+                                            </td>
+                                            <td className="fw-bold">{record.acctName}</td>
+                                            <td className="pe-4 text-muted">{record.userName}</td>
+                                        </tr>
+                                    ))
                                 )}
                             </tbody>
                         </table>

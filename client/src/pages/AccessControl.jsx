@@ -7,7 +7,8 @@ import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 import { styles, FormInput } from '../config/constants';
-import { PasswordInput } from './AccountSharedUtils';
+// ✅ FIXED IMPORT PATH: Pointing to the components folder instead of the current pages folder
+import { PasswordInput } from '../components/AccountSharedUtils';
 
 // ==========================================
 // 1. VALIDATION SCHEMA

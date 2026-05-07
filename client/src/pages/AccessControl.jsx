@@ -5,11 +5,12 @@ import * as z from 'zod';
 import Select from 'react-select';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-// ✅ FIXED: Removed the direct Bootstrap import that was crashing Vercel. 
-// It is now loaded via CDN in the <style> block below!
 
 import { styles, FormInput } from '../config/constants';
 import { PasswordInput } from '../components/AccountSharedUtils';
+
+// ✅ Import the newly created CSS file
+import './AccessControl.css';
 
 // ==========================================
 // 1. VALIDATION SCHEMA
@@ -17,19 +18,16 @@ import { PasswordInput } from '../components/AccountSharedUtils';
 const accessSchema = z.object({
     acctHead: z.object({ value: z.any(), label: z.string() }, { required_error: "Please select an Account Head (Role)" }),
     
-    // Parent Lineage
     stateNgo: z.object({ value: z.any(), label: z.string(), stateName: z.string(), distName: z.string() }).nullable().optional(),
     distNgo: z.object({ value: z.any(), label: z.string() }).nullable().optional(),
     supervisor: z.object({ value: z.any(), label: z.string() }).nullable().optional(),
     asthaDidi: z.object({ value: z.any(), label: z.string() }).nullable().optional(),
 
-    // Identity & Location
     state: z.object({ value: z.any(), label: z.string() }, { required_error: "State is required" }),
     district: z.object({ value: z.any(), label: z.string() }, { required_error: "District is required" }),
     entityName: z.string().optional(),
     acctName: z.string().min(2, "Account Name is required"),
     
-    // Login
     userName: z.string().min(3, "Username must be at least 3 characters"),
     password: z.string().min(6, "Password must be at least 6 characters"),
 });
@@ -73,32 +71,30 @@ const AccessControl = () => {
     const showEntityName = roleValue === 'DIST_ADMIN'; 
 
     // ==========================================
-    // 3. INITIALIZATION (MOCK DATA)
+    // 3. INITIALIZATION (NO DUMMY DATA)
     // ==========================================
     useEffect(() => {
+        // You can leave roles hardcoded or fetch them from `/api/userinfo`
         setDbAcctHeads([
             { value: 'DIST_ADMIN', label: 'District Administrator' },
             { value: 'SUPERVISOR', label: 'Supervisor' },
             { value: 'ASTHA_DIDI', label: 'Astha Didi' },
             { value: 'ASTHA_MAA', label: 'Astha Maa' }
         ]);
-        
-        setDbStateNgos([
-            { value: '1', label: 'Mother NGO India', stateName: 'West Bengal', distName: 'Kolkata' },
-            { value: '2', label: 'State Level Care Foundation', stateName: 'Maharashtra', distName: 'Mumbai' }
-        ]);
-        setDbDistNgos([{ value: '1', label: 'Birbhum Welfare Society' }, { value: '2', label: 'Kolkata Care' }]);
-        setDbSupervisors([{ value: '1', label: 'Ramesh Singh' }, { value: '2', label: 'Sita Roy' }]);
-        setDbAsthaDidis([{ value: '1', label: 'Anjali Das' }, { value: '2', label: 'Priya Sen' }]);
-        setDbStates([{ value: 'WB', label: 'West Bengal' }, { value: 'MH', label: 'Maharashtra' }]);
-        setDbDistricts([{ value: 'BIR', label: 'Birbhum' }, { value: 'KOL', label: 'Kolkata' }, { value: 'BAN', label: 'Bankura' }]);
-        setAvailableDistricts(['Alipurduar', 'Bankura', 'Birbhum', 'Cooch Behar', 'Dakshin Dinajpur', 'Darjeeling', 'Hooghly', 'Howrah', 'Jalpaiguri', 'Jhargram', 'Kolkata']);
 
-        setAccessRecords([
-            { id: 1, role: 'District Administrator', motherNgo: 'Mother NGO India', distNgo: 'Birbhum Welfare Society', state: 'West Bengal', district: 'Birbhum, Bankura', acctName: 'Rajesh Sharma', userName: 'rajesh_admin' },
-            { id: 2, role: 'Supervisor', motherNgo: 'Mother NGO India', distNgo: 'Birbhum Welfare Society', state: 'West Bengal', district: 'Birbhum', acctName: 'Sita Roy', userName: 'sita_sup' },
-            { id: 3, role: 'Astha Maa', motherNgo: 'Mother NGO India', distNgo: 'Kolkata Care', state: 'West Bengal', district: 'Kolkata', acctName: 'Mita Devi', userName: 'mita_maa' }
-        ]);
+        // TODO: FETCH FROM DATABASE HERE (Dummy data removed)
+        // fetch('/api/motherngos').then(res => res.json()).then(data => setDbStateNgos(data));
+        // fetch('/api/states').then(res => res.json()).then(data => setDbStates(data));
+        // ... etc ...
+        
+        setDbStateNgos([]);
+        setDbDistNgos([]);
+        setDbSupervisors([]);
+        setDbAsthaDidis([]);
+        setDbStates([]);
+        setDbDistricts([]);
+        setAvailableDistricts([]);
+        setAccessRecords([]);
     }, []);
 
     // ==========================================
@@ -172,18 +168,6 @@ const AccessControl = () => {
 
         console.log("🚀 READY TO SEND TO DB:", finalPayload);
         toast.success(`Access Rule Created for ${watchedRole.label}!`);
-        
-        setAccessRecords(prev => [{
-            id: Date.now(),
-            role: data.acctHead.label,
-            motherNgo: data.stateNgo?.label || 'N/A',
-            distNgo: data.distNgo?.label || data.entityName || 'N/A',
-            state: data.state.label,
-            district: selectedDistricts.length > 0 ? selectedDistricts.join(', ') : data.district.label,
-            acctName: data.acctName,
-            userName: data.userName
-        }, ...prev]);
-
         handleResetForm();
     };
 
@@ -191,6 +175,7 @@ const AccessControl = () => {
         toast.error("Please fill in all required red fields.");
     };
 
+    // ✅ FIXED: Added menuPortalTarget and zIndex to ensure dropdown breaks out of containers
     const customSelectStyles = (hasError) => ({
         control: (base) => ({
             ...base,
@@ -205,29 +190,12 @@ const AccessControl = () => {
         input: (base) => ({ ...base, margin: 0, padding: 0 }),
         indicatorSeparator: () => ({ display: 'none' }),
         dropdownIndicator: (base) => ({ ...base, padding: '4px' }),
-        menu: (base) => ({ ...base, zIndex: 9999 })
+        menuPortal: base => ({ ...base, zIndex: 9999 }) // Forces dropdown above everything
     });
 
     return (
         <div className="emp-wrapper">
             <ToastContainer autoClose={3000} pauseOnHover={false} />
-            
-            <style>{`
-                /* ✅ Injecting Bootstrap dynamically via CDN to fix the Vercel build error */
-                @import url('https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css');
-                
-                .emp-wrapper { background-color: #f5f5f9; min-height: 100vh; padding: 20px; font-family: "Public Sans", sans-serif; }
-                .emp-card { background: #fff; border: none; border-radius: 8px; box-shadow: 0 2px 6px 0 rgba(67, 89, 113, 0.12); width: 100%; margin-bottom: 24px; overflow: hidden; }
-                .emp-card-header { background-color: #0E87CC; color: white; padding: 1.25rem 1.5rem; display: flex; justify-content: space-between; align-items: center; }
-                .emp-card-body { padding: 1.5rem; }
-                .emp-card-footer { background-color: #f8f9fa; padding: 1rem 1.5rem; border-top: 1px solid #e9ecef; display: flex; justify-content: flex-end; gap: 0.5rem; }
-                .emp-label { font-weight: 600; font-size: 0.8rem; margin-bottom: 0.25rem; color: #566a7f; display: block; text-transform: uppercase; letter-spacing: 0.25px;}
-                p.PerInfo { background-color: #0E87CC; color: whitesmoke; padding: 8px 12px; font-weight: bold; border-radius: 4px; font-size: 0.95rem; margin-bottom: 16px; margin-top: 24px; }
-                .cursor-pointer { cursor: pointer; }
-                .sortable-header:hover { background-color: #e9ecef !important; transition: background-color 0.2s; }
-                .error-text { color: #dc3545; font-size: 0.75rem; margin-top: 4px; margin-bottom: 0; }
-                .matrix-container { background-color: #f8f9fa; border: 1px solid #e9ecef; border-radius: 6px; padding: 16px; margin-top: 16px; }
-            `}</style>
 
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <div>
@@ -249,7 +217,14 @@ const AccessControl = () => {
                         <div className="col-md-4">
                             <label className="emp-label">Account Head (Target Role) <span className="text-danger">*</span></label>
                             <Controller name="acctHead" control={control} render={({ field }) => (
-                                <Select {...field} options={dbAcctHeads} placeholder="Select Role..." styles={customSelectStyles(!!errors.acctHead)} />
+                                <Select 
+                                    {...field} 
+                                    options={dbAcctHeads} 
+                                    placeholder="Select Role..." 
+                                    styles={customSelectStyles(!!errors.acctHead)} 
+                                    menuPortalTarget={document.body} 
+                                    menuPosition={'fixed'}
+                                />
                             )} />
                             {errors.acctHead && <p className="error-text">{errors.acctHead.message}</p>}
                         </div>
@@ -265,7 +240,15 @@ const AccessControl = () => {
                                         <div className="col-md-4">
                                             <label className="emp-label">State NGO (Mother) <span className="text-danger">*</span></label>
                                             <Controller name="stateNgo" control={control} render={({ field }) => (
-                                                <Select {...field} options={dbStateNgos} placeholder="Select Mother NGO..." styles={customSelectStyles(false)} isClearable />
+                                                <Select 
+                                                    {...field} 
+                                                    options={dbStateNgos} 
+                                                    placeholder="Select Mother NGO..." 
+                                                    styles={customSelectStyles(false)} 
+                                                    isClearable 
+                                                    menuPortalTarget={document.body} 
+                                                    menuPosition={'fixed'} 
+                                                />
                                             )} />
                                         </div>
                                         <div className="col-md-4">
@@ -283,7 +266,7 @@ const AccessControl = () => {
                                     <div className="col-md-4">
                                         <label className="emp-label">District NGO <span className="text-danger">*</span></label>
                                         <Controller name="distNgo" control={control} render={({ field }) => (
-                                            <Select {...field} options={dbDistNgos} placeholder="Select Dist NGO..." styles={customSelectStyles(false)} isClearable />
+                                            <Select {...field} options={dbDistNgos} placeholder="Select Dist NGO..." styles={customSelectStyles(false)} isClearable menuPortalTarget={document.body} menuPosition={'fixed'} />
                                         )} />
                                     </div>
                                 )}
@@ -292,7 +275,7 @@ const AccessControl = () => {
                                     <div className="col-md-4">
                                         <label className="emp-label">Supervisor <span className="text-danger">*</span></label>
                                         <Controller name="supervisor" control={control} render={({ field }) => (
-                                            <Select {...field} options={dbSupervisors} placeholder="Select Supervisor..." styles={customSelectStyles(false)} isClearable />
+                                            <Select {...field} options={dbSupervisors} placeholder="Select Supervisor..." styles={customSelectStyles(false)} isClearable menuPortalTarget={document.body} menuPosition={'fixed'} />
                                         )} />
                                     </div>
                                 )}
@@ -301,7 +284,7 @@ const AccessControl = () => {
                                     <div className="col-md-4">
                                         <label className="emp-label">Astha Didi <span className="text-danger">*</span></label>
                                         <Controller name="asthaDidi" control={control} render={({ field }) => (
-                                            <Select {...field} options={dbAsthaDidis} placeholder="Select Astha Didi..." styles={customSelectStyles(false)} isClearable />
+                                            <Select {...field} options={dbAsthaDidis} placeholder="Select Astha Didi..." styles={customSelectStyles(false)} isClearable menuPortalTarget={document.body} menuPosition={'fixed'} />
                                         )} />
                                     </div>
                                 )}
@@ -317,7 +300,7 @@ const AccessControl = () => {
                                 <div className="col-md-3">
                                     <label className="emp-label">State <span className="text-danger">*</span></label>
                                     <Controller name="state" control={control} render={({ field }) => (
-                                        <Select {...field} options={dbStates} placeholder="Select State..." styles={customSelectStyles(!!errors.state)} isClearable />
+                                        <Select {...field} options={dbStates} placeholder="Select State..." styles={customSelectStyles(!!errors.state)} isClearable menuPortalTarget={document.body} menuPosition={'fixed'} />
                                     )} />
                                     {errors.state && <p className="error-text">{errors.state.message}</p>}
                                 </div>
@@ -325,7 +308,7 @@ const AccessControl = () => {
                                 <div className="col-md-3">
                                     <label className="emp-label">District <span className="text-danger">*</span></label>
                                     <Controller name="district" control={control} render={({ field }) => (
-                                        <Select {...field} options={dbDistricts} placeholder="Select District..." styles={customSelectStyles(!!errors.district)} isClearable />
+                                        <Select {...field} options={dbDistricts} placeholder="Select District..." styles={customSelectStyles(!!errors.district)} isClearable menuPortalTarget={document.body} menuPosition={'fixed'} />
                                     )} />
                                     {errors.district && <p className="error-text">{errors.district.message}</p>}
                                 </div>
@@ -457,7 +440,7 @@ const AccessControl = () => {
                                 {sortedAndFilteredRecords.length === 0 ? (
                                     <tr>
                                         <td colSpan="7" className="text-center py-5 text-muted fw-bold">
-                                            {searchTerm ? "No records match your search criteria." : "No access records found. Create one above!"}
+                                            {searchTerm ? "No records match your search criteria." : "No access records found in database."}
                                         </td>
                                     </tr>
                                 ) : (

@@ -7,16 +7,18 @@ import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 import { styles, FormInput } from '../config/constants';
-// ✅ FIXED IMPORT PATH: Pointing to the components folder instead of the current pages folder
 import { PasswordInput } from '../components/AccountSharedUtils';
 
 // ==========================================
 // 1. VALIDATION SCHEMA
 // ==========================================
 const accessSchema = z.object({
-    distNgo: z.object({ value: z.any(), label: z.string() }, { required_error: "Please select a District NGO" }),
-    acctHead: z.object({ value: z.any(), label: z.string() }, { required_error: "Please select an Account Head" }),
-    acctName: z.object({ value: z.any(), label: z.string() }, { required_error: "Please select an Account Name" }),
+    stateNgo: z.object({ value: z.any(), label: z.string() }).nullable().optional(),
+    state: z.object({ value: z.any(), label: z.string() }).nullable().optional(),
+    district: z.object({ value: z.any(), label: z.string() }).nullable().optional(),
+    distNgoName: z.string().min(2, "District NGO Name is required"),
+    acctHead: z.string().min(2, "Account Head is required"),
+    acctName: z.string().min(2, "Account Name is required"),
     userName: z.string().min(3, "Username must be at least 3 characters"),
     password: z.string().min(6, "Password must be at least 6 characters"),
 });
@@ -25,46 +27,46 @@ const AccessControl = () => {
     // ==========================================
     // 2. DUMMY STATE (To be replaced with DB fetch later)
     // ==========================================
-    const [dbDistNgos, setDbDistNgos] = useState([]);
-    const [dbAcctHeads, setDbAcctHeads] = useState([]);
-    const [dbAcctNames, setDbAcctNames] = useState([]);
+    const [dbStateNgos, setDbStateNgos] = useState([]);
+    const [dbStates, setDbStates] = useState([]);
+    const [dbDistricts, setDbDistricts] = useState([]);
     
     // Checkbox state for multi-district assignment
     const [availableDistricts, setAvailableDistricts] = useState([]);
     const [selectedDistricts, setSelectedDistricts] = useState([]);
 
-    const { control, handleSubmit, watch, reset, formState: { errors } } = useForm({
+    const { control, handleSubmit, reset, formState: { errors } } = useForm({
         resolver: zodResolver(accessSchema),
         mode: 'onChange',
         defaultValues: {
-            distNgo: null,
-            acctHead: null,
-            acctName: null,
+            stateNgo: null,
+            state: null,
+            district: null,
+            distNgoName: '',
+            acctHead: '',
+            acctName: '',
             userName: '',
             password: ''
         }
     });
-
-    const watchedDistNgo = watch('distNgo');
 
     // ==========================================
     // 3. UI MOCK DATA INITIALIZATION
     // ==========================================
     useEffect(() => {
         // Mock data to visualize the UI before connecting to the database
-        setDbDistNgos([
-            { value: '1', label: 'Birbhum Welfare Society' },
-            { value: '2', label: 'Kolkata Care Foundation' }
+        setDbStateNgos([
+            { value: '1', label: 'Mother NGO India' },
+            { value: '2', label: 'State Level Care Foundation' }
         ]);
-        setDbAcctHeads([
-            { value: 'ADMIN', label: 'Administrator' },
-            { value: 'SUPERVISOR', label: 'Field Supervisor' },
-            { value: 'FINANCE', label: 'Finance Manager' }
+        setDbStates([
+            { value: 'WB', label: 'West Bengal' },
+            { value: 'MH', label: 'Maharashtra' }
         ]);
-        setDbAcctNames([
-            { value: '1', label: 'Rajesh Sharma' },
-            { value: '2', label: 'Priya Das' },
-            { value: '3', label: 'Amit Kumar' }
+        setDbDistricts([
+            { value: 'BIR', label: 'Birbhum' },
+            { value: 'KOL', label: 'Kolkata' },
+            { value: 'BAN', label: 'Bankura' }
         ]);
         setAvailableDistricts([
             'Alipurduar', 'Bankura', 'Birbhum', 'Cooch Behar', 'Dakshin Dinajpur', 
@@ -93,23 +95,20 @@ const AccessControl = () => {
 
     const onSubmit = (data) => {
         if (selectedDistricts.length === 0) {
-            toast.warning("Please assign at least one district access permission.");
+            toast.warning("Please assign at least one district access permission in the matrix.");
             return;
         }
 
         const finalPayload = {
             ...data,
-            distNgoId: data.distNgo.value,
-            acctHeadId: data.acctHead.value,
-            acctNameId: data.acctName.value,
+            stateNgoId: data.stateNgo?.value || null,
+            stateId: data.state?.value || null,
+            districtId: data.district?.value || null,
             assignedDistricts: selectedDistricts
         };
 
         console.log("🚀 READY TO SEND TO DB:", finalPayload);
         toast.success("UI Form Validated! Check console for Payload.");
-        
-        // reset();
-        // setSelectedDistricts([]);
     };
 
     const onError = () => {
@@ -130,53 +129,88 @@ const AccessControl = () => {
                 <div style={styles.cardBody}>
                     <form onSubmit={handleSubmit(onSubmit, onError)} autoComplete="off">
                         
-                        {/* --- ROW 1: THE THREE DROPDOWNS --- */}
-                        <h6 style={styles.sectionHeader}>1. Assign Role & Identity</h6>
+                        {/* --- ROW 1: THE CONTEXT DROPDOWNS --- */}
+                        <h6 style={{...styles.sectionHeader, marginTop: 0}}>1. Organization Context</h6>
                         <div style={{ ...styles.formGrid, gridTemplateColumns: 'repeat(3, 1fr)' }}>
                             <div style={styles.inputGroup}>
-                                <label style={styles.label}>District NGO Name <span style={{ color: '#ff3e1d' }}>*</span></label>
-                                <Controller name="distNgo" control={control} render={({ field }) => (
+                                <label style={styles.label}>State NGO Name (Mother NGO)</label>
+                                <Controller name="stateNgo" control={control} render={({ field }) => (
                                     <Select 
                                         {...field} 
-                                        options={dbDistNgos} 
-                                        placeholder="Select Dist NGO..." 
-                                        styles={styles.selectStyles(!!errors.distNgo)} 
+                                        options={dbStateNgos} 
+                                        placeholder="Select Mother NGO..." 
+                                        styles={styles.selectStyles(!!errors.stateNgo)} 
+                                        isClearable
                                     />
                                 )} />
-                                {errors.distNgo && <p style={styles.errorText}>{errors.distNgo.message}</p>}
                             </div>
 
                             <div style={styles.inputGroup}>
-                                <label style={styles.label}>Account Head (Role) <span style={{ color: '#ff3e1d' }}>*</span></label>
-                                <Controller name="acctHead" control={control} render={({ field }) => (
+                                <label style={styles.label}>State</label>
+                                <Controller name="state" control={control} render={({ field }) => (
                                     <Select 
                                         {...field} 
-                                        options={dbAcctHeads} 
-                                        placeholder="Select Acct Head..." 
-                                        styles={styles.selectStyles(!!errors.acctHead)} 
-                                        isDisabled={!watchedDistNgo}
+                                        options={dbStates} 
+                                        placeholder="Select State..." 
+                                        styles={styles.selectStyles(!!errors.state)} 
+                                        isClearable
                                     />
                                 )} />
-                                {errors.acctHead && <p style={styles.errorText}>{errors.acctHead.message}</p>}
                             </div>
 
                             <div style={styles.inputGroup}>
-                                <label style={styles.label}>Account Name (Person) <span style={{ color: '#ff3e1d' }}>*</span></label>
-                                <Controller name="acctName" control={control} render={({ field }) => (
+                                <label style={styles.label}>District</label>
+                                <Controller name="district" control={control} render={({ field }) => (
                                     <Select 
                                         {...field} 
-                                        options={dbAcctNames} 
-                                        placeholder="Select Acct Name..." 
-                                        styles={styles.selectStyles(!!errors.acctName)} 
-                                        isDisabled={!watchedDistNgo}
+                                        options={dbDistricts} 
+                                        placeholder="Select District..." 
+                                        styles={styles.selectStyles(!!errors.district)} 
+                                        isClearable
                                     />
                                 )} />
-                                {errors.acctName && <p style={styles.errorText}>{errors.acctName.message}</p>}
                             </div>
                         </div>
 
-                        {/* --- ROW 2: LOGIN CREDENTIALS --- */}
-                        <h6 style={styles.sectionHeader}>2. Login Access Credentials</h6>
+                        {/* --- ROW 2: TEXT INPUTS FOR ROLE & IDENTITY --- */}
+                        <h6 style={styles.sectionHeader}>2. Assign Role & Identity</h6>
+                        <div style={{ ...styles.formGrid, gridTemplateColumns: 'repeat(3, 1fr)' }}>
+                            <Controller name="distNgoName" control={control} render={({ field }) => (
+                                <FormInput 
+                                    label={<>District NGO Name <span style={{ color: '#ff3e1d' }}>*</span></>} 
+                                    id="distNgoName" 
+                                    error={errors.distNgoName} 
+                                    placeholder="Enter District NGO Name" 
+                                    type="text" 
+                                    {...field} 
+                                />
+                            )} />
+
+                            <Controller name="acctHead" control={control} render={({ field }) => (
+                                <FormInput 
+                                    label={<>Account Head (Role) <span style={{ color: '#ff3e1d' }}>*</span></>} 
+                                    id="acctHead" 
+                                    error={errors.acctHead} 
+                                    placeholder="e.g. Administrator, Supervisor" 
+                                    type="text" 
+                                    {...field} 
+                                />
+                            )} />
+
+                            <Controller name="acctName" control={control} render={({ field }) => (
+                                <FormInput 
+                                    label={<>Account Name (Person) <span style={{ color: '#ff3e1d' }}>*</span></>} 
+                                    id="acctName" 
+                                    error={errors.acctName} 
+                                    placeholder="Enter Person's Name" 
+                                    type="text" 
+                                    {...field} 
+                                />
+                            )} />
+                        </div>
+
+                        {/* --- ROW 3: LOGIN CREDENTIALS --- */}
+                        <h6 style={styles.sectionHeader}>3. Login Access Credentials</h6>
                         <div style={{ ...styles.formGrid, gridTemplateColumns: '1fr 1fr' }}>
                             <Controller name="userName" control={control} render={({ field }) => (
                                 <FormInput 
@@ -202,7 +236,7 @@ const AccessControl = () => {
                             )} />
                         </div>
 
-                        {/* --- ROW 3: MULTI-DISTRICT CHECKBOX MATRIX --- */}
+                        {/* --- ROW 4: MULTI-DISTRICT CHECKBOX MATRIX --- */}
                         <div style={{ 
                             marginTop: '40px', 
                             padding: '24px', 
@@ -210,10 +244,10 @@ const AccessControl = () => {
                             borderRadius: '8px', 
                             border: '1px solid #d9dee3' 
                         }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
                                 <div>
                                     <h6 style={{ margin: 0, fontSize: '1rem', color: '#566a7f' }}>
-                                        3. Manage Data Visibility (Permission Matrix)
+                                        4. Manage Data Visibility (Permission Matrix)
                                     </h6>
                                     <p style={styles.hintText}>
                                         Select which districts this user is allowed to access and manage.
@@ -266,7 +300,7 @@ const AccessControl = () => {
                         {/* --- SUBMIT BUTTON --- */}
                         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '32px' }}>
                             <button type="button" style={{...styles.btnOutline, marginRight: '16px'}} onClick={() => reset()}>Reset Form</button>
-                            <button type="submit" style={styles.btnPrimary}>Create Access Rule</button>
+                            <button type="submit" style={styles.btnPrimary}>Save Access Rule</button>
                         </div>
 
                     </form>

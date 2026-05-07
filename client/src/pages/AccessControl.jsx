@@ -5,7 +5,8 @@ import * as z from 'zod';
 import Select from 'react-select';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import "bootstrap/dist/css/bootstrap.min.css";
+// ✅ FIXED: Removed the direct Bootstrap import that was crashing Vercel. 
+// It is now loaded via CDN in the <style> block below!
 
 import { styles, FormInput } from '../config/constants';
 import { PasswordInput } from '../components/AccountSharedUtils';
@@ -134,7 +135,6 @@ const AccessControl = () => {
         return filtered;
     }, [accessRecords, searchTerm, sortConfig]);
 
-    // ✅ FIXED: Replaced lucide-react icons with native unicode symbols to prevent build errors
     const renderSortIcon = (columnName) => {
         if (sortConfig.key !== columnName) return <span className="ms-1 text-muted" style={{fontSize:'12px'}}>↕</span>;
         if (sortConfig.direction === 'ascending') return <span className="ms-1 text-primary" style={{fontSize:'14px'}}>↑</span>;
@@ -213,6 +213,9 @@ const AccessControl = () => {
             <ToastContainer autoClose={3000} pauseOnHover={false} />
             
             <style>{`
+                /* ✅ Injecting Bootstrap dynamically via CDN to fix the Vercel build error */
+                @import url('https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css');
+                
                 .emp-wrapper { background-color: #f5f5f9; min-height: 100vh; padding: 20px; font-family: "Public Sans", sans-serif; }
                 .emp-card { background: #fff; border: none; border-radius: 8px; box-shadow: 0 2px 6px 0 rgba(67, 89, 113, 0.12); width: 100%; margin-bottom: 24px; overflow: hidden; }
                 .emp-card-header { background-color: #0E87CC; color: white; padding: 1.25rem 1.5rem; display: flex; justify-content: space-between; align-items: center; }
@@ -426,7 +429,6 @@ const AccessControl = () => {
                 <div className="emp-card-body p-0">
                     <div className="p-3 border-bottom d-flex justify-content-end bg-light">
                         <div className="position-relative" style={{ width: '300px' }}>
-                            {/* ✅ FIXED: Native Unicode Search Icon instead of Lucide */}
                             <span className="position-absolute text-muted" style={{ left: '10px', top: '50%', transform: 'translateY(-50%)' }}>🔍</span>
                             <input
                                 type="text"

@@ -16,7 +16,7 @@ const accessSchema = z.object({
     acctHead: z.object({ value: z.any(), label: z.string() }, { required_error: "Please select an Account Head (Role)" }),
     
     // Parent Lineage (Context)
-    stateNgo: z.object({ value: z.any(), label: z.string() }).nullable().optional(),
+    stateNgo: z.object({ value: z.any(), label: z.string(), stateName: z.string(), distName: z.string() }).nullable().optional(),
     distNgo: z.object({ value: z.any(), label: z.string() }).nullable().optional(),
     supervisor: z.object({ value: z.any(), label: z.string() }).nullable().optional(),
     asthaDidi: z.object({ value: z.any(), label: z.string() }).nullable().optional(),
@@ -25,7 +25,7 @@ const accessSchema = z.object({
     state: z.object({ value: z.any(), label: z.string() }, { required_error: "State is required" }),
     district: z.object({ value: z.any(), label: z.string() }, { required_error: "District is required" }),
     entityName: z.string().optional(), // For District NGO Name if applicable
-    // acctName: z.string().min(2, "Account Name (Person) is required"),
+    acctName: z.string().min(2, "Account Name (Person) is required"),
     
     // Login
     userName: z.string().min(3, "Username must be at least 3 characters"),
@@ -51,6 +51,9 @@ const AccessControl = () => {
     // Checkbox state for multi-district assignment
     const [availableDistricts, setAvailableDistricts] = useState([]);
     const [selectedDistricts, setSelectedDistricts] = useState([]);
+
+    // Table Data State
+    const [accessRecords, setAccessRecords] = useState([]);
 
     const { control, handleSubmit, watch, reset, formState: { errors } } = useForm({
         resolver: zodResolver(accessSchema),
@@ -101,6 +104,13 @@ const AccessControl = () => {
         setDbDistricts([{ value: 'BIR', label: 'Birbhum' }, { value: 'KOL', label: 'Kolkata' }, { value: 'BAN', label: 'Bankura' }]);
         
         setAvailableDistricts(['Alipurduar', 'Bankura', 'Birbhum', 'Cooch Behar', 'Dakshin Dinajpur', 'Darjeeling', 'Hooghly', 'Howrah', 'Jalpaiguri', 'Jhargram', 'Kolkata']);
+
+        // Mock Table Data (Matches the Excel Sheet Structure)
+        setAccessRecords([
+            { id: 1, role: 'District Administrator', motherNgo: 'Mother NGO India', distNgo: 'Birbhum Welfare Society', state: 'West Bengal', district: 'Birbhum, Bankura', acctName: 'Rajesh Sharma', userName: 'rajesh_admin' },
+            { id: 2, role: 'Supervisor', motherNgo: 'Mother NGO India', distNgo: 'Birbhum Welfare Society', state: 'West Bengal', district: 'Birbhum', acctName: 'Sita Roy', userName: 'sita_sup' },
+            { id: 3, role: 'Astha Maa', motherNgo: 'Mother NGO India', distNgo: 'Kolkata Care', state: 'West Bengal', district: 'Kolkata', acctName: 'Mita Devi', userName: 'mita_maa' }
+        ]);
     }, []);
 
     // ==========================================
@@ -122,14 +132,28 @@ const AccessControl = () => {
 
         const finalPayload = {
             ...data,
-            // Include the auto-fetched Mother NGO details in the payload if needed
             motherNgoState: watchedStateNgo?.stateName || null,
             motherNgoDistrict: watchedStateNgo?.distName || null,
             assignedDistricts: selectedDistricts
         };
 
         console.log("🚀 READY TO SEND TO DB:", finalPayload);
-        toast.success(`Access Rule Validated for ${watchedRole.label}! Check console for Payload.`);
+        toast.success(`Access Rule Created for ${watchedRole.label}!`);
+        
+        // Temporarily add to the table for UI feedback
+        setAccessRecords(prev => [{
+            id: Date.now(),
+            role: data.acctHead.label,
+            motherNgo: data.stateNgo?.label || 'N/A',
+            distNgo: data.distNgo?.label || data.entityName || 'N/A',
+            state: data.state.label,
+            district: selectedDistricts.length > 0 ? selectedDistricts.join(', ') : data.district.label,
+            acctName: data.acctName,
+            userName: data.userName
+        }, ...prev]);
+
+        reset();
+        setSelectedDistricts([]);
     };
 
     const onError = () => {
@@ -137,9 +161,12 @@ const AccessControl = () => {
     };
 
     return (
-        <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
+        <div style={{ padding: '20px', maxWidth: '1400px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '24px' }}>
             <ToastContainer autoClose={3000} pauseOnHover={false} />
             
+            {/* ========================================== */}
+            {/* FORM SECTION */}
+            {/* ========================================== */}
             <div style={styles.card}>
                 <div style={styles.cardHeader}>
                     <h5 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -154,12 +181,7 @@ const AccessControl = () => {
                         <div style={{ marginBottom: '24px', maxWidth: '400px' }}>
                             <label style={styles.label}>Account Head (Target Role to Assign) <span style={{ color: '#ff3e1d' }}>*</span></label>
                             <Controller name="acctHead" control={control} render={({ field }) => (
-                                <Select 
-                                    {...field} 
-                                    options={dbAcctHeads} 
-                                    placeholder="Select Role..." 
-                                    styles={styles.selectStyles(!!errors.acctHead)} 
-                                />
+                                <Select {...field} options={dbAcctHeads} placeholder="Select Role..." styles={styles.selectStyles(!!errors.acctHead)} />
                             )} />
                             {errors.acctHead && <p style={styles.errorText}>{errors.acctHead.message}</p>}
                         </div>
@@ -179,25 +201,29 @@ const AccessControl = () => {
                                                 )} />
                                             </div>
 
-                                            {/* Auto-Fetched & Disabled State Dropdown */}
+                                            {/* Auto-Fetched & Disabled State Input */}
                                             <div style={styles.inputGroup}>
                                                 <label style={styles.label}>Mother NGO State</label>
-                                                <Select 
-                                                    value={watchedStateNgo ? { label: watchedStateNgo.stateName, value: 'locked' } : null} 
-                                                    isDisabled={true} 
+                                                <input 
+                                                    type="text" 
+                                                    style={styles.inputDisabled} 
+                                                    value={watchedStateNgo ? watchedStateNgo.stateName : ''} 
                                                     placeholder="Auto-fetched..." 
-                                                    styles={styles.selectStyles(false)} 
+                                                    disabled 
+                                                    readOnly 
                                                 />
                                             </div>
 
-                                            {/* Auto-Fetched & Disabled District Dropdown */}
+                                            {/* Auto-Fetched & Disabled District Input */}
                                             <div style={styles.inputGroup}>
                                                 <label style={styles.label}>Mother NGO District</label>
-                                                <Select 
-                                                    value={watchedStateNgo ? { label: watchedStateNgo.distName, value: 'locked' } : null} 
-                                                    isDisabled={true} 
+                                                <input 
+                                                    type="text" 
+                                                    style={styles.inputDisabled} 
+                                                    value={watchedStateNgo ? watchedStateNgo.distName : ''} 
                                                     placeholder="Auto-fetched..." 
-                                                    styles={styles.selectStyles(false)} 
+                                                    disabled 
+                                                    readOnly 
                                                 />
                                             </div>
                                         </>
@@ -261,9 +287,9 @@ const AccessControl = () => {
                                         )} />
                                     )}
 
-                                    {/* <Controller name="acctName" control={control} render={({ field }) => (
+                                    <Controller name="acctName" control={control} render={({ field }) => (
                                         <FormInput label={<>Account Name (Person) <span style={{ color: '#ff3e1d' }}>*</span></>} id="acctName" error={errors.acctName} placeholder="Enter Person's Name" type="text" {...field} />
-                                    )} /> */}
+                                    )} />
                                 </div>
                             </>
                         )}
@@ -285,7 +311,7 @@ const AccessControl = () => {
                         )}
 
                         {/* --- ROW 4: MULTI-DISTRICT CHECKBOX MATRIX --- */}
-                        {/* {watchedRole && (roleValue === 'DIST_ADMIN' || roleValue === 'SUPERVISOR') && (
+                        {watchedRole && (roleValue === 'DIST_ADMIN' || roleValue === 'SUPERVISOR') && (
                             <div style={{ marginTop: '40px', padding: '24px', backgroundColor: '#f8f9fa', borderRadius: '8px', border: '1px solid #d9dee3' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
                                     <div>
@@ -306,7 +332,7 @@ const AccessControl = () => {
                                     ))}
                                 </div>
                             </div>
-                        )} */}
+                        )}
 
                         {/* --- SUBMIT BUTTON --- */}
                         {watchedRole && (
@@ -317,6 +343,61 @@ const AccessControl = () => {
                         )}
 
                     </form>
+                </div>
+            </div>
+
+            {/* ========================================== */}
+            {/* TABLE SECTION (Matches Excel Format) */}
+            {/* ========================================== */}
+            <div style={styles.card}>
+                <div style={styles.cardHeader}>
+                    <h5 style={{ margin: 0 }}>📋 Existing Access & Permissions</h5>
+                </div>
+                <div style={styles.cardBody}>
+                    <div style={styles.tableContainer}>
+                        <table style={styles.table}>
+                            <thead>
+                                <tr>
+                                    <th style={styles.th}>Role / Acct Head</th>
+                                    <th style={styles.th}>Mother NGO</th>
+                                    <th style={styles.th}>District NGO</th>
+                                    <th style={styles.th}>Assigned State</th>
+                                    <th style={styles.th}>Assigned District(s)</th>
+                                    <th style={styles.th}>Account Name</th>
+                                    <th style={styles.th}>Username</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {accessRecords.map(record => (
+                                    <tr key={record.id} style={{ transition: 'background-color 0.2s' }} onMouseOver={e => e.currentTarget.style.backgroundColor = '#f9f9fb'} onMouseOut={e => e.currentTarget.style.backgroundColor = 'transparent'}>
+                                        <td style={{...styles.td, fontWeight: '600', color: '#696cff'}}>{record.role}</td>
+                                        <td style={styles.td}>{record.motherNgo}</td>
+                                        <td style={styles.td}>{record.distNgo}</td>
+                                        <td style={styles.td}>{record.state}</td>
+                                        <td style={styles.td}>
+                                            {/* Visually format multiple districts if present */}
+                                            {record.district.includes(',') ? (
+                                                <span style={{ backgroundColor: 'rgba(113, 221, 55, 0.16)', color: '#71dd37', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: '600' }}>
+                                                    {record.district} (Multiple)
+                                                </span>
+                                            ) : (
+                                                record.district
+                                            )}
+                                        </td>
+                                        <td style={styles.td}>{record.acctName}</td>
+                                        <td style={styles.td}>{record.userName}</td>
+                                    </tr>
+                                ))}
+                                {accessRecords.length === 0 && (
+                                    <tr>
+                                        <td colSpan="7" style={{ ...styles.td, textAlign: 'center', padding: '24px' }}>
+                                            No access records found. Create one above!
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>

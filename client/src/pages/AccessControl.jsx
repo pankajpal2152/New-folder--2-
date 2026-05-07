@@ -285,7 +285,7 @@ const AccessControl = () => {
                         )}
 
                         {/* --- ROW 4: MULTI-DISTRICT CHECKBOX MATRIX --- */}
-                        {watchedRole && (roleValue === 'DIST_ADMIN' || roleValue === 'SUPERVISOR') && (
+                        {/* {watchedRole && (roleValue === 'DIST_ADMIN' || roleValue === 'SUPERVISOR') && (
                             <div style={{ marginTop: '40px', padding: '24px', backgroundColor: '#f8f9fa', borderRadius: '8px', border: '1px solid #d9dee3' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
                                     <div>
@@ -306,7 +306,7 @@ const AccessControl = () => {
                                     ))}
                                 </div>
                             </div>
-                        )}
+                        )} */}
 
                         {/* --- SUBMIT BUTTON --- */}
                         {watchedRole && (

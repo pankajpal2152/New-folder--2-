@@ -25,7 +25,7 @@ const accessSchema = z.object({
     state: z.object({ value: z.any(), label: z.string() }, { required_error: "State is required" }),
     district: z.object({ value: z.any(), label: z.string() }, { required_error: "District is required" }),
     entityName: z.string().optional(), // For District NGO Name if applicable
-    acctName: z.string().min(2, "Account Name (Person) is required"),
+    // acctName: z.string().min(2, "Account Name (Person) is required"),
     
     // Login
     userName: z.string().min(3, "Username must be at least 3 characters"),
@@ -261,9 +261,9 @@ const AccessControl = () => {
                                         )} />
                                     )}
 
-                                    <Controller name="acctName" control={control} render={({ field }) => (
+                                    {/* <Controller name="acctName" control={control} render={({ field }) => (
                                         <FormInput label={<>Account Name (Person) <span style={{ color: '#ff3e1d' }}>*</span></>} id="acctName" error={errors.acctName} placeholder="Enter Person's Name" type="text" {...field} />
-                                    )} />
+                                    )} /> */}
                                 </div>
                             </>
                         )}

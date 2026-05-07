@@ -34,7 +34,7 @@ const accessSchema = z.object({
 
 const AccessControl = () => {
     // ==========================================
-    // 2. DUMMY STATE (To be replaced with DB fetch later)
+    // 2. STATE (Data & Selections)
     // ==========================================
     const [dbAcctHeads, setDbAcctHeads] = useState([]);
     
@@ -64,7 +64,9 @@ const AccessControl = () => {
         }
     });
 
+    // Watchers for dynamic UI rendering
     const watchedRole = watch('acctHead');
+    const watchedStateNgo = watch('stateNgo');
 
     // Determine which parent dropdowns to show based on selected role
     const roleValue = watchedRole?.value;
@@ -85,7 +87,12 @@ const AccessControl = () => {
             { value: 'ASTHA_MAA', label: 'Astha Maa' }
         ]);
         
-        setDbStateNgos([{ value: '1', label: 'Mother NGO India' }]);
+        // Mock Mother NGOs WITH their associated state/district data to auto-fill
+        setDbStateNgos([
+            { value: '1', label: 'Mother NGO India', stateName: 'West Bengal', distName: 'Kolkata' },
+            { value: '2', label: 'State Level Care Foundation', stateName: 'Maharashtra', distName: 'Mumbai' }
+        ]);
+        
         setDbDistNgos([{ value: '1', label: 'Birbhum Welfare Society' }, { value: '2', label: 'Kolkata Care' }]);
         setDbSupervisors([{ value: '1', label: 'Ramesh Singh' }, { value: '2', label: 'Sita Roy' }]);
         setDbAsthaDidis([{ value: '1', label: 'Anjali Das' }, { value: '2', label: 'Priya Sen' }]);
@@ -115,6 +122,9 @@ const AccessControl = () => {
 
         const finalPayload = {
             ...data,
+            // Include the auto-fetched Mother NGO details in the payload if needed
+            motherNgoState: watchedStateNgo?.stateName || null,
+            motherNgoDistrict: watchedStateNgo?.distName || null,
             assignedDistricts: selectedDistricts
         };
 
@@ -158,15 +168,39 @@ const AccessControl = () => {
                         {watchedRole && (
                             <>
                                 <h6 style={styles.sectionHeader}>1. Parent Lineage Tracking (Organization Context)</h6>
-                                <div style={{ ...styles.formGrid, gridTemplateColumns: 'repeat(4, 1fr)' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '24px' }}>
                                     
                                     {showStateNgo && (
-                                        <div style={styles.inputGroup}>
-                                            <label style={styles.label}>State NGO (Mother) <span style={{ color: '#ff3e1d' }}>*</span></label>
-                                            <Controller name="stateNgo" control={control} render={({ field }) => (
-                                                <Select {...field} options={dbStateNgos} placeholder="Select Mother NGO..." styles={styles.selectStyles(false)} isClearable />
-                                            )} />
-                                        </div>
+                                        <>
+                                            <div style={styles.inputGroup}>
+                                                <label style={styles.label}>State NGO (Mother) <span style={{ color: '#ff3e1d' }}>*</span></label>
+                                                <Controller name="stateNgo" control={control} render={({ field }) => (
+                                                    <Select {...field} options={dbStateNgos} placeholder="Select Mother NGO..." styles={styles.selectStyles(false)} isClearable />
+                                                )} />
+                                            </div>
+
+                                            {/* Auto-Fetched & Disabled State Dropdown */}
+                                            <div style={styles.inputGroup}>
+                                                <label style={styles.label}>Mother NGO State</label>
+                                                <Select 
+                                                    value={watchedStateNgo ? { label: watchedStateNgo.stateName, value: 'locked' } : null} 
+                                                    isDisabled={true} 
+                                                    placeholder="Auto-fetched..." 
+                                                    styles={styles.selectStyles(false)} 
+                                                />
+                                            </div>
+
+                                            {/* Auto-Fetched & Disabled District Dropdown */}
+                                            <div style={styles.inputGroup}>
+                                                <label style={styles.label}>Mother NGO District</label>
+                                                <Select 
+                                                    value={watchedStateNgo ? { label: watchedStateNgo.distName, value: 'locked' } : null} 
+                                                    isDisabled={true} 
+                                                    placeholder="Auto-fetched..." 
+                                                    styles={styles.selectStyles(false)} 
+                                                />
+                                            </div>
+                                        </>
                                     )}
 
                                     {showDistNgo && (
@@ -203,7 +237,7 @@ const AccessControl = () => {
                         {watchedRole && (
                             <>
                                 <h6 style={styles.sectionHeader}>2. Assign Identity & Location</h6>
-                                <div style={{ ...styles.formGrid, gridTemplateColumns: 'repeat(4, 1fr)' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '24px' }}>
                                     
                                     <div style={styles.inputGroup}>
                                         <label style={styles.label}>State <span style={{ color: '#ff3e1d' }}>*</span></label>
@@ -238,7 +272,7 @@ const AccessControl = () => {
                         {watchedRole && (
                             <>
                                 <h6 style={styles.sectionHeader}>3. Login Access Credentials</h6>
-                                <div style={{ ...styles.formGrid, gridTemplateColumns: '1fr 1fr' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
                                     <Controller name="userName" control={control} render={({ field }) => (
                                         <FormInput label={<>User Name (For Login) <span style={{ color: '#ff3e1d' }}>*</span></>} id="userName" error={errors.userName} placeholder="Enter unique username" type="text" autoComplete="off" {...field} />
                                     )} />

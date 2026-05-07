@@ -357,7 +357,7 @@ const AccessControl = () => {
 
                         {watchedRole && (roleValue === 'DIST_ADMIN' || roleValue === 'SUPERVISOR') && (
                             <div className="col-12">
-                                <div className="matrix-container">
+                                {/* <div className="matrix-container">
                                     <div className="d-flex justify-content-between align-items-center mb-3">
                                         <div>
                                             <h6 className="fw-bold mb-1" style={{ color: '#0E87CC' }}>4. Data Visibility (Permission Matrix)</h6>
@@ -385,7 +385,7 @@ const AccessControl = () => {
                                             </div>
                                         ))}
                                     </div>
-                                </div>
+                                </div> */}
                             </div>
                         )}
                     </form>

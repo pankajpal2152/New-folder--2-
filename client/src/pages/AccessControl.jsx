@@ -323,13 +323,13 @@ const AccessControl = () => {
                                     </div>
                                 )}
 
-                                <div className="col-md-3">
+                                {/* <div className="col-md-3">
                                     <label className="emp-label">Account Name (Person) <span className="text-danger">*</span></label>
                                     <Controller name="acctName" control={control} render={({ field }) => (
                                         <input type="text" className={`form-control form-control-sm ${errors.acctName ? 'is-invalid' : ''}`} placeholder="Enter Person's Name" {...field} />
                                     )} />
                                     {errors.acctName && <p className="error-text">{errors.acctName.message}</p>}
-                                </div>
+                                </div> */}
                             </>
                         )}
 

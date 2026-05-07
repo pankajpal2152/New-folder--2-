@@ -5,8 +5,10 @@ import * as z from 'zod';
 import Select from 'react-select';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { Search, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import "bootstrap/dist/css/bootstrap.min.css";
+
+import { styles, FormInput } from '../config/constants';
+import { PasswordInput } from '../components/AccountSharedUtils';
 
 // ==========================================
 // 1. VALIDATION SCHEMA
@@ -132,10 +134,11 @@ const AccessControl = () => {
         return filtered;
     }, [accessRecords, searchTerm, sortConfig]);
 
+    // ✅ FIXED: Replaced lucide-react icons with native unicode symbols to prevent build errors
     const renderSortIcon = (columnName) => {
-        if (sortConfig.key !== columnName) return <ArrowUpDown size={14} className="ms-1 text-muted" />;
-        if (sortConfig.direction === 'ascending') return <ArrowUp size={14} className="ms-1 text-primary" />;
-        return <ArrowDown size={14} className="ms-1 text-primary" />;
+        if (sortConfig.key !== columnName) return <span className="ms-1 text-muted" style={{fontSize:'12px'}}>↕</span>;
+        if (sortConfig.direction === 'ascending') return <span className="ms-1 text-primary" style={{fontSize:'14px'}}>↑</span>;
+        return <span className="ms-1 text-primary" style={{fontSize:'14px'}}>↓</span>;
     };
 
     // ==========================================
@@ -188,7 +191,6 @@ const AccessControl = () => {
         toast.error("Please fill in all required red fields.");
     };
 
-    // Custom React-Select styles to match Bootstrap form-control-sm
     const customSelectStyles = (hasError) => ({
         control: (base) => ({
             ...base,
@@ -210,7 +212,6 @@ const AccessControl = () => {
         <div className="emp-wrapper">
             <ToastContainer autoClose={3000} pauseOnHover={false} />
             
-            {/* CSS STYLES DIRECTLY INJECTED TO MATCH EMPLOYEE MANAGEMENT */}
             <style>{`
                 .emp-wrapper { background-color: #f5f5f9; min-height: 100vh; padding: 20px; font-family: "Public Sans", sans-serif; }
                 .emp-card { background: #fff; border: none; border-radius: 8px; box-shadow: 0 2px 6px 0 rgba(67, 89, 113, 0.12); width: 100%; margin-bottom: 24px; overflow: hidden; }
@@ -225,7 +226,6 @@ const AccessControl = () => {
                 .matrix-container { background-color: #f8f9fa; border: 1px solid #e9ecef; border-radius: 6px; padding: 16px; margin-top: 16px; }
             `}</style>
 
-            {/* HEADER SECTION */}
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <div>
                     <h2 className="fw-bold mb-0 text-dark" style={{fontSize: '1.75rem'}}>Access Control Manager</h2>
@@ -233,9 +233,6 @@ const AccessControl = () => {
                 </div>
             </div>
 
-            {/* ========================================== */}
-            {/* FORM SECTION */}
-            {/* ========================================== */}
             <div className="emp-card">
                 <div className="emp-card-header">
                     <h5 className="mb-0 fw-bold d-flex align-items-center">
@@ -246,7 +243,6 @@ const AccessControl = () => {
                 <div className="emp-card-body">
                     <form id="accessForm" onSubmit={handleSubmit(onSubmit, onError)} className="row g-3">
                         
-                        {/* --- TOP: SELECT ROLE --- */}
                         <div className="col-md-4">
                             <label className="emp-label">Account Head (Target Role) <span className="text-danger">*</span></label>
                             <Controller name="acctHead" control={control} render={({ field }) => (
@@ -255,7 +251,6 @@ const AccessControl = () => {
                             {errors.acctHead && <p className="error-text">{errors.acctHead.message}</p>}
                         </div>
 
-                        {/* --- SECTION 1: PARENT LINEAGE --- */}
                         {watchedRole && (
                             <>
                                 <div className="col-12">
@@ -310,7 +305,6 @@ const AccessControl = () => {
                             </>
                         )}
 
-                        {/* --- SECTION 2: IDENTITY & LOCATION --- */}
                         {watchedRole && (
                             <>
                                 <div className="col-12">
@@ -353,7 +347,6 @@ const AccessControl = () => {
                             </>
                         )}
 
-                        {/* --- SECTION 3: LOGIN CREDENTIALS --- */}
                         {watchedRole && (
                             <>
                                 <div className="col-12">
@@ -376,7 +369,6 @@ const AccessControl = () => {
                             </>
                         )}
 
-                        {/* --- SECTION 4: MULTI-DISTRICT CHECKBOX MATRIX --- */}
                         {watchedRole && (roleValue === 'DIST_ADMIN' || roleValue === 'SUPERVISOR') && (
                             <div className="col-12">
                                 <div className="matrix-container">
@@ -413,7 +405,6 @@ const AccessControl = () => {
                     </form>
                 </div>
 
-                {/* Form Footer */}
                 {watchedRole && (
                     <div className="emp-card-footer">
                         <button type="button" className="btn btn-secondary px-4 shadow-sm" onClick={handleResetForm}>Clear Form</button>
@@ -435,7 +426,8 @@ const AccessControl = () => {
                 <div className="emp-card-body p-0">
                     <div className="p-3 border-bottom d-flex justify-content-end bg-light">
                         <div className="position-relative" style={{ width: '300px' }}>
-                            <Search size={18} className="position-absolute text-muted" style={{ left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+                            {/* ✅ FIXED: Native Unicode Search Icon instead of Lucide */}
+                            <span className="position-absolute text-muted" style={{ left: '10px', top: '50%', transform: 'translateY(-50%)' }}>🔍</span>
                             <input
                                 type="text"
                                 className="form-control form-control-sm ps-5"

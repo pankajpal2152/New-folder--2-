@@ -98,6 +98,7 @@ import Maintenance from './pages/Maintenance';
 import AccountSettings from './pages/AccountSettings';
 import Login from './pages/Login';
 import RoleManagement from './pages/RoleManagement';
+import AccessControl from './pages/AccessControl';
 
 const App = () => {
   // FIX: Initialize state by checking localStorage directly. 
@@ -157,6 +158,7 @@ const App = () => {
                     <Route path="/layouts" element={<Maintenance pageName="Layouts" />} />
                     <Route path="/account-settings/account" element={<AccountSettings />} />
                     <Route path="/settings/role-management" element={<RoleManagement />} />
+                    <Route path="/settings/access-control" element={<AccessControl />} />
                     <Route path="*" element={<Maintenance pageName="404 Not Found" />} />
                   </Routes>
                 </div>

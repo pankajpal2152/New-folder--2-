@@ -6,10 +6,10 @@ const Sidebar = () => {
     // State for toggling menus
     const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(true);
     const [isSettingsMenuOpen, setIsSettingsMenuOpen] = useState(false);
-    
+
     // Fetch the logged-in user's role from local storage
     const [userRole, setUserRole] = useState('');
-    
+
     useEffect(() => {
         try {
             const userStr = localStorage.getItem('loggedInUser');
@@ -132,7 +132,21 @@ const Sidebar = () => {
                     </NavLink>
                 </div>
 
-                {/* --- 2. SETTINGS MEGA MENU (VISIBLE ONLY TO DEVELOPER) --- */}
+
+                {/* --- NEW: ACCESS CONTROL MENU --- */}
+                {(userRole === 'State Super Administrator' || isDeveloper || userRole === 'District Administrator') && (
+                    <NavLink to="/settings/access-control" style={styles.link}>
+                        {({ isActive }) => (
+                            <li style={styles.menuItem(isActive)}>
+                                <div style={styles.menuItemLeft}>
+                                    <span style={{ marginRight: '10px' }}>🔐</span> Access Control
+                                </div>
+                            </li>
+                        )}
+                    </NavLink>
+                )}
+
+
                 {isDeveloper && (
                     <>
                         <li style={styles.menuItem(false)} onClick={() => setIsSettingsMenuOpen(!isSettingsMenuOpen)}>

@@ -215,7 +215,7 @@ const AccessControl = () => {
                     <form id="accessForm" onSubmit={handleSubmit(onSubmit, onError)} className="row g-3">
                         
                         <div className="col-md-4">
-                            <label className="emp-label">Account Head (Target Role) <span className="text-danger">*</span></label>
+                            <label className="emp-label">Create Role<span className="text-danger">*</span></label>
                             <Controller name="acctHead" control={control} render={({ field }) => (
                                 <Select 
                                     {...field} 
@@ -238,7 +238,7 @@ const AccessControl = () => {
                                 {showStateNgo && (
                                     <>
                                         <div className="col-md-4">
-                                            <label className="emp-label">State NGO (Mother) <span className="text-danger">*</span></label>
+                                            <label className="emp-label">State NGO<span className="text-danger">*</span></label>
                                             <Controller name="stateNgo" control={control} render={({ field }) => (
                                                 <Select 
                                                     {...field} 
@@ -252,11 +252,11 @@ const AccessControl = () => {
                                             )} />
                                         </div>
                                         <div className="col-md-4">
-                                            <label className="emp-label">Mother NGO State</label>
+                                            <label className="emp-label">NGO State</label>
                                             <input type="text" className="form-control form-control-sm bg-light text-muted" value={watchedStateNgo ? watchedStateNgo.stateName : ''} placeholder="Auto-fetched..." readOnly />
                                         </div>
                                         <div className="col-md-4">
-                                            <label className="emp-label">Mother NGO District</label>
+                                            <label className="emp-label">NGO District</label>
                                             <input type="text" className="form-control form-control-sm bg-light text-muted" value={watchedStateNgo ? watchedStateNgo.distName : ''} placeholder="Auto-fetched..." readOnly />
                                         </div>
                                     </>
@@ -294,7 +294,7 @@ const AccessControl = () => {
                         {watchedRole && (
                             <>
                                 <div className="col-12">
-                                    <p className="PerInfo" style={{backgroundColor: '#659EC7'}}>2. Assign Identity & Location</p>
+                                    <p className="PerInfo" style={{backgroundColor: '#659EC7'}}>2. Assign Location</p>
                                 </div>
                                 
                                 <div className="col-md-3">

@@ -200,7 +200,7 @@ const AccessControl = () => {
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <div>
                     <h2 className="fw-bold mb-0 text-dark" style={{fontSize: '1.75rem'}}>Access Control Manager</h2>
-                    <p className="text-muted mb-0">Role & Permission Matrix Configuration</p>
+                    <p className="text-muted mb-0">Role & Permission Configuration</p>
                 </div>
             </div>
 
@@ -232,7 +232,7 @@ const AccessControl = () => {
                         {watchedRole && (
                             <>
                                 <div className="col-12">
-                                    <p className="PerInfo">1. Parent Lineage Tracking (Organization Context)</p>
+                                    <p className="PerInfo">1. Parent Organization Context</p>
                                 </div>
                                 
                                 {showStateNgo && (

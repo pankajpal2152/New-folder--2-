@@ -596,15 +596,14 @@ const AsthaMaaTable = ({ refreshTrigger, externalFilters }) => {
                                             <td style={styles.td}>{row.AsthaMaRegNo || '-'}</td>
                                             <td style={styles.stickyRightTd}>
                                                 <button onClick={() => openModal('view', row)} style={styles.actionBtn}>👁️</button>
-                                                {userRole && userRole.toLowerCase() === 'Astha Didi' && (
+                                                
+                                                {/* 👇 Fixed bug: Changed to lowercase comparison! */}
+                                                {userRole && userRole.toLowerCase() === 'astha didi' && (
                                                     <button onClick={() => openModal('edit', row)} style={styles.actionBtn}>✏️</button>
                                                 )}
                                                 
-                                                {/*{userRole === 'State Super Administrator' && (
-                                                    <button onClick={() => openModal('delete', row)} style={styles.actionBtn}>🗑️</button>
-                                                )} */}
-                                                
-                                                {Number(row.AsthaMaIsActive) !== 2 && userRole === 'Astha Didi' && (
+                                                {/* 👇 Also secured the approve button comparison! */}
+                                                {Number(row.AsthaMaIsActive) !== 2 && userRole && userRole.toLowerCase() === 'astha didi' && (
                                                     <button onClick={() => openModal('approve', row)} style={styles.actionBtn}>✅</button>
                                                 )}
                                             </td>

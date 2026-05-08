@@ -290,11 +290,9 @@ const AsthaMaaTable = ({ refreshTrigger, externalFilters }) => {
 
             const user = getSafeUser();
             if (user) {
-                // Only show Astha Maas created by the logged-in Astha Didi
                 if (user.role === 'Astha Didi') {
                     data = data.filter(member => String(member.AsthaMaCreatedByAuthRegId) === String(user.id || user.UserSignUpId));
                 } 
-                // ✅ DB MAPPING: Only show the profile of the logged-in Astha Maa
                 else if (user.role === 'Astha Maa') {
                     data = data.filter(member => String(member.AsthaMaRegId) === String(user.ProfileRegId));
                 }
@@ -306,12 +304,11 @@ const AsthaMaaTable = ({ refreshTrigger, externalFilters }) => {
 
     useEffect(() => { fetchMembers(); }, [refreshTrigger]);
 
-    // STRICT DATA VISIBILITY: 
+    // STRICT DATA VISIBILITY: MUST SELECT ALL FILTERS DOWN TO ASTHA DIDI
     const filteredMembers = useMemo(() => {
-        // ✅ BYPASS EXCEPTION: Astha Didi & Astha Maa don't have external filters, allow data through!
         if (userRole !== 'Astha Didi' && userRole !== 'Astha Maa') {
-            if (!externalFilters?.filterMotherNgo || !externalFilters?.filterState || !externalFilters?.filterDistrict || !externalFilters?.filterSupervisor) {
-                return []; // Array is forcibly empty for Admins/Supervisors until filters are picked
+            if (!externalFilters?.filterMotherNgo || !externalFilters?.filterState || !externalFilters?.filterDistrict || !externalFilters?.filterSupervisor || !externalFilters?.filterAsthaDidi) {
+                return []; 
             }
         }
 
@@ -342,8 +339,7 @@ const AsthaMaaTable = ({ refreshTrigger, externalFilters }) => {
             if (externalFilters?.filterMotherNgo) {
                 const dbDist = member.AsthaMaDistName ? String(member.AsthaMaDistName).trim().toLowerCase() : "";
                 const ngoDist = externalFilters.filterMotherNgo.districtName ? String(externalFilters.filterMotherNgo.districtName).trim().toLowerCase() : "";
-                matchesMotherNgo = String(member.DistNGORegId) === String(externalFilters.filterMotherNgo.value) || 
-                                   dbDist === ngoDist;
+                matchesMotherNgo = String(member.DistNGORegId) === String(externalFilters.filterMotherNgo.value) || dbDist === ngoDist;
             }
 
             let matchesSupervisor = true;
@@ -352,10 +348,15 @@ const AsthaMaaTable = ({ refreshTrigger, externalFilters }) => {
                                     String(member.SupRegId) === String(externalFilters.filterSupervisor.value);
             }
 
+            let matchesAsthaDidi = true;
+            if (externalFilters?.filterAsthaDidi) {
+                matchesAsthaDidi = String(member.AsthaDidiRegId) === String(externalFilters.filterAsthaDidi.value);
+            }
+
             const statusStr = Number(member.AsthaMaIsActive) === 2 ? 'Approved' : 'Pending';
             const matchesStatus = filters.status ? statusStr === filters.status : true;
 
-            return matchesSearch && matchesState && matchesDistrict && matchesMotherNgo && matchesSupervisor && matchesStatus;
+            return matchesSearch && matchesState && matchesDistrict && matchesMotherNgo && matchesSupervisor && matchesAsthaDidi && matchesStatus;
         });
     }, [members, globalSearch, filters, externalFilters, userRole]);
 
@@ -610,9 +611,8 @@ const AsthaMaaTable = ({ refreshTrigger, externalFilters }) => {
                                     {currentMembers.length === 0 && (
                                         <tr>
                                             <td colSpan="30" style={{ ...styles.td, textAlign: 'center' }}>
-                                                {/* ✅ DYNAMIC EMPTY STATE TEXT: Astha Didi & Astha Maa get a normal message, others get the strict filter warning */}
-                                                {(userRole !== 'Astha Didi' && userRole !== 'Astha Maa' && (!externalFilters?.filterMotherNgo || !externalFilters?.filterState || !externalFilters?.filterDistrict || !externalFilters?.filterSupervisor))
-                                                    ? "Please select all filters above (DISTRICT NGO, State, District, and Supervisor) to view data."
+                                                {(userRole !== 'Astha Didi' && userRole !== 'Astha Maa' && (!externalFilters?.filterMotherNgo || !externalFilters?.filterState || !externalFilters?.filterDistrict || !externalFilters?.filterSupervisor || !externalFilters?.filterAsthaDidi))
+                                                    ? "Please select all filters above (DISTRICT NGO, State, District, Supervisor, and Astha Didi) to view data."
                                                     : "No members found. Try clearing your search filters!"}
                                             </td>
                                         </tr>

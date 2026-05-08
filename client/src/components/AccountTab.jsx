@@ -122,7 +122,7 @@ const AccountTab = () => {
                 return dbMotherNgos.filter(ngo => String(ngo.value) === String(currentSupervisor.motherNgoId));
             }
         }
-        // 👇 NEW: Keep Astha Didi logic clean in the background
+        // Keep Astha Didi logic clean in the background
         if (appUserRole === 'Astha Didi' && loggedInProfileId && dbAsthaDidis.length > 0) {
             const currentDidi = dbAsthaDidis.find(ad => String(ad.value) === String(loggedInProfileId));
             if (currentDidi && currentDidi.motherNgoId) {
@@ -149,7 +149,7 @@ const AccountTab = () => {
     }, [dbDistricts, filterMotherNgo]);
 
     const filteredSupervisorOptions = useMemo(() => {
-        // 👇 FIX: If the logged-in user is a Supervisor, strictly return ONLY their profile!
+        // FIX: If the logged-in user is a Supervisor, strictly return ONLY their profile!
         if (appUserRole === 'Supervisor' && loggedInProfileId) {
             return dbSupervisors.filter(sup => String(sup.value) === String(loggedInProfileId));
         }
@@ -175,7 +175,7 @@ const AccountTab = () => {
             }
             return matches;
         });
-    }, [dbSupervisors, filterMotherNgo, filterState, filterDistrict, appUserRole, loggedInProfileId]); // Added dependencies
+    }, [dbSupervisors, filterMotherNgo, filterState, filterDistrict, appUserRole, loggedInProfileId]);
 
     const filteredAsthaDidiOptions = useMemo(() => {
         return dbAsthaDidis.filter(ad => {
@@ -205,7 +205,7 @@ const AccountTab = () => {
         if (filterState && filteredDistrictOptions.length === 1 && !filterDistrict) setFilterDistrict(filteredDistrictOptions[0]);
     }, [filterState, filteredDistrictOptions, filterDistrict]);
 
-    // 👇 FIX: Auto-select the Supervisor if there is only 1 in the list (which is true when logged in as Supervisor)
+    // FIX: Auto-select the Supervisor if there is only 1 in the list
     useEffect(() => {
         if (filteredSupervisorOptions.length === 1 && !filterSupervisor) {
             setFilterSupervisor(filteredSupervisorOptions[0]);
@@ -218,12 +218,11 @@ const AccountTab = () => {
         }
     }, [filterSupervisor, filteredAsthaDidiOptions, filterAsthaDidi]);
 
-    // 👇 NEW: Auto-select context for Astha Didi so the Astha Maa form unlocks immediately
+    // NEW: Auto-select context for Astha Didi so the Astha Maa form unlocks immediately
     useEffect(() => {
         if (appUserRole === 'Astha Didi' && loggedInProfileId && dbAsthaDidis.length > 0 && !filterAsthaDidi) {
             const myDidiProfile = dbAsthaDidis.find(ad => String(ad.value) === String(loggedInProfileId));
             if (myDidiProfile) {
-                // Populate all parent context behind the scenes
                 setFilterAsthaDidi(myDidiProfile);
                 setFilterSupervisor({ value: myDidiProfile.supRegId });
                 setFilterMotherNgo({ 
@@ -247,7 +246,6 @@ const AccountTab = () => {
     const handleRoleChange = (selected) => {
         setAdminActiveView(selected.value);
         
-        // 👇 Prevent clearing background data when an Astha Didi interacts
         if (appUserRole === 'Astha Didi') return;
 
         if (appUserRole === 'District Administrator' || appUserRole === 'Supervisor') {
@@ -410,7 +408,6 @@ const AccountTab = () => {
                             {isSupervisorVisible && (
                                 <div style={{ width: '100%', maxWidth: '200px' }}>
                                     <label style={{ ...styles.label, marginBottom: '8px', display: 'block' }}>Supervisor</label>
-                                    {/* 👇 FIX: Disabled the dropdown and removed the Clear button if logged in as Supervisor */}
                                     <Select 
                                         options={filteredSupervisorOptions} 
                                         value={filterSupervisor} 

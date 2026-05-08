@@ -15,7 +15,6 @@ const formatDisplayDate = (dbDateStr) => {
 
 const SupervisorModal = ({ member, mode, onClose, onSuccess }) => {
     const isView = mode === 'view';
-    // Logic to lock specific fields in both View and Edit modes
     const isReadOnlyField = isView || mode === 'edit';
 
     const cleanInitialImage = extractBase64(member.SupProfileImage) || DUMMY_AVATAR;
@@ -65,30 +64,24 @@ const SupervisorModal = ({ member, mode, onClose, onSuccess }) => {
         }
     }, [fullNameValue, setValue, isView]);
 
-    // ✅ FIXED: Sequential Address Initialization Logic
-    // Ensures State fetches first, then Districts fetch, then the specific DB value (Birbhum) is set.
     useEffect(() => {
         const initializeAddressFields = async () => {
             try {
-                // 1. Fetch all available states
                 const stateRes = await fetch(`${API_BASE_URL}/states`);
                 const stateData = await stateRes.json();
                 const formattedStates = stateData.map(s => ({ value: s.StateId, label: s.StateName }));
                 setDbStates(formattedStates);
 
-                // 2. Map State from Database (SupStateName)
                 if (member.SupStateName) {
                     const matchedState = formattedStates.find(s => s.label.trim() === member.SupStateName.trim());
                     if (matchedState) {
                         setValue("state", matchedState);
 
-                        // 3. Immediately fetch districts belonging to this specific state
                         const distRes = await fetch(`${API_BASE_URL}/districts/${matchedState.value}`);
                         const distData = await distRes.json();
                         const formattedDistricts = distData.map(d => ({ value: d.DistId, label: d.DistName }));
                         setDbDistricts(formattedDistricts);
 
-                        // 4. Map District from Database (SupDistName)
                         if (member.SupDistName) {
                             const matchedDist = formattedDistricts.find(d => d.label.trim() === member.SupDistName.trim());
                             if (matchedDist) {
@@ -105,7 +98,6 @@ const SupervisorModal = ({ member, mode, onClose, onSuccess }) => {
         initializeAddressFields();
     }, [member, setValue]);
 
-    // Handle manual state changes if user interacts (though disabled in Edit, needed for robustness)
     useEffect(() => {
         if (selectedState && selectedState.value) {
             fetch(`${API_BASE_URL}/districts/${selectedState.value}`)
@@ -244,7 +236,6 @@ const SupervisorModal = ({ member, mode, onClose, onSuccess }) => {
                                             menuPortal: base => ({ ...base, zIndex: 99999 }),
                                             menu: base => ({ ...base, zIndex: 99999 })
                                         }} 
-                                        // ✅ FIXED: Disabled in Edit and View mode
                                         isDisabled={isReadOnlyField} 
                                         menuPortalTarget={document.body}
                                         menuPosition="fixed"
@@ -263,7 +254,6 @@ const SupervisorModal = ({ member, mode, onClose, onSuccess }) => {
                                             menuPortal: base => ({ ...base, zIndex: 99999 }),
                                             menu: base => ({ ...base, zIndex: 99999 })
                                         }} 
-                                        // ✅ FIXED: Disabled in Edit and View mode
                                         isDisabled={isReadOnlyField} 
                                         menuPortalTarget={document.body}
                                         menuPosition="fixed"
@@ -307,8 +297,6 @@ const SupervisorModal = ({ member, mode, onClose, onSuccess }) => {
         </div>
     );
 };
-
-// ... [SupervisorTable component continues with unchanged logic as in your original file] ...
 
 const SupervisorTable = ({ refreshTrigger, externalFilters }) => {
     const [members, setMembers] = useState([]);
@@ -354,9 +342,12 @@ const SupervisorTable = ({ refreshTrigger, externalFilters }) => {
 
     useEffect(() => { fetchMembers(); }, [refreshTrigger]);
 
+    // STRICT DATA VISIBILITY: MUST SELECT ALL FILTERS DOWN TO DISTRICT NGO
     const filteredMembers = useMemo(() => {
-        if (!externalFilters?.filterMotherNgo || !externalFilters?.filterState || !externalFilters?.filterDistrict) {
-            return [];
+        if (userRole !== 'Supervisor' && userRole !== 'Astha Didi' && userRole !== 'Astha Maa') {
+            if (!externalFilters?.filterMotherNgo || !externalFilters?.filterState || !externalFilters?.filterDistrict) {
+                return [];
+            }
         }
 
         return members.filter((member) => {
@@ -387,13 +378,12 @@ const SupervisorTable = ({ refreshTrigger, externalFilters }) => {
                 const dbDist = member.SupDistName ? String(member.SupDistName).trim().toLowerCase() : "";
                 const ngoDist = externalFilters.filterMotherNgo.districtName ? String(externalFilters.filterMotherNgo.districtName).trim().toLowerCase() : "";
                 
-                matchesMotherNgo = String(member.DistNGORegId) === String(externalFilters.filterMotherNgo.value) || 
-                                   dbDist === ngoDist;
+                matchesMotherNgo = String(member.DistNGORegId) === String(externalFilters.filterMotherNgo.value) || dbDist === ngoDist;
             }
 
             return matchesSearch && matchesState && matchesDistrict && matchesMotherNgo;
         });
-    }, [members, globalSearch, externalFilters]);
+    }, [members, globalSearch, externalFilters, userRole]);
 
     const sortedMembers = useMemo(() => {
         let sortableItems = [...filteredMembers];
@@ -633,7 +623,7 @@ const SupervisorTable = ({ refreshTrigger, externalFilters }) => {
                                     {currentMembers.length === 0 && (
                                         <tr>
                                             <td colSpan="31" style={{ ...styles.td, textAlign: 'center' }}>
-                                                {(!externalFilters?.filterMotherNgo || !externalFilters?.filterState || !externalFilters?.filterDistrict)
+                                                {(userRole !== 'Supervisor' && userRole !== 'Astha Didi' && userRole !== 'Astha Maa' && (!externalFilters?.filterMotherNgo || !externalFilters?.filterState || !externalFilters?.filterDistrict))
                                                     ? "Please select all filters above (DISTRICT NGO, State, and District) to view data."
                                                     : "No members found in database."}
                                             </td>

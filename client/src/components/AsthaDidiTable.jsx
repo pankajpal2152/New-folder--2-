@@ -15,7 +15,6 @@ const formatDisplayDate = (dbDateStr) => {
 
 const AsthaDidiModal = ({ member, mode, onClose, onSuccess }) => {
     const isView = mode === 'view';
-    // ✅ Logic to lock fields in both View and Edit modes
     const isReadOnlyField = isView || mode === 'edit';
 
     const cleanInitialImage = extractBase64(member.AsthaDidiProfileImage) || DUMMY_AVATAR;
@@ -59,29 +58,24 @@ const AsthaDidiModal = ({ member, mode, onClose, onSuccess }) => {
 
     const selectedState = watch("state");
 
-    // ✅ FIXED: Sequential Address Initialization Logic
     useEffect(() => {
         const initializeAddressFields = async () => {
             try {
-                // 1. Fetch States
                 const stateRes = await fetch(`${API_BASE_URL}/states`);
                 const stateData = await stateRes.json();
                 const formattedStates = stateData.map(s => ({ value: s.StateId, label: s.StateName }));
                 setDbStates(formattedStates);
 
-                // 2. Map State from Database (AsthaDidiStateName)
                 if (member.AsthaDidiStateName) {
                     const matchedState = formattedStates.find(s => s.label.trim() === member.AsthaDidiStateName.trim());
                     if (matchedState) {
                         setValue("state", matchedState);
 
-                        // 3. Fetch Districts for that state
                         const distRes = await fetch(`${API_BASE_URL}/districts/${matchedState.value}`);
                         const distData = await distRes.json();
                         const formattedDistricts = distData.map(d => ({ value: d.DistId, label: d.DistName }));
                         setDbDistricts(formattedDistricts);
 
-                        // 4. Map District from Database (AsthaDidiDistName)
                         if (member.AsthaDidiDistName) {
                             const matchedDist = formattedDistricts.find(d => d.label.trim() === member.AsthaDidiDistName.trim());
                             if (matchedDist) {
@@ -98,7 +92,6 @@ const AsthaDidiModal = ({ member, mode, onClose, onSuccess }) => {
         initializeAddressFields();
     }, [member, setValue]);
 
-    // Handle manual state changes if needed (though disabled in Edit)
     useEffect(() => {
         if (selectedState && selectedState.value) {
             fetch(`${API_BASE_URL}/districts/${selectedState.value}`)
@@ -242,7 +235,6 @@ const AsthaDidiModal = ({ member, mode, onClose, onSuccess }) => {
                                             menuPortal: base => ({ ...base, zIndex: 99999 }),
                                             menu: base => ({ ...base, zIndex: 99999 })
                                         }} 
-                                        // ✅ LOCKED in both Edit and View
                                         isDisabled={isReadOnlyField} 
                                         menuPortalTarget={document.body}
                                         menuPosition="fixed"
@@ -261,7 +253,6 @@ const AsthaDidiModal = ({ member, mode, onClose, onSuccess }) => {
                                             menuPortal: base => ({ ...base, zIndex: 99999 }),
                                             menu: base => ({ ...base, zIndex: 99999 })
                                         }} 
-                                        // ✅ LOCKED in both Edit and View
                                         isDisabled={isReadOnlyField} 
                                         menuPortalTarget={document.body}
                                         menuPosition="fixed"
@@ -372,9 +363,12 @@ const MembersTable = ({ refreshTrigger, externalFilters }) => {
 
     useEffect(() => { fetchMembers(); }, [refreshTrigger]);
 
+    // STRICT DATA VISIBILITY: MUST SELECT ALL FILTERS DOWN TO SUPERVISOR
     const filteredMembers = useMemo(() => {
-        if (!externalFilters?.filterMotherNgo || !externalFilters?.filterState || !externalFilters?.filterDistrict || !externalFilters?.filterSupervisor) {
-            return []; 
+        if (userRole !== 'Astha Didi' && userRole !== 'Astha Maa') {
+            if (!externalFilters?.filterMotherNgo || !externalFilters?.filterState || !externalFilters?.filterDistrict || !externalFilters?.filterSupervisor) {
+                return []; 
+            }
         }
 
         return members.filter((member) => {
@@ -404,9 +398,7 @@ const MembersTable = ({ refreshTrigger, externalFilters }) => {
             if (externalFilters?.filterMotherNgo) {
                 const dbDist = member.AsthaDidiDistName ? String(member.AsthaDidiDistName).trim().toLowerCase() : "";
                 const ngoDist = externalFilters.filterMotherNgo.districtName ? String(externalFilters.filterMotherNgo.districtName).trim().toLowerCase() : "";
-
-                matchesMotherNgo = String(member.DistNGORegId) === String(externalFilters.filterMotherNgo.value) || 
-                                   dbDist === ngoDist;
+                matchesMotherNgo = String(member.DistNGORegId) === String(externalFilters.filterMotherNgo.value) || dbDist === ngoDist;
             }
 
             let matchesSupervisor = true;
@@ -420,7 +412,7 @@ const MembersTable = ({ refreshTrigger, externalFilters }) => {
 
             return matchesSearch && matchesState && matchesDistrict && matchesMotherNgo && matchesSupervisor && matchesStatus;
         });
-    }, [members, globalSearch, filters, externalFilters]);
+    }, [members, globalSearch, filters, externalFilters, userRole]);
 
     const sortedMembers = useMemo(() => {
         let sortableItems = [...filteredMembers];
@@ -663,9 +655,9 @@ const MembersTable = ({ refreshTrigger, externalFilters }) => {
                                     {currentMembers.length === 0 && (
                                         <tr>
                                             <td colSpan="31" style={{ ...styles.td, textAlign: 'center' }}>
-                                                {(!externalFilters?.filterMotherNgo || !externalFilters?.filterState || !externalFilters?.filterDistrict || !externalFilters?.filterSupervisor)
-                                                    ? "Please select all filters above to view data."
-                                                    : "No members found."}
+                                                {(userRole !== 'Astha Didi' && userRole !== 'Astha Maa' && (!externalFilters?.filterMotherNgo || !externalFilters?.filterState || !externalFilters?.filterDistrict || !externalFilters?.filterSupervisor))
+                                                    ? "Please select all filters above (DISTRICT NGO, State, District, and Supervisor) to view data."
+                                                    : "No members found. Try clearing your search filters!"}
                                             </td>
                                         </tr>
                                     )}

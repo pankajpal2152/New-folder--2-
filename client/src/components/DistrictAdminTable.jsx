@@ -28,7 +28,6 @@ const handleViewPdf = (base64String) => {
 
 const DistrictAdminModal = ({ member, mode, onClose, onSuccess }) => {
     const isView = mode === 'view';
-    // Mode 'edit' logic for specific fields
     const isReadOnlyField = isView || mode === 'edit';
 
     const [dbStates, setDbStates] = useState([]);
@@ -229,7 +228,6 @@ const DistrictAdminModal = ({ member, mode, onClose, onSuccess }) => {
                                             menuPortal: base => ({ ...base, zIndex: 99999 }),
                                             menu: base => ({ ...base, zIndex: 99999 })
                                         }} 
-                                        // ✅ FIXED: Disabled in both View and Edit mode
                                         isDisabled={isReadOnlyField} 
                                         menuPortalTarget={document.body}
                                         menuPosition="fixed"
@@ -248,7 +246,6 @@ const DistrictAdminModal = ({ member, mode, onClose, onSuccess }) => {
                                             menuPortal: base => ({ ...base, zIndex: 99999 }),
                                             menu: base => ({ ...base, zIndex: 99999 })
                                         }} 
-                                        // ✅ FIXED: Disabled in both View and Edit mode
                                         isDisabled={isReadOnlyField} 
                                         menuPortalTarget={document.body}
                                         menuPosition="fixed"
@@ -389,9 +386,12 @@ const DistrictAdminTable = ({ refreshTrigger, externalFilters }) => {
 
     useEffect(() => { fetchMembers(); }, [refreshTrigger]);
 
+    // STRICT DATA VISIBILITY: MUST SELECT ALL FILTERS DOWN TO DISTRICT
     const filteredMembers = useMemo(() => {
-        if (!externalFilters?.filterState || !externalFilters?.filterDistrict) {
-            return [];
+        if (userRole !== 'District Administrator' && userRole !== 'Supervisor' && userRole !== 'Astha Didi' && userRole !== 'Astha Maa') {
+            if (!externalFilters?.filterState || !externalFilters?.filterDistrict) {
+                return [];
+            }
         }
 
         return members.filter((member) => {
@@ -419,7 +419,7 @@ const DistrictAdminTable = ({ refreshTrigger, externalFilters }) => {
 
             return matchesSearch && matchesState && matchesDistrict;
         });
-    }, [members, globalSearch, externalFilters]);
+    }, [members, globalSearch, externalFilters, userRole]);
 
     const openModal = async (type, member) => {
         setSelectedRow({ ...member });
@@ -630,7 +630,7 @@ const DistrictAdminTable = ({ refreshTrigger, externalFilters }) => {
                                 {filteredMembers.length === 0 && (
                                     <tr>
                                         <td colSpan="32" style={{ ...styles.td, textAlign: 'center' }}>
-                                            {(!externalFilters?.filterState || !externalFilters?.filterDistrict)
+                                            {(userRole !== 'District Administrator' && userRole !== 'Supervisor' && userRole !== 'Astha Didi' && userRole !== 'Astha Maa' && (!externalFilters?.filterState || !externalFilters?.filterDistrict))
                                                 ? "Please select State and District filters above to view data."
                                                 : "No members found."}
                                         </td>

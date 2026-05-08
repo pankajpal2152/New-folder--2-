@@ -50,7 +50,7 @@ const DistrictAdminModal = ({ member, mode, onClose, onSuccess }) => {
             ngoMobile: member.DistNGOPhoneNo || '',
             ngoRegAddress: member.DistNGORegAddress || '',
             ngoWorkingAddress: member.DistNGOWorkingAddress || '',
-            state: null, 
+            state: null,
             district: null,
             blockName: member.DistNGOBlockName || '',
             sdpName: member.DistNGOSDPName || '',
@@ -219,16 +219,16 @@ const DistrictAdminModal = ({ member, mode, onClose, onSuccess }) => {
                             <div style={styles.inputGroup}>
                                 <label style={styles.label}>State *</label>
                                 <Controller name="state" control={control} render={({ field }) => (
-                                    <Select 
-                                        {...field} 
-                                        options={dbStates} 
+                                    <Select
+                                        {...field}
+                                        options={dbStates}
                                         placeholder={member.DistNGOStateName || "Select..."}
                                         styles={{
                                             ...styles.selectStyles(!!errors.state),
                                             menuPortal: base => ({ ...base, zIndex: 99999 }),
                                             menu: base => ({ ...base, zIndex: 99999 })
-                                        }} 
-                                        isDisabled={isReadOnlyField} 
+                                        }}
+                                        isDisabled={isReadOnlyField}
                                         menuPortalTarget={document.body}
                                         menuPosition="fixed"
                                     />
@@ -237,16 +237,16 @@ const DistrictAdminModal = ({ member, mode, onClose, onSuccess }) => {
                             <div style={styles.inputGroup}>
                                 <label style={styles.label}>District *</label>
                                 <Controller name="district" control={control} render={({ field }) => (
-                                    <Select 
-                                        {...field} 
-                                        options={dbDistricts} 
+                                    <Select
+                                        {...field}
+                                        options={dbDistricts}
                                         placeholder={member.DistNGODistName || "Select..."}
                                         styles={{
                                             ...styles.selectStyles(!!errors.district),
                                             menuPortal: base => ({ ...base, zIndex: 99999 }),
                                             menu: base => ({ ...base, zIndex: 99999 })
-                                        }} 
-                                        isDisabled={isReadOnlyField} 
+                                        }}
+                                        isDisabled={isReadOnlyField}
                                         menuPortalTarget={document.body}
                                         menuPosition="fixed"
                                     />
@@ -621,7 +621,10 @@ const DistrictAdminTable = ({ refreshTrigger, externalFilters }) => {
                                             {userRole === 'State Super Administrator' && (
                                                 <button onClick={() => openModal('delete', row)} style={styles.actionBtn}>🗑️</button>
                                             )}
-                                            {Number(row.DistNGOIsActive) !== 2 && (
+                                            {/* {Number(row.DistNGOIsActive) !== 2 && (
+                                                <button onClick={() => openModal('approve', row)} style={styles.actionBtn}>✅</button>
+                                            )} */}
+                                            {Number(row.DistNGOIsActive) !== 2 && userRole && userRole.toLowerCase() === 'state super administrator' && (
                                                 <button onClick={() => openModal('approve', row)} style={styles.actionBtn}>✅</button>
                                             )}
                                         </td>

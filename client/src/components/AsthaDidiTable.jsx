@@ -651,7 +651,10 @@ const MembersTable = ({ refreshTrigger, externalFilters }) => {
                                                 {userRole === 'State Super Administrator' && (
                                                     <button onClick={() => openModal('delete', row)} style={styles.actionBtn}>🗑️</button>
                                                 )}
-                                                {Number(row.AsthaDidiIsActive) !== 2 && userRole !== 'Astha Didi' && (
+                                                {/* {Number(row.AsthaDidiIsActive) !== 2 && userRole !== 'Astha Didi' && (
+                                                    <button onClick={() => openModal('approve', row)} style={styles.actionBtn}>✅</button>
+                                                )} */}
+                                                {Number(row.AsthaDidiIsActive) !== 2 && userRole && userRole.toLowerCase() === 'supervisor' && (
                                                     <button onClick={() => openModal('approve', row)} style={styles.actionBtn}>✅</button>
                                                 )}
                                             </td>

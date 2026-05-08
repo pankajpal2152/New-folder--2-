@@ -611,7 +611,7 @@ const SupervisorTable = ({ refreshTrigger, externalFilters }) => {
                                             <td style={styles.td}>{row.SupRegNo || '-'}</td>
                                             <td style={styles.stickyRightTd}>
                                                 <button onClick={() => openModal('view', row)} style={styles.actionBtn}>👁️</button>
-                                                
+
                                                 {/* 👇 Fixed bug: Changed to lowercase comparison! */}
                                                 {userRole && userRole.toLowerCase() === 'district administrator' && (
                                                     <button onClick={() => openModal('edit', row)} style={styles.actionBtn}>✏️</button>
@@ -620,7 +620,10 @@ const SupervisorTable = ({ refreshTrigger, externalFilters }) => {
                                                 {userRole === 'State Super Administrator' && (
                                                     <button onClick={() => openModal('delete', row)} style={styles.actionBtn}>🗑️</button>
                                                 )}
-                                                {Number(row.SupIsActive) !== 2 && (
+                                                {/* {Number(row.SupIsActive) !== 2 && (
+                                                    <button onClick={() => openModal('approve', row)} style={styles.actionBtn}>✅</button>
+                                                )} */}
+                                                {Number(row.SupIsActive) !== 2 && userRole && userRole.toLowerCase() === 'district adminastrator' && (
                                                     <button onClick={() => openModal('approve', row)} style={styles.actionBtn}>✅</button>
                                                 )}
                                             </td>

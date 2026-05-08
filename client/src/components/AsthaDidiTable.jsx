@@ -642,7 +642,12 @@ const MembersTable = ({ refreshTrigger, externalFilters }) => {
                                             <td style={styles.td}>{row.AsthaDidiRegNo || '-'}</td>
                                             <td style={styles.stickyRightTd}>
                                                 <button onClick={() => openModal('view', row)} style={styles.actionBtn}>👁️</button>
-                                                 <button onClick={() => openModal('edit', row)} style={styles.actionBtn}>✏️</button>
+                                                
+                                                {/* 👇 New check added here to restrict the edit button to Supervisors only */}
+                                                {userRole && userRole.toLowerCase() === 'supervisor' && (
+                                                    <button onClick={() => openModal('edit', row)} style={styles.actionBtn}>✏️</button>
+                                                )}
+
                                                 {/*{userRole === 'State Super Administrator' && (
                                                     <button onClick={() => openModal('delete', row)} style={styles.actionBtn}>🗑️</button>
                                                 )} */}

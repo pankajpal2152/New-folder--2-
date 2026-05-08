@@ -321,7 +321,8 @@ const SupervisorTable = ({ refreshTrigger, externalFilters }) => {
     useEffect(() => {
         const user = getSafeUser();
         if (user) {
-            setUserRole(user.role || '');
+            // 👇 Updated to grab UserSignUpRole just in case 'role' isn't populated
+            setUserRole(user.role || user.UserSignUpRole || '');
             setUserName(user.username || '');
             setUserId(user.UserSignUpId || user.id || '');
         }
@@ -610,10 +611,12 @@ const SupervisorTable = ({ refreshTrigger, externalFilters }) => {
                                             <td style={styles.td}>{row.SupRegNo || '-'}</td>
                                             <td style={styles.stickyRightTd}>
                                                 <button onClick={() => openModal('view', row)} style={styles.actionBtn}>👁️</button>
-                                                {userRole && userRole.toLowerCase() ===
-                                                    "District Administrator" && (
-                                                        <button onClick={() => openModal('edit', row)} style={styles.actionBtn}>✏️</button>
-                                                    )}
+                                                
+                                                {/* 👇 Fixed bug: Changed to lowercase comparison! */}
+                                                {userRole && userRole.toLowerCase() === 'district administrator' && (
+                                                    <button onClick={() => openModal('edit', row)} style={styles.actionBtn}>✏️</button>
+                                                )}
+
                                                 {/* {userRole === 'State Super Administrator' && (
                                                     <button onClick={() => openModal('delete', row)} style={styles.actionBtn}>🗑️</button>
                                                 )} */}

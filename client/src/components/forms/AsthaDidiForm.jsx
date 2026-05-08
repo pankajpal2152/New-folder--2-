@@ -68,7 +68,6 @@ const PasswordInput = ({ label, id, error, placeholder, disabled, ...props }) =>
     );
 };
 
-// 👇 Updated: Accept externalFilters as a prop
 const AsthaDidiForm = ({ onSuccess, externalFilters }) => {
     const { filterMotherNgo, filterState, filterDistrict, filterSupervisor } = externalFilters || {};
 
@@ -76,6 +75,9 @@ const AsthaDidiForm = ({ onSuccess, externalFilters }) => {
     const [dbDistricts, setDbDistricts] = useState([]);
     const [profileImage, setProfileImage] = useState(DUMMY_AVATAR);
     const fileInputRef = useRef(null);
+
+    // 👇 State to track if the logged-in user is a supervisor
+    const [isSupervisor, setIsSupervisor] = useState(false);
 
     const { control, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm({
         resolver: zodResolver(accountSchema),
@@ -92,16 +94,36 @@ const AsthaDidiForm = ({ onSuccess, externalFilters }) => {
     const selectedState = watch("state");
     const fullNameValue = watch("fullName");
 
+    // 👇 Check the user's role exactly as it appears in your screenshot
+    useEffect(() => {
+        const userStr = localStorage.getItem('loggedInUser');
+        if (userStr) {
+            try {
+                const loggedInUser = JSON.parse(userStr);
+                
+                const role = loggedInUser?.role || '';
+                const signUpRole = loggedInUser?.UserSignUpRole || '';
+                
+                // If either property equals "supervisor" (ignoring case), grant access
+                if (role.toLowerCase() === 'supervisor' || signUpRole.toLowerCase() === 'supervisor') {
+                    setIsSupervisor(true);
+                } else {
+                    setIsSupervisor(false);
+                }
+            } catch (e) {
+                console.error("Error parsing loggedInUser from localStorage", e);
+            }
+        }
+    }, []);
+
     useEffect(() => {
         if (fullNameValue !== undefined) {
             setValue("userName", fullNameValue, { shouldValidate: true });
         }
     }, [fullNameValue, setValue]);
 
-    // 👇 Updated: Smart mapping for States based on external filter
     useEffect(() => {
         if (filterState) {
-            // Lock the form to only show and select the exact state from external filter
             setDbStates([filterState]);
             setValue("state", filterState, { shouldValidate: true });
         } else {
@@ -111,10 +133,8 @@ const AsthaDidiForm = ({ onSuccess, externalFilters }) => {
         }
     }, [filterState, setValue]);
 
-    // 👇 Updated: Smart mapping for Districts based on external filter
     useEffect(() => {
         if (filterDistrict) {
-            // Lock the form to only show and select the exact district from external filter
             setDbDistricts([filterDistrict]);
             setValue("district", filterDistrict, { shouldValidate: true });
         } else if (selectedState && selectedState.value && !filterState) {
@@ -147,10 +167,15 @@ const AsthaDidiForm = ({ onSuccess, externalFilters }) => {
     };
 
     const onSubmitAsthaDidi = async (data) => {
+        // 👇 Ultimate security check: Prevent submission if not a supervisor
+        if (!isSupervisor) {
+            toast.error("Access Denied: Only a Supervisor can submit this form.", { position: "top-right" });
+            return;
+        }
+
         const stateName = data.state ? data.state.label : "";
         const districtName = data.district ? data.district.label : "";
 
-        // Extract logged-in user ID securely from local storage
         let currentUserId = null;
         const userStr = localStorage.getItem('loggedInUser');
         if (userStr) {
@@ -191,12 +216,9 @@ const AsthaDidiForm = ({ onSuccess, externalFilters }) => {
             AsthaDidiSignupEmail: data.email,
             AsthaDidiSignupPassword: data.password,
             AsthaDidiCreatedByAuthRegId: currentUserId, 
-            StateNGORegId: null, // Left as null, backend will dynamically fetch it just like Supervisor!
-            
-            // 👇 Updated: Link to selected NGO and Supervisor automatically
+            StateNGORegId: null, 
             DistNGORegId: filterMotherNgo ? filterMotherNgo.value : null,
             SupRegId: filterSupervisor ? filterSupervisor.value : null,
-            
             AsthaDidiIsActive: 1,
             AsthaDidiAprovedBy: null,
             AsthaDidiAprovalDate: null,
@@ -227,21 +249,31 @@ const AsthaDidiForm = ({ onSuccess, externalFilters }) => {
 
     const onErrorAsthaDidi = () => toast.error("Error: Please check the red fields.", { position: "top-right" });
 
+    // 👇 Define if the form is completely enabled (must be a supervisor AND have selected one from the filter)
+    const isFormEnabled = isSupervisor && !!filterSupervisor;
+
     return (
         <div style={styles.card}>
             <div style={styles.cardHeader}>
                 <h5>Astha Didi Registration</h5>
             </div>
 
-            {/* 👇 New UI check: Force user to select Supervisor first */}
-            {!filterSupervisor && (
+            {/* 👇 Show error banner if the logged-in user is NOT a supervisor */}
+            {!isSupervisor && (
+                <div style={{ padding: '12px 24px', backgroundColor: '#f8d7da', color: '#721c24', borderBottom: '1px solid #f5c6cb' }}>
+                    <strong>Access Denied:</strong> Only a user with the role of <strong>Supervisor</strong> can submit this form. Your current role does not permit this action.
+                </div>
+            )}
+
+            {/* Show notice if they ARE a supervisor, but haven't picked a supervisor in the filter dropdown yet */}
+            {isSupervisor && !filterSupervisor && (
                 <div style={{ padding: '12px 24px', backgroundColor: '#fff3cd', color: '#856404', borderBottom: '1px solid #ffeeba' }}>
                     <strong>Notice:</strong> Please select a <strong>Supervisor</strong> from the top filters before filling out this registration form.
                 </div>
             )}
 
-            {/* Form elements are visually disabled and unclickable until a Supervisor is picked */}
-            <div style={{ ...styles.cardBody, opacity: !filterSupervisor ? 0.6 : 1, pointerEvents: !filterSupervisor ? 'none' : 'auto' }}>
+            {/* Form layout wrapper - applies visual disabled effect if isFormEnabled is false */}
+            <div style={{ ...styles.cardBody, opacity: !isFormEnabled ? 0.6 : 1, pointerEvents: !isFormEnabled ? 'none' : 'auto' }}>
                 <div style={styles.profileSection}>
                     <img src={profileImage} alt="Profile Avatar" style={styles.avatar} />
                     <div>
@@ -254,7 +286,6 @@ const AsthaDidiForm = ({ onSuccess, externalFilters }) => {
                     </div>
                 </div>
 
-                {/* 👇 FIX: Added autoComplete="off" to the form element */}
                 <form onSubmit={handleSubmit(onSubmitAsthaDidi, onErrorAsthaDidi)} autoComplete="off">
                     <h6 style={styles.sectionHeader}>Astha Didi Information</h6>
                     <div style={styles.formGrid}>
@@ -329,13 +360,9 @@ const AsthaDidiForm = ({ onSuccess, externalFilters }) => {
                         <Controller name="userName" control={control} render={({ field }) => (
                             <FormInput label={<>User Name <span style={{ color: '#ff3e1d' }}>*</span></>} id="userName" error={errors.userName} type="text" readOnly disabled {...field} />
                         )} />
-                        
-                        {/* 👇 FIX: Added autoComplete="off" to the email input */}
                         <Controller name="email" control={control} render={({ field }) => (
                             <FormInput label={<>Email ID (For Login) <span style={{ color: '#ff3e1d' }}>*</span></>} id="email" error={errors.email} placeholder="Email ID" type="email" maxLength={100} autoComplete="off" {...field} />
                         )} />
-                        
-                        {/* 👇 FIX: Added autoComplete="new-password" to the password input */}
                         <Controller name="password" control={control} render={({ field }) => (
                             <PasswordInput label={<>Set New Password <span style={{ color: '#ff3e1d' }}>* (Don't forget it!)</span></>} id="password" error={errors.password} autoComplete="new-password" {...field} />
                         )} />
@@ -365,8 +392,8 @@ const AsthaDidiForm = ({ onSuccess, externalFilters }) => {
 
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '16px', marginTop: '32px' }}>
                         <button type="button" style={styles.btnOutline} onClick={handleCancelAsthaDidi}>Cancel</button>
-                        {/* 👇 Disabled submit if no Supervisor is selected */}
-                        <button type="submit" style={{ ...styles.btnPrimary, opacity: !filterSupervisor ? 0.5 : 1 }} disabled={!filterSupervisor}>Submit</button>
+                        {/* 👇 Button is only clickable if isFormEnabled is true */}
+                        <button type="submit" style={{ ...styles.btnPrimary, opacity: !isFormEnabled ? 0.5 : 1 }} disabled={!isFormEnabled}>Submit</button>
                     </div>
                 </form>
             </div>

@@ -87,7 +87,8 @@ const AccountTab = () => {
                 stateName: a.AsthaDidiStateName,
                 distName: a.AsthaDidiDistName,
                 motherNgoId: a.DistNGORegId,
-                supRegId: a.SupRegId
+                supRegId: a.SupRegId,
+                createdByAuthRegId: a.AsthaDidiCreatedByAuthRegId // <-- FIXED: Added missing CreatedBy ID map
             })));
         }).catch(() => { });
 
@@ -183,7 +184,16 @@ const AccountTab = () => {
             if (filterMotherNgo && ad.motherNgoId != null && String(ad.motherNgoId) !== String(filterMotherNgo.value)) matches = false;
             if (filterState && ad.stateName && String(ad.stateName).trim().toLowerCase() !== String(filterState.label).trim().toLowerCase()) matches = false;
             if (filterDistrict && ad.distName && String(ad.distName).trim().toLowerCase() !== String(filterDistrict.label).trim().toLowerCase()) matches = false;
-            if (filterSupervisor && ad.supRegId != null && String(ad.supRegId) !== String(filterSupervisor.value)) matches = false;
+            
+            // <-- FIXED: Changed this to match both SupRegId and CreatedByAuthRegId similar to AsthaDidiTable filtering.
+            if (filterSupervisor) {
+                const matchBySupRegId = ad.supRegId != null && String(ad.supRegId) === String(filterSupervisor.value);
+                const matchByCreator = ad.createdByAuthRegId != null && filterSupervisor.userSignUpId != null && String(ad.createdByAuthRegId) === String(filterSupervisor.userSignUpId);
+                
+                if (!matchBySupRegId && !matchByCreator) {
+                    matches = false;
+                }
+            }
             return matches;
         });
     }, [dbAsthaDidis, filterMotherNgo, filterState, filterDistrict, filterSupervisor]);

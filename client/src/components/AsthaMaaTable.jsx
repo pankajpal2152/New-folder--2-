@@ -606,6 +606,9 @@ const AsthaMaaTable = ({ refreshTrigger, externalFilters }) => {
                                                 {Number(row.AsthaMaIsActive) !== 2 && userRole && userRole.toLowerCase() === 'astha didi' && (
                                                     <button onClick={() => openModal('approve', row)} style={styles.actionBtn}>✅</button>
                                                 )}
+                                                {userRole === 'State Super Administrator' && (
+                                                    <button onClick={() => openModal('delete', row)} style={styles.actionBtn}>🗑️</button>
+                                                )}
                                             </td>
                                         </tr>
                                     ))}

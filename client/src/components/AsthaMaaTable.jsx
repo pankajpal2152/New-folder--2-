@@ -600,7 +600,7 @@ const AsthaMaaTable = ({ refreshTrigger, externalFilters }) => {
                                                     <button onClick={() => openModal('edit', row)} style={styles.actionBtn}>✏️</button>
                                                 )}
                                                 
-                                                {userRole === 'State Super Administrator' && (
+                                                {/*{userRole === 'State Super Administrator' && (
                                                     <button onClick={() => openModal('delete', row)} style={styles.actionBtn}>🗑️</button>
                                                 )} */}
                                                 

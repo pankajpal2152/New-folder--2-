@@ -33,23 +33,23 @@ const SupervisorModal = ({ member, mode, onClose, onSuccess }) => {
             sdwOf: member.SupGuardianName || '',
             dob: member.SupDOB ? String(member.SupDOB).substring(0, 10) : '',
             guardianContactNo: member.SupGuardianContactNo || '',
-            state: null, 
-            district: null, 
-            city: member.SupCity || '', 
+            state: null,
+            district: null,
+            city: member.SupCity || '',
             block: member.SupBlockName || '',
-            postOffice: member.SupPO || '', 
-            policeStation: member.SupPS || '', 
+            postOffice: member.SupPO || '',
+            policeStation: member.SupPS || '',
             gramPanchayet: member.SupGramPanchayet || '',
-            village: member.SupVillage || '', 
-            pinCode: String(member.SupPincode || ''), 
+            village: member.SupVillage || '',
+            pinCode: String(member.SupPincode || ''),
             mobileNo: member.SupContactNo || '',
             email: member.SupSignupEmail || member.SupMailId || '',
             userName: member.SupSignupUserName || member.SupName || '',
             password: member.SupSignupPassword || '',
-            bankName: member.SupBankName || '', 
+            bankName: member.SupBankName || '',
             branchName: member.SupBranchName || '',
-            accountNo: member.SupAcctNo || '', 
-            ifsCode: member.SupIFSCode || '', 
+            accountNo: member.SupAcctNo || '',
+            ifsCode: member.SupIFSCode || '',
             panNo: member.SupPanNo || '',
             aadharNo: member.SupAadharNo || ''
         }
@@ -227,16 +227,16 @@ const SupervisorModal = ({ member, mode, onClose, onSuccess }) => {
                             <div style={styles.inputGroup}>
                                 <label style={styles.label}>Select State *</label>
                                 <Controller name="state" control={control} render={({ field }) => (
-                                    <Select 
-                                        {...field} 
-                                        options={dbStates} 
+                                    <Select
+                                        {...field}
+                                        options={dbStates}
                                         placeholder={member.SupStateName || "Select..."}
                                         styles={{
                                             ...styles.selectStyles(!!errors.state),
                                             menuPortal: base => ({ ...base, zIndex: 99999 }),
                                             menu: base => ({ ...base, zIndex: 99999 })
-                                        }} 
-                                        isDisabled={isReadOnlyField} 
+                                        }}
+                                        isDisabled={isReadOnlyField}
                                         menuPortalTarget={document.body}
                                         menuPosition="fixed"
                                     />
@@ -245,16 +245,16 @@ const SupervisorModal = ({ member, mode, onClose, onSuccess }) => {
                             <div style={styles.inputGroup}>
                                 <label style={styles.label}>District *</label>
                                 <Controller name="district" control={control} render={({ field }) => (
-                                    <Select 
-                                        {...field} 
-                                        options={dbDistricts} 
+                                    <Select
+                                        {...field}
+                                        options={dbDistricts}
                                         placeholder={member.SupDistName || "Select..."}
                                         styles={{
                                             ...styles.selectStyles(!!errors.district),
                                             menuPortal: base => ({ ...base, zIndex: 99999 }),
                                             menu: base => ({ ...base, zIndex: 99999 })
-                                        }} 
-                                        isDisabled={isReadOnlyField} 
+                                        }}
+                                        isDisabled={isReadOnlyField}
                                         menuPortalTarget={document.body}
                                         menuPosition="fixed"
                                     />
@@ -303,11 +303,11 @@ const SupervisorTable = ({ refreshTrigger, externalFilters }) => {
     const [loading, setLoading] = useState(true);
     const [userRole, setUserRole] = useState('');
     const [userName, setUserName] = useState('');
-    const [userId, setUserId] = useState(''); 
+    const [userId, setUserId] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [rowsPerPage, setRowsPerPage] = useState(5);
     const [sortConfig, setSortConfig] = useState(null);
-    
+
     const [globalSearch, setGlobalSearch] = useState('');
 
     const [viewModal, setViewModal] = useState(false);
@@ -315,14 +315,14 @@ const SupervisorTable = ({ refreshTrigger, externalFilters }) => {
     const [deleteModal, setDeleteModal] = useState(false);
     const [approveModal, setApproveModal] = useState(false);
     const [selectedRow, setSelectedRow] = useState(null);
-    
+
     const [approvalData, setApprovalData] = useState({ id: '', dbDate: '' });
 
     useEffect(() => {
         const user = getSafeUser();
-        if (user) { 
-            setUserRole(user.role || ''); 
-            setUserName(user.username || ''); 
+        if (user) {
+            setUserRole(user.role || '');
+            setUserName(user.username || '');
             setUserId(user.UserSignUpId || user.id || '');
         }
     }, []);
@@ -377,7 +377,7 @@ const SupervisorTable = ({ refreshTrigger, externalFilters }) => {
             if (externalFilters?.filterMotherNgo) {
                 const dbDist = member.SupDistName ? String(member.SupDistName).trim().toLowerCase() : "";
                 const ngoDist = externalFilters.filterMotherNgo.districtName ? String(externalFilters.filterMotherNgo.districtName).trim().toLowerCase() : "";
-                
+
                 matchesMotherNgo = String(member.DistNGORegId) === String(externalFilters.filterMotherNgo.value) || dbDist === ngoDist;
             }
 
@@ -432,7 +432,7 @@ const SupervisorTable = ({ refreshTrigger, externalFilters }) => {
 
             const d = new Date();
             const utc = d.getTime() + (d.getTimezoneOffset() * 60000);
-            const istDate = new Date(utc + (3600000 * 5.5)); 
+            const istDate = new Date(utc + (3600000 * 5.5));
             const dbDate = istDate.toISOString().split('T')[0];
 
             let stateId = '00';
@@ -487,12 +487,12 @@ const SupervisorTable = ({ refreshTrigger, externalFilters }) => {
     const confirmApprove = async () => {
         try {
             toast.loading("Approving...", { toastId: 'approveSup' });
-            const payload = { 
-                ...selectedRow, 
-                SupIsActive: 2, 
-                SupRegNo: approvalData.id, 
-                SupAprovedDate: approvalData.dbDate, 
-                SupAprovedBy: String(userId) 
+            const payload = {
+                ...selectedRow,
+                SupIsActive: 2,
+                SupRegNo: approvalData.id,
+                SupAprovedDate: approvalData.dbDate,
+                SupAprovedBy: String(userId)
             };
             Object.keys(payload).forEach(key => {
                 if (key !== 'SupAprovedDate' && typeof payload[key] === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(payload[key])) {
@@ -524,10 +524,10 @@ const SupervisorTable = ({ refreshTrigger, externalFilters }) => {
             <div style={styles.cardBody}>
                 <div style={{ marginBottom: '20px', paddingBottom: '20px', borderBottom: '1px solid #e0e0e0' }}>
                     <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-                        <input 
-                            type="text" 
-                            placeholder="🔍 Search entire table..." 
-                            value={globalSearch} 
+                        <input
+                            type="text"
+                            placeholder="🔍 Search entire table..."
+                            value={globalSearch}
                             onChange={(e) => setGlobalSearch(e.target.value)}
                             style={{ ...styles.input(false), flex: 1, padding: '8px 12px' }}
                         />
@@ -544,7 +544,7 @@ const SupervisorTable = ({ refreshTrigger, externalFilters }) => {
                                         {renderTh('Full Name', 'SupName')}
                                         {renderTh('S/D/W Of', 'SupGuardianName')}
                                         {renderTh('DOB', 'SupDOB')}
-                                        {renderTh('Guardian Contact', 'SupGuardianContactNo')} 
+                                        {renderTh('Guardian Contact', 'SupGuardianContactNo')}
                                         {renderTh('Mobile No', 'SupContactNo')}
                                         {renderTh('Email ID', 'SupSignupEmail')}
                                         {renderTh('User Name', 'SupSignupUserName')}
@@ -582,7 +582,7 @@ const SupervisorTable = ({ refreshTrigger, externalFilters }) => {
                                             <td style={styles.td}>{row.SupName}</td>
                                             <td style={styles.td}>{row.SupGuardianName}</td>
                                             <td style={styles.td}>{formatDisplayDate(row.SupDOB)}</td>
-                                            <td style={styles.td}>{row.SupGuardianContactNo}</td> 
+                                            <td style={styles.td}>{row.SupGuardianContactNo}</td>
                                             <td style={styles.td}>{row.SupContactNo}</td>
                                             <td style={styles.td}>{row.SupSignupEmail || row.SupMailId || '-'}</td>
                                             <td style={styles.td}>{row.SupSignupUserName || '-'}</td>
@@ -610,9 +610,10 @@ const SupervisorTable = ({ refreshTrigger, externalFilters }) => {
                                             <td style={styles.td}>{row.SupRegNo || '-'}</td>
                                             <td style={styles.stickyRightTd}>
                                                 <button onClick={() => openModal('view', row)} style={styles.actionBtn}>👁️</button>
-                                                {userRole && userRole.toLowerCase() === 'District Administrator' && (
-                                                    <button onClick={() => openModal('edit', row)} style={styles.actionBtn}>✏️</button>
-                                                )}
+                                                {userRole && userRole.toLowerCase() ===
+                                                    "District Administrator" && (
+                                                        <button onClick={() => openModal('edit', row)} style={styles.actionBtn}>✏️</button>
+                                                    )}
                                                 {/* {userRole === 'State Super Administrator' && (
                                                     <button onClick={() => openModal('delete', row)} style={styles.actionBtn}>🗑️</button>
                                                 )} */}
@@ -669,7 +670,7 @@ const SupervisorTable = ({ refreshTrigger, externalFilters }) => {
                     </div>
                 </div>
             )}
-            
+
             {approveModal && selectedRow && (
                 <div style={styles.modalOverlay}>
                     <div style={{ ...styles.modalContent, maxWidth: '450px', textAlign: 'center' }}>

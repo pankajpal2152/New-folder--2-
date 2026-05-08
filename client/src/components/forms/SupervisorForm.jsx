@@ -76,6 +76,9 @@ const SupervisorForm = ({ onSuccess, externalFilters }) => {
     const [profileImage, setProfileImage] = useState(DUMMY_AVATAR);
     const fileInputRef = useRef(null);
 
+    // 👇 State to track if the logged-in user is a District Administrator
+    const [isDistrictAdmin, setIsDistrictAdmin] = useState(false);
+
     const { control, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm({
         resolver: zodResolver(asthaMaaSchema),
         mode: 'onChange',
@@ -89,6 +92,20 @@ const SupervisorForm = ({ onSuccess, externalFilters }) => {
 
     const selectedState = watch("state");
     const fullNameValue = watch("fullName");
+
+    // 👇 Check the user's role on component mount
+    useEffect(() => {
+        const loggedInUser = getSafeUser ? getSafeUser() : null;
+        if (loggedInUser) {
+            const role = loggedInUser?.role || loggedInUser?.UserSignUpRole || '';
+            // If either property equals "district administrator" (ignoring case), grant access
+            if (role.toLowerCase() === 'district administrator') {
+                setIsDistrictAdmin(true);
+            } else {
+                setIsDistrictAdmin(false);
+            }
+        }
+    }, []);
 
     // DYNAMIC SYNC: Automatically sets User Name based on Full Name
     useEffect(() => {
@@ -143,6 +160,12 @@ const SupervisorForm = ({ onSuccess, externalFilters }) => {
     };
 
     const onSubmitSupervisor = async (data) => {
+        // 👇 Ultimate security check: Prevent submission if not District Admin
+        if (!isDistrictAdmin) {
+            toast.error("Access Denied: Only a District Administrator can submit this form.", { position: "top-right" });
+            return;
+        }
+
         const stateName = data.state ? data.state.label : "";
         const districtName = data.district ? data.district.label : "";
 
@@ -213,19 +236,31 @@ const SupervisorForm = ({ onSuccess, externalFilters }) => {
 
     const onErrorForm = () => toast.error("Error: Please check the red fields.", { position: "top-right" });
 
+    // 👇 Define if the form is completely enabled (must be District Admin AND have selected one from the filter)
+    const isFormEnabled = isDistrictAdmin && !!filterMotherNgo;
+
     return (
         <div style={styles.card}>
             <div style={styles.cardHeader}>
                 <h5>Supervisor Registration:-</h5>
             </div>
             
-            {!filterMotherNgo && (
+            {/* 👇 Show error banner if the logged-in user is NOT a District Admin */}
+            {!isDistrictAdmin && (
+                <div style={{ padding: '12px 24px', backgroundColor: '#f8d7da', color: '#721c24', borderBottom: '1px solid #f5c6cb' }}>
+                    <strong>Access Denied:</strong> Only a user with the role of <strong>District Administrator</strong> can submit this form. Your current role does not permit this action.
+                </div>
+            )}
+
+            {/* Show notice if they ARE a District Admin, but haven't picked a NGO in the filter dropdown yet */}
+            {isDistrictAdmin && !filterMotherNgo && (
                 <div style={{ padding: '12px 24px', backgroundColor: '#fff3cd', color: '#856404', borderBottom: '1px solid #ffeeba' }}>
                     <strong>Notice:</strong> Please select a <strong>DISTRICT NGO</strong> from the top filters before filling out this registration form.
                 </div>
             )}
 
-            <div style={{ ...styles.cardBody, opacity: !filterMotherNgo ? 0.6 : 1, pointerEvents: !filterMotherNgo ? 'none' : 'auto' }}>
+            {/* 👇 Form elements disabled using the combined 'isFormEnabled' check */}
+            <div style={{ ...styles.cardBody, opacity: !isFormEnabled ? 0.6 : 1, pointerEvents: !isFormEnabled ? 'none' : 'auto' }}>
                 <div style={styles.profileSection}>
                     <img src={profileImage} alt="Profile Avatar" style={styles.avatar} />
                     <div>
@@ -346,7 +381,8 @@ const SupervisorForm = ({ onSuccess, externalFilters }) => {
 
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '16px', marginTop: '32px' }}>
                         <button type="button" style={styles.btnOutline} onClick={handleCancelForm}>Cancel</button>
-                        <button type="submit" style={{ ...styles.btnPrimary, opacity: !filterMotherNgo ? 0.5 : 1 }} disabled={!filterMotherNgo}>Submit</button>
+                        {/* 👇 Submit button is disabled if isFormEnabled is false */}
+                        <button type="submit" style={{ ...styles.btnPrimary, opacity: !isFormEnabled ? 0.5 : 1 }} disabled={!isFormEnabled}>Submit</button>
                     </div>
                 </form>
             </div>

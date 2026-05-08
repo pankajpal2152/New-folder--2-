@@ -65,7 +65,6 @@ const PasswordInput = ({ label, id, error, placeholder, disabled, ...props }) =>
     );
 };
 
-// 👇 Destructured filterAsthaDidi from externalFilters
 const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
     const { filterMotherNgo, filterState, filterDistrict, filterSupervisor, filterAsthaDidi } = externalFilters || {};
 
@@ -73,6 +72,9 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
     const [dbDistricts, setDbDistricts] = useState([]);
     const [profileImage, setProfileImage] = useState(DUMMY_AVATAR);
     const fileInputRef = useRef(null);
+
+    // 👇 State to track if the logged-in user is an Astha Didi
+    const [isAsthaDidi, setIsAsthaDidi] = useState(false);
 
     const { control, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm({
         resolver: zodResolver(asthaMaaSchema),
@@ -87,6 +89,20 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
 
     const selectedState = watch("state");
     const fullNameValue = watch("fullName");
+
+    // 👇 Check the user's role on component mount
+    useEffect(() => {
+        const loggedInUser = getSafeUser ? getSafeUser() : null;
+        if (loggedInUser) {
+            const role = loggedInUser?.role || loggedInUser?.UserSignUpRole || '';
+            // If either property equals "astha didi" (ignoring case), grant access
+            if (role.toLowerCase() === 'astha didi') {
+                setIsAsthaDidi(true);
+            } else {
+                setIsAsthaDidi(false);
+            }
+        }
+    }, []);
 
     useEffect(() => {
         setValue("userName", fullNameValue || "", { shouldValidate: true });
@@ -138,6 +154,12 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
     };
 
     const onSubmitAsthaMaa = async (data) => {
+        // 👇 Ultimate security check: Prevent submission if not Astha Didi
+        if (!isAsthaDidi) {
+            toast.error("Access Denied: Only an Astha Didi can submit this form.", { position: "top-right" });
+            return;
+        }
+
         const stateName = data.state ? data.state.label : "";
         const districtName = data.district ? data.district.label : "";
 
@@ -179,7 +201,6 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
             StateNGORegId: null, 
             DistNGORegId: filterMotherNgo ? filterMotherNgo.value : null,
             SupRegId: filterSupervisor ? filterSupervisor.value : null,
-            // 👇 Added the strict Astha Didi mapping!
             AsthaDidiRegId: filterAsthaDidi ? filterAsthaDidi.value : null,
             
             AsthaMaIsActive: 1,
@@ -213,21 +234,31 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
 
     const onErrorAsthaMaa = () => toast.error("Error: Please check the red fields.", { position: "top-right" });
 
+    // 👇 Define if the form is completely enabled (must be Astha Didi AND have selected one from the filter)
+    const isFormEnabled = isAsthaDidi && !!filterAsthaDidi;
+
     return (
         <div style={styles.card}>
             <div style={styles.cardHeader}>
                 <h5>Astha Maa Registration</h5>
             </div>
 
-            {/* 👇 Check requires Astha Didi to be selected */}
-            {!filterAsthaDidi && (
+            {/* 👇 Show error banner if the logged-in user is NOT an Astha Didi */}
+            {!isAsthaDidi && (
+                <div style={{ padding: '12px 24px', backgroundColor: '#f8d7da', color: '#721c24', borderBottom: '1px solid #f5c6cb' }}>
+                    <strong>Access Denied:</strong> Only a user with the role of <strong>Astha Didi</strong> can submit this form. Your current role does not permit this action.
+                </div>
+            )}
+
+            {/* Show notice if they ARE an Astha Didi, but haven't picked one in the filter dropdown yet */}
+            {isAsthaDidi && !filterAsthaDidi && (
                 <div style={{ padding: '12px 24px', backgroundColor: '#fff3cd', color: '#856404', borderBottom: '1px solid #ffeeba' }}>
                     <strong>Notice:</strong> Please select an <strong>Astha Didi</strong> from the top filters before filling out this registration form.
                 </div>
             )}
 
-            {/* 👇 Disabled until Astha Didi is picked */}
-            <div style={{ ...styles.cardBody, opacity: !filterAsthaDidi ? 0.6 : 1, pointerEvents: !filterAsthaDidi ? 'none' : 'auto' }}>
+            {/* 👇 Form elements disabled using the combined 'isFormEnabled' check */}
+            <div style={{ ...styles.cardBody, opacity: !isFormEnabled ? 0.6 : 1, pointerEvents: !isFormEnabled ? 'none' : 'auto' }}>
                 <div style={styles.profileSection}>
                     <img src={profileImage} alt="Profile Avatar" style={styles.avatar} />
                     <div>
@@ -240,7 +271,6 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
                     </div>
                 </div>
 
-                {/* 👇 FIX: Added autoComplete="off" to the form tag */}
                 <form onSubmit={handleSubmit(onSubmitAsthaMaa, onErrorAsthaMaa)} autoComplete="off">
                     <h6 style={styles.sectionHeader}>Astha Maa Information</h6>
                     <div style={styles.formGrid}>
@@ -316,7 +346,6 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
                             <FormInput label={<>Email ID (For Login) <span style={{ color: '#ff3e1d' }}>*</span></>} id="email" error={errors.email} placeholder="Email ID" type="email" maxLength={100} autoComplete="off" {...field} />
                         )} />
                         
-                        {/* 👇 FIX: Added autoComplete="new-password" here */}
                         <Controller name="password" control={control} render={({ field }) => (
                             <PasswordInput label={<>Set Password <span style={{ color: '#ff3e1d' }}>*</span></>} id="password" error={errors.password} autoComplete="new-password" {...field} />
                         )} />
@@ -346,7 +375,8 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
 
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '16px', marginTop: '32px' }}>
                         <button type="button" style={styles.btnOutline} onClick={handleCancelAsthaMaa}>Cancel</button>
-                        <button type="submit" style={{ ...styles.btnPrimary, opacity: !filterAsthaDidi ? 0.5 : 1 }} disabled={!filterAsthaDidi}>Submit</button>
+                        {/* 👇 Submit button is disabled if isFormEnabled is false */}
+                        <button type="submit" style={{ ...styles.btnPrimary, opacity: !isFormEnabled ? 0.5 : 1 }} disabled={!isFormEnabled}>Submit</button>
                     </div>
                 </form>
             </div>

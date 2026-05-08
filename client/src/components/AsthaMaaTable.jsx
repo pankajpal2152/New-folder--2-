@@ -596,11 +596,11 @@ const AsthaMaaTable = ({ refreshTrigger, externalFilters }) => {
                                             <td style={styles.td}>{row.AsthaMaRegNo || '-'}</td>
                                             <td style={styles.stickyRightTd}>
                                                 <button onClick={() => openModal('view', row)} style={styles.actionBtn}>👁️</button>
-                                                <button onClick={() => openModal('edit', row)} style={styles.actionBtn}>✏️</button>
+                                                {/* <button onClick={() => openModal('edit', row)} style={styles.actionBtn}>✏️</button>
                                                 
                                                 {userRole === 'State Super Administrator' && (
                                                     <button onClick={() => openModal('delete', row)} style={styles.actionBtn}>🗑️</button>
-                                                )}
+                                                )} */}
                                                 
                                                 {Number(row.AsthaMaIsActive) !== 2 && userRole === 'Astha Didi' && (
                                                     <button onClick={() => openModal('approve', row)} style={styles.actionBtn}>✅</button>

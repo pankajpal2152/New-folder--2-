@@ -642,8 +642,8 @@ const MembersTable = ({ refreshTrigger, externalFilters }) => {
                                             <td style={styles.td}>{row.AsthaDidiRegNo || '-'}</td>
                                             <td style={styles.stickyRightTd}>
                                                 <button onClick={() => openModal('view', row)} style={styles.actionBtn}>👁️</button>
-                                                {/* <button onClick={() => openModal('edit', row)} style={styles.actionBtn}>✏️</button>
-                                                {userRole === 'State Super Administrator' && (
+                                                 <button onClick={() => openModal('edit', row)} style={styles.actionBtn}>✏️</button>
+                                                {/*{userRole === 'State Super Administrator' && (
                                                     <button onClick={() => openModal('delete', row)} style={styles.actionBtn}>🗑️</button>
                                                 )} */}
                                                 {Number(row.AsthaDidiIsActive) !== 2 && userRole !== 'Astha Didi' && (

@@ -134,7 +134,7 @@ const Sidebar = () => {
 
 
                 {/* --- NEW: ACCESS CONTROL MENU --- */}
-                {/* {(userRole === 'State Super Administrator' || isDeveloper || userRole === 'District Administrator') && (
+                {(userRole === 'State Super Administrator' || isDeveloper || userRole === 'District Administrator') && (
                     <NavLink to="/settings/access-control" style={styles.link}>
                         {({ isActive }) => (
                             <li style={styles.menuItem(isActive)}>
@@ -144,7 +144,7 @@ const Sidebar = () => {
                             </li>
                         )}
                     </NavLink>
-                )} */}
+                )}
 
 
                 {isDeveloper && (

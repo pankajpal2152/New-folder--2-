@@ -1,4 +1,3 @@
-// src/utils/fileUploadHelper.js
 const fs = require('fs');
 const path = require('path');
 
@@ -14,22 +13,29 @@ const saveBase64File = (base64Data, category, id, docType) => {
     if (!base64Data || base64Data.includes('ID:')) return base64Data; // Skip if already processed or empty
 
     try {
-        // Ensure the directory exists
-        const dir = path.join(__dirname, '../../allDocumentsFolder');
+        // ✅ FIX: Use process.cwd() to perfectly match the server.js static path
+        // This ensures the folder is created at the absolute root of your project
+        const dir = path.join(process.cwd(), 'allDocumentsFolder');
+        
         if (!fs.existsSync(dir)) {
             fs.mkdirSync(dir, { recursive: true });
         }
 
-        // Identify file extension (e.g., image/png -> .png)
-        const extension = base64Data.substring(base64Data.indexOf("/") + 1, base64Data.indexOf(";base64"));
+        // Safely extract the exact extension to prevent substring errors
+        let extension = "png"; // fallback
+        if (base64Data.includes("image/jpeg")) extension = "jpeg";
+        else if (base64Data.includes("image/jpg")) extension = "jpg";
+        else if (base64Data.includes("image/png")) extension = "png";
+        else if (base64Data.includes("application/pdf")) extension = "pdf";
+
         const fileName = `${category}_ID${id}_${docType}.${extension}`;
         const filePath = path.join(dir, fileName);
 
-        // Remove header (data:image/png;base64,) and save
+        // Remove the base64 header (e.g., data:image/jpeg;base64,) and write to file
         const base64Image = base64Data.split(';base64,').pop();
         fs.writeFileSync(filePath, base64Image, { encoding: 'base64' });
 
-        return fileName; // This is what we save in the DB column
+        return fileName; // Return the exact name so frontend can fetch it
     } catch (error) {
         console.error("File Save Error:", error);
         return null;

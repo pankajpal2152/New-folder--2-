@@ -3,16 +3,17 @@ import React from 'react';
 // ==========================================
 // --- GLOBAL CONFIGURATION ---
 // ==========================================
-// If running on local computer -> uses http://localhost:5000/api
-// If deployed on Vercel -> FORCES connection to your Render backend!
-export const API_BASE_URL = import.meta.env.PROD
-    ? 'https://ngo-shevasham-backend.onrender.com/api'
-    : 'http://localhost:5000/api';
 
-// Derived URL for accessing physical documents from the backend folder
-export const DOCS_URL = import.meta.env.PROD
-    ? 'https://ngo-shevasham-backend.onrender.com/allDocumentsFolder'
-    : 'http://localhost:5000/allDocumentsFolder';
+// Base URL for the Backend Server (without the /api suffix)
+const SERVER_ROOT = import.meta.env.PROD 
+    ? 'https://ngo-shevasham-backend.onrender.com' 
+    : 'http://localhost:5000';
+
+// API Route for Fetching/Posting data
+export const API_BASE_URL = `${SERVER_ROOT}/api`;
+
+// Public URL for accessing physical documents/images
+export const DOCS_URL = `${SERVER_ROOT}/allDocumentsFolder`;
 
 export const DUMMY_AVATAR = "https://api.dicebear.com/8.x/initials/svg?seed=Rajesh&backgroundColor=696cff";
 export const indianZipRegex = /^[1-9][0-9]{5}$/;
@@ -21,24 +22,26 @@ export const indianPhoneRegex = /^(?:\+91[\s]?|91[\s]?)?[6789]\d{9}$/;
 // --- HELPER FUNCTIONS ---
 
 /**
- * Updated Helper: Extracts the correct URL for an image or document.
- * If it's a filename, it appends the static server path.
- * If it's a raw base64 string, it returns it as is.
+ * FIXED Helper: Extracts the correct URL for an image or document.
  */
 export const extractBase64 = (dbValue) => {
-    if (!dbValue) return null;
+    // If there is no value in the database, return the dummy avatar
+    if (!dbValue) return DUMMY_AVATAR;
 
-    // 1. Check if it's a raw base64 string (newly uploaded but not yet saved)
+    // 1. Check if it's a raw base64 string (from a fresh upload not yet saved)
     if (dbValue.startsWith('data:image/') || dbValue.startsWith('data:application/pdf')) {
         return dbValue;
     }
 
-    // 2. Handle migration from old database tag format if it exists
+    // 2. Handle the old "ID:||" database tag format for backward compatibility
     if (dbValue.includes('||')) {
-        return dbValue.split('||')[1];
+        const parts = dbValue.split('||');
+        // Return the base64 part if it exists, otherwise use dummy
+        return (parts.length > 1 && parts[1]) ? parts[1] : DUMMY_AVATAR;
     }
 
-    // 3. Otherwise, treat as a physical filename and append the server URL
+    // 3. Assume it is a physical filename stored in the new system.
+    // We append the DOCS_URL to the filename (e.g., AsthaDidi_ID1_Profile.png)
     return `${DOCS_URL}/${dbValue}`;
 };
 
@@ -51,7 +54,7 @@ export const fileToBase64 = (file) => {
     });
 };
 
-// --- STYLES ---
+// --- STYLES (Keep as they were) ---
 export const styles = {
     card: { backgroundColor: '#ffffff', borderRadius: '8px', boxShadow: '0 2px 6px 0 rgba(67, 89, 113, 0.12)', fontFamily: '"Public Sans", sans-serif', overflow: 'hidden', marginBottom: '24px', width: '100%', boxSizing: 'border-box' },
     cardHeader: { padding: '24px', borderBottom: '1px solid #d9dee3', fontSize: '1.125rem', fontWeight: '500', color: '#566a7f', margin: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' },
@@ -95,7 +98,7 @@ export const styles = {
     pageBtnDisabled: { padding: '6px 12px', marginLeft: '8px', border: '1px solid #d9dee3', backgroundColor: '#f5f5f9', borderRadius: '4px', cursor: 'not-allowed', color: '#a1acb8' }
 };
 
-// --- REUSABLE INPUT COMPONENT ---
+// --- REUSABLE INPUT COMPONENT (Keep as it was) ---
 export const FormInput = ({ label, id, error, placeholder, disabled, ...props }) => (
     <div style={styles.inputGroup}>
         <label htmlFor={id} style={styles.label}>{label}</label>

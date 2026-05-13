@@ -3,22 +3,43 @@ import React from 'react';
 // ==========================================
 // --- GLOBAL CONFIGURATION ---
 // ==========================================
-// BULLETPROOF ROUTING:
 // If running on local computer -> uses http://localhost:5000/api
 // If deployed on Vercel -> FORCES connection to your Render backend!
-export const API_BASE_URL = import.meta.env.PROD 
-    ? 'https://ngo-shevasham-backend.onrender.com/api' 
+export const API_BASE_URL = import.meta.env.PROD
+    ? 'https://ngo-shevasham-backend.onrender.com/api'
     : 'http://localhost:5000/api';
+
+// Derived URL for accessing physical documents from the backend folder
+export const DOCS_URL = import.meta.env.PROD
+    ? 'https://ngo-shevasham-backend.onrender.com/allDocumentsFolder'
+    : 'http://localhost:5000/allDocumentsFolder';
 
 export const DUMMY_AVATAR = "https://api.dicebear.com/8.x/initials/svg?seed=Rajesh&backgroundColor=696cff";
 export const indianZipRegex = /^[1-9][0-9]{5}$/;
 export const indianPhoneRegex = /^(?:\+91[\s]?|91[\s]?)?[6789]\d{9}$/;
 
 // --- HELPER FUNCTIONS ---
-export const extractBase64 = (dbString) => {
-    if (!dbString) return null;
-    const parts = dbString.split('||');
-    return parts.length > 1 ? parts[1] : parts[0];
+
+/**
+ * Updated Helper: Extracts the correct URL for an image or document.
+ * If it's a filename, it appends the static server path.
+ * If it's a raw base64 string, it returns it as is.
+ */
+export const extractBase64 = (dbValue) => {
+    if (!dbValue) return null;
+
+    // 1. Check if it's a raw base64 string (newly uploaded but not yet saved)
+    if (dbValue.startsWith('data:image/') || dbValue.startsWith('data:application/pdf')) {
+        return dbValue;
+    }
+
+    // 2. Handle migration from old database tag format if it exists
+    if (dbValue.includes('||')) {
+        return dbValue.split('||')[1];
+    }
+
+    // 3. Otherwise, treat as a physical filename and append the server URL
+    return `${DOCS_URL}/${dbValue}`;
 };
 
 export const fileToBase64 = (file) => {
@@ -53,8 +74,7 @@ export const styles = {
         control: (base) => ({ ...base, borderColor: hasError ? '#ff3e1d' : '#d9dee3', minHeight: '42px', borderRadius: '4px', boxShadow: 'none', '&:hover': { borderColor: '#2b84b8' } }),
         singleValue: (base) => ({ ...base, color: '#697a8d', fontSize: '0.9375rem' }),
         placeholder: (base) => ({ ...base, color: '#b4bdc6', fontSize: '0.9375rem' }),
-        // FIX: Increased from 9999 to 99999 globally to always beat the modal overlay (10000)
-        menu: (base) => ({ ...base, zIndex: 99999 }) 
+        menu: (base) => ({ ...base, zIndex: 99999 })
     }),
     sectionHeader: { fontSize: '1rem', fontWeight: '500', color: '#566a7f', textTransform: 'uppercase', marginBottom: '20px', marginTop: '32px', borderBottom: '2px solid #2b84b8', paddingBottom: '8px' },
     tableContainer: { width: '100%', maxWidth: '100%', overflowX: 'auto', display: 'block', WebkitOverflowScrolling: 'touch' },

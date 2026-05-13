@@ -4,15 +4,12 @@ import React from 'react';
 // --- GLOBAL CONFIGURATION ---
 // ==========================================
 
-// This is the root domain of your Render backend
+// ✅ SMART ROUTING: Blank for local (uses Vite proxy), full URL for production
 const SERVER_ROOT = import.meta.env.PROD 
     ? 'https://ngo-shevasham-backend.onrender.com' 
-    : 'http://localhost:5000';
+    : '';
 
-// API Route for data operations
 export const API_BASE_URL = `${SERVER_ROOT}/api`;
-
-// Public URL for accessing the physical files stored on Render
 export const DOCS_URL = `${SERVER_ROOT}/allDocumentsFolder`;
 
 export const DUMMY_AVATAR = "https://api.dicebear.com/8.x/initials/svg?seed=Rajesh&backgroundColor=696cff";
@@ -21,36 +18,25 @@ export const indianPhoneRegex = /^(?:\+91[\s]?|91[\s]?)?[6789]\d{9}$/;
 
 // --- HELPER FUNCTIONS ---
 
-/**
- * FIXED Helper: Extracts the correct URL for an image or document.
- * This ensures the broken image seen in the browser is fixed by
- * pointing to the absolute URL on the Render server.
- */
 export const extractBase64 = (dbValue) => {
     if (!dbValue) return DUMMY_AVATAR;
 
-    // 1. Check if it's a raw base64 string (newly uploaded in the current session)
     if (dbValue.startsWith('data:image/') || dbValue.startsWith('data:application/pdf')) {
         return dbValue;
     }
 
-    // 2. Handle compatibility for the legacy "ID:||" database format
     if (dbValue.includes('||')) {
         const parts = dbValue.split('||');
         return (parts.length > 1 && parts[1]) ? parts[1] : DUMMY_AVATAR;
     }
 
-    // 3. FIX FOR BROKEN IMAGES: 
-    // If the string contains a category name (like AsthaDidi or Supervisor) 
-    // and ends with an image extension, it's a physical filename.
-    const isImageFile = /\.(jpg|jpeg|png|gif|webp)$/i.test(dbValue);
-    const isPdfFile = /\.pdf$/i.test(dbValue);
+    // ✅ FIXED REGEX: Simply checks if the value is a saved filename and builds the correct URL
+    const isFile = /\.(jpg|jpeg|png|gif|webp|pdf)$/i.test(dbValue);
 
-    if (isImageFile || isPdfFile) {
+    if (isFile) {
         return `${DOCS_URL}/${dbValue}`;
     }
 
-    // Fallback to dummy if format is unrecognized
     return DUMMY_AVATAR;
 };
 
@@ -107,7 +93,6 @@ export const styles = {
     pageBtnDisabled: { padding: '6px 12px', marginLeft: '8px', border: '1px solid #d9dee3', backgroundColor: '#f5f5f9', borderRadius: '4px', cursor: 'not-allowed', color: '#a1acb8' }
 };
 
-// --- REUSABLE INPUT COMPONENT ---
 export const FormInput = ({ label, id, error, placeholder, disabled, ...props }) => (
     <div style={styles.inputGroup}>
         <label htmlFor={id} style={styles.label}>{label}</label>

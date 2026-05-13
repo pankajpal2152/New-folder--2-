@@ -2,9 +2,6 @@ import React, { useState } from 'react';
 import { toast } from 'react-toastify';
 import { styles, extractBase64 } from '../config/constants';
 
-// ==========================================
-// UTILITY: Safe Local Storage Access
-// ==========================================
 export const getSafeUser = () => {
     try {
         const userStr = localStorage.getItem('loggedInUser');
@@ -16,16 +13,16 @@ export const getSafeUser = () => {
 };
 
 // ==========================================
-// FIXED: Smart PDF Viewer
-// Automatically handles raw Base64 previews AND live physical server URLs!
+// SMART PDF VIEWER
+// Automatically handles Base64 previews and Physical URLs!
 // ==========================================
 export const handleViewPdf = (dbValue) => {
     if (!dbValue) return;
     
-    // Resolve the precise URL using our environment-aware helper
+    // Resolve the exact URL using constants logic
     const fullUrl = extractBase64(dbValue);
 
-    // If it's a raw base64 string (user just uploaded it, hasn't saved to DB yet)
+    // If it's a raw base64 string, open via iframe
     if (fullUrl.startsWith('data:')) {
         const pdfWindow = window.open("");
         if (pdfWindow) {
@@ -34,14 +31,11 @@ export const handleViewPdf = (dbValue) => {
             toast.error("Pop-up blocked! Please allow pop-ups for this site to view documents.");
         }
     } else {
-        // It's a real physical PDF hosted on Render! Just open the URL directly.
+        // It's a real file hosted on the server, open directly
         window.open(fullUrl, "_blank");
     }
 };
 
-// ==========================================
-// Password Input Helper Component (For Modals)
-// ==========================================
 export const PasswordInput = ({ label, id, error, placeholder, disabled, ...props }) => {
     const [showPassword, setShowPassword] = useState(false);
     const togglePasswordVisibility = () => setShowPassword(!showPassword);

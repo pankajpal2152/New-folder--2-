@@ -12,10 +12,14 @@ export default defineConfig({
     port: 3000,       // Standardized local frontend port
     open: true,       // Automatically opens the browser on start
     proxy: {
-      // Routes any frontend request starting with '/api' to your local Node.js server
-      // This prevents CORS errors during local development.
-      // NOTE: Vercel completely ignores this proxy block during production!
+      // Routes frontend API requests to local Node.js server
       '/api': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+        secure: false,
+      },
+      // ✅ NEW: Routes frontend Image/PDF requests to local Node.js server
+      '/allDocumentsFolder': {
         target: 'http://localhost:5000',
         changeOrigin: true,
         secure: false,
@@ -25,26 +29,20 @@ export default defineConfig({
 
   // --- 2. PRODUCTION BUILD SETTINGS (For Vercel) ---
   build: {
-    outDir: 'dist',    // Vercel automatically looks for this 'dist' folder for Vite projects
-    emptyOutDir: true, // Clears the dist folder before every new build
-    sourcemap: false,  // SECURITY: Set to false so your raw source code isn't exposed in production
-    chunkSizeWarningLimit: 1000, // Suppresses warnings for heavy UI libraries
+    outDir: 'dist',    
+    emptyOutDir: true, 
+    sourcemap: false,  
+    chunkSizeWarningLimit: 1000, 
     
-    // Rollup handles the actual bundling process
     rollupOptions: {
       output: {
-        // Manual Chunking: Splits dependencies into separate files for aggressive browser caching
-        // This makes your Vercel deployment load much faster for users!
         manualChunks(id) {
-          // Core React Ecosystem
           if (id.includes('node_modules/react') || id.includes('node_modules/react-dom') || id.includes('node_modules/react-router-dom')) {
             return 'vendor-react';
           }
-          // Form and Validation Libraries
           if (id.includes('node_modules/react-hook-form') || id.includes('node_modules/zod') || id.includes('node_modules/@hookform')) {
             return 'vendor-forms';
           }
-          // Heavy UI Libraries
           if (id.includes('node_modules/react-select') || id.includes('node_modules/react-toastify') || id.includes('node_modules/axios')) {
             return 'vendor-ui';
           }

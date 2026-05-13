@@ -1,7 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const path = require('path'); // Added for static path
+const path = require('path');
 
 // Import the modular API routes
 const apiRoutes = require('./routes/apiRoutes');
@@ -13,7 +13,8 @@ app.use(cors({ origin: '*' }));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// ✅ NEW: Serve the documents folder statically so frontend can access images/PDFs
+// ✅ CRITICAL FIX: Serve the documents folder statically. 
+// This allows the frontend to load images via URL.
 app.use('/allDocumentsFolder', express.static(path.join(__dirname, 'allDocumentsFolder')));
 
 // Mount API Routes

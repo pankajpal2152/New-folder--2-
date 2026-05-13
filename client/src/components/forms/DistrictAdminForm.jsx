@@ -5,7 +5,9 @@ import * as z from 'zod';
 import Select from 'react-select';
 import { toast } from 'react-toastify';
 import { API_BASE_URL, indianPhoneRegex, styles, FormInput, fileToBase64 } from '../../config/constants';
-import { getSafeUser } from '../AccountSharedUtils';
+
+// ✅ Import the Smart PDF Viewer we just created
+import { getSafeUser, handleViewPdf } from '../AccountSharedUtils';
 
 // ==========================================
 // 1. Validation Schema
@@ -75,19 +77,6 @@ const PasswordInput = ({ label, id, error, placeholder, disabled, ...props }) =>
     );
 };
 
-const handleViewPdf = (base64String) => {
-    if (!base64String) return;
-    const pdfData = base64String.startsWith('data:application/pdf;base64,')
-        ? base64String
-        : `data:application/pdf;base64,${base64String}`;
-    const pdfWindow = window.open("");
-    if (pdfWindow) {
-        pdfWindow.document.write(`<iframe width='100%' height='100%' style='border:none; margin:0; padding:0;' src='${pdfData}'></iframe>`);
-    } else {
-        toast.error("Pop-up blocked! Please allow pop-ups for this site to view documents.");
-    }
-};
-
 const DistrictAdminForm = ({ onSuccess }) => {
     const [dbStates, setDbStates] = useState([]);
     const [dbDistricts, setDbDistricts] = useState([]);
@@ -149,7 +138,6 @@ const DistrictAdminForm = ({ onSuccess }) => {
     };
 
     const onSubmitDistrictAdmin = async (data) => {
-        // ✅ NEW: Mandatory Document Check Implementation
         if (!regCertPdf || !panPdf || !darpanPdf) {
             toast.error("Required: Please upload all three mandatory documents (Reg Cert, PAN, and Darpan PDF) before submitting.", { position: "top-right" });
             return;
@@ -188,7 +176,7 @@ const DistrictAdminForm = ({ onSuccess }) => {
             DistNGOSignupPassword: data.password,
             DistNGOCreatedByAuthRegId: currentUserId,
             DistNGOIsActive: 1,
-            StateNGORegId: null, // BACKEND WILL NOW AUTOMATICALLY OVERRIDE THIS VALUE
+            StateNGORegId: null, 
             DistNGOAprovedBy: null,
             DistNGOAprovedDate: null,
             DistNGOGenRegNo: null

@@ -6,24 +6,13 @@ import { toast } from 'react-toastify';
 
 import { API_BASE_URL, styles, FormInput, fileToBase64 } from '../config/constants';
 import { ngoSchema } from './forms/DistrictAdminForm';
-import { getSafeUser, PasswordInput } from './AccountSharedUtils';
+
+// ✅ Import our shared helpers and Smart PDF viewer
+import { getSafeUser, PasswordInput, handleViewPdf } from './AccountSharedUtils';
 
 const formatDisplayDate = (dbDateStr) => {
     if (!dbDateStr) return '-';
     return String(dbDateStr).substring(0, 10);
-};
-
-const handleViewPdf = (base64String) => {
-    if (!base64String) return;
-    const pdfData = base64String.startsWith('data:application/pdf;base64,')
-        ? base64String
-        : `data:application/pdf;base64,${base64String}`;
-    const pdfWindow = window.open("");
-    if (pdfWindow) {
-        pdfWindow.document.write(`<iframe width='100%' height='100%' style='border:none; margin:0; padding:0;' src='${pdfData}'></iframe>`);
-    } else {
-        toast.error("Pop-up blocked! Please allow pop-ups for this site to view documents.");
-    }
 };
 
 const DistrictAdminModal = ({ member, mode, onClose, onSuccess }) => {
@@ -386,7 +375,7 @@ const DistrictAdminTable = ({ refreshTrigger, externalFilters }) => {
 
     useEffect(() => { fetchMembers(); }, [refreshTrigger]);
 
-    // STRICT DATA VISIBILITY: MUST SELECT ALL FILTERS DOWN TO DISTRICT
+    // STRICT DATA VISIBILITY
     const filteredMembers = useMemo(() => {
         if (userRole !== 'District Administrator' && userRole !== 'Supervisor' && userRole !== 'Astha Didi' && userRole !== 'Astha Maa') {
             if (!externalFilters?.filterState || !externalFilters?.filterDistrict) {
@@ -612,18 +601,31 @@ const DistrictAdminTable = ({ refreshTrigger, externalFilters }) => {
                                         <td style={styles.td}>{row.ApproverDisplayName || row.DistNGOAprovedBy || '-'}</td>
                                         <td style={styles.td}>{formatDisplayDate(row.DistNGOAprovedDate)}</td>
                                         <td style={styles.td}>{row.DistNGOGenRegNo || '-'}</td>
-                                        <td style={styles.td}>{row.DistNGORecCertificate ? '✅ Uploaded' : '❌ Missing'}</td>
-                                        <td style={styles.td}>{row.DistNGOPanPic ? '✅ Uploaded' : '❌ Missing'}</td>
-                                        <td style={styles.td}>{row.DistNGODarpanPic ? '✅ Uploaded' : '❌ Missing'}</td>
+                                        
+                                        {/* ✅ NEW: Clickable PDF Links directly in the table! */}
+                                        <td style={styles.td}>
+                                            {row.DistNGORecCertificate ? (
+                                                <span style={{ cursor: 'pointer', color: '#696cff', fontWeight: 'bold' }} onClick={() => handleViewPdf(row.DistNGORecCertificate)}>👁️ View PDF</span>
+                                            ) : '❌ Missing'}
+                                        </td>
+                                        <td style={styles.td}>
+                                            {row.DistNGOPanPic ? (
+                                                <span style={{ cursor: 'pointer', color: '#696cff', fontWeight: 'bold' }} onClick={() => handleViewPdf(row.DistNGOPanPic)}>👁️ View PDF</span>
+                                            ) : '❌ Missing'}
+                                        </td>
+                                        <td style={styles.td}>
+                                            {row.DistNGODarpanPic ? (
+                                                <span style={{ cursor: 'pointer', color: '#696cff', fontWeight: 'bold' }} onClick={() => handleViewPdf(row.DistNGODarpanPic)}>👁️ View PDF</span>
+                                            ) : '❌ Missing'}
+                                        </td>
+                                        {/* End of new clickable links */}
+
                                         <td style={styles.stickyRightTd}>
                                             <button onClick={() => openModal('view', row)} style={styles.actionBtn}>👁️</button>
                                             <button onClick={() => openModal('edit', row)} style={styles.actionBtn}>✏️</button>
                                             {userRole === 'State Super Administrator' && (
                                                 <button onClick={() => openModal('delete', row)} style={styles.actionBtn}>🗑️</button>
                                             )}
-                                            {/* {Number(row.DistNGOIsActive) !== 2 && (
-                                                <button onClick={() => openModal('approve', row)} style={styles.actionBtn}>✅</button>
-                                            )} */}
                                             {Number(row.DistNGOIsActive) !== 2 && userRole && userRole.toLowerCase() === 'state super administrator' && (
                                                 <button onClick={() => openModal('approve', row)} style={styles.actionBtn}>✅</button>
                                             )}

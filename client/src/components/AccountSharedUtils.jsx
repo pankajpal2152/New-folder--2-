@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { toast } from 'react-toastify';
-import { styles } from '../config/constants';
+import { styles, extractBase64 } from '../config/constants';
 
 // ==========================================
 // UTILITY: Safe Local Storage Access
@@ -16,18 +16,26 @@ export const getSafeUser = () => {
 };
 
 // ==========================================
-// Helper to View Base64 PDF in a new tab
+// FIXED: Smart PDF Viewer
+// Automatically handles raw Base64 previews AND live physical server URLs!
 // ==========================================
-export const handleViewPdf = (base64String) => {
-    if (!base64String) return;
-    const pdfData = base64String.startsWith('data:application/pdf;base64,')
-        ? base64String
-        : `data:application/pdf;base64,${base64String}`;
-    const pdfWindow = window.open("");
-    if (pdfWindow) {
-        pdfWindow.document.write(`<iframe width='100%' height='100%' style='border:none; margin:0; padding:0;' src='${pdfData}'></iframe>`);
+export const handleViewPdf = (dbValue) => {
+    if (!dbValue) return;
+    
+    // Resolve the precise URL using our environment-aware helper
+    const fullUrl = extractBase64(dbValue);
+
+    // If it's a raw base64 string (user just uploaded it, hasn't saved to DB yet)
+    if (fullUrl.startsWith('data:')) {
+        const pdfWindow = window.open("");
+        if (pdfWindow) {
+            pdfWindow.document.write(`<iframe width='100%' height='100%' style='border:none; margin:0; padding:0;' src='${fullUrl}'></iframe>`);
+        } else {
+            toast.error("Pop-up blocked! Please allow pop-ups for this site to view documents.");
+        }
     } else {
-        toast.error("Pop-up blocked! Please allow pop-ups for this site to view documents.");
+        // It's a real physical PDF hosted on Render! Just open the URL directly.
+        window.open(fullUrl, "_blank");
     }
 };
 

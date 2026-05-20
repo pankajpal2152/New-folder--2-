@@ -4,7 +4,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import Select from 'react-select';
 import { toast } from 'react-toastify';
-import { API_BASE_URL, DUMMY_AVATAR, indianZipRegex, indianPhoneRegex, styles, FormInput, fileToBase64 } from '../../config/constants';
+import { API_BASE_URL, DUMMY_AVATAR, indianZipRegex, indianPhoneRegex, styles, FormInput } from '../../config/constants';
+// IMPORT FIXED: Using the shared one from utils
 import { getSafeUser, PasswordInput, validateUniqueFields } from '../AccountSharedUtils';
 
 export const asthaMaaSchema = z.object({

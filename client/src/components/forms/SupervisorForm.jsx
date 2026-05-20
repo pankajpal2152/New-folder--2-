@@ -1,10 +1,10 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
 import Select from 'react-select';
 import { toast } from 'react-toastify';
-import { API_BASE_URL, DUMMY_AVATAR, indianZipRegex, indianPhoneRegex, styles, FormInput } from '../../config/constants';
+import { API_BASE_URL, DUMMY_AVATAR, styles, FormInput } from '../../config/constants';
+// IMPORT FIXED
 import { getSafeUser, PasswordInput, validateUniqueFields } from '../AccountSharedUtils';
 
 export const asthaMaaSchema = z.object({
@@ -160,6 +160,8 @@ const SupervisorForm = ({ onSuccess, externalFilters }) => {
     };
 
     const onSubmitSupervisor = async (data) => {
+        if (!isDistrictAdmin) { toast.error("Access Denied."); return; }
+
         const checks = [
             { table: 'suvervisor_reg', column: 'SupMailId', value: data.email, label: 'Email' },
             { table: 'suvervisor_reg', column: 'SupSignupUserName', value: data.userName, label: 'Username' },

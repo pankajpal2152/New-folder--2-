@@ -18,7 +18,7 @@ export const ngoSchema = z.object({
     ngoRegistrationDate: z.string().min(1, "Date is required"),
     ngoRegistrationNo: z.string().min(1, "Registration No is required"),
     ngoPanNo: z.string().min(1, "PAN No is required"),
-    ngoDarpanId: z.string().min(1, "Darpan ID is required"),
+    ngoDarpanId: z.string().optional().or(z.literal('')),
     generalNgoEmail: z.string().email("Valid email required").optional(),
     ngoMobile: z.string().regex(indianPhoneRegex, "Valid Indian phone required"),
     ngoRegAddress: z.string().min(5, "Address is required"),
@@ -237,9 +237,14 @@ const DistrictAdminForm = ({ onSuccess }) => {
                         <Controller name="ngoPanNo" control={control} render={({ field }) => (
                             <FormInput label={<>NGO PAN No <span style={{ color: '#ff3e1d' }}>*</span></>} id="ngoPanNo" error={errors.ngoPanNo} type="text" {...field} />
                         )} />
-                        <Controller name="ngoDarpanId" control={control} render={({ field }) => (
-                            <FormInput label={<>NGO Darpan ID <span style={{ color: '#ff3e1d' }}>*</span></>} id="ngoDarpanId" error={errors.ngoDarpanId} type="text" {...field} />
-                        )} />
+                        <Controller
+                            name="ngoDarpanId"
+                            control={control}
+                            render={({ field }) => (
+                                // Removed the <span style={{ color: '#ff3e1d' }}>*</span>
+                                <FormInput label="NGO Darpan ID" id="ngoDarpanId" error={errors.ngoDarpanId} type="text" {...field} />
+                            )}
+                        />
                         <Controller name="generalNgoEmail" control={control} render={({ field }) => (
                             <FormInput label="NGO General Email ID" id="generalNgoEmail" error={errors.generalNgoEmail} type="email" placeholder="Optional general contact email" {...field} />
                         )} />

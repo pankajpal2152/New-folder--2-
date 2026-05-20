@@ -202,7 +202,14 @@ const DistrictAdminModal = ({ member, mode, onClose, onSuccess }) => {
                             <Controller name="ngoRegistrationDate" control={control} render={({ field }) => (<FormInput label="Date of Registration *" id="e_ngoRegDate" type="date" error={errors.ngoRegistrationDate} disabled={isView} {...field} />)} />
                             <Controller name="ngoRegistrationNo" control={control} render={({ field }) => (<FormInput label="Registration No *" id="e_ngoRegNo" error={errors.ngoRegistrationNo} disabled={isView} {...field} />)} />
                             <Controller name="ngoPanNo" control={control} render={({ field }) => (<FormInput label="NGO PAN No *" id="e_ngoPan" error={errors.ngoPanNo} disabled={isView} {...field} />)} />
-                            <Controller name="ngoDarpanId" control={control} render={({ field }) => (<FormInput label="NGO Darpan ID *" id="e_ngoDarpan" error={errors.ngoDarpanId} disabled={isView} {...field} />)} />
+                            <Controller
+                                name="ngoDarpanId"
+                                control={control}
+                                render={({ field }) => (
+                                    // Changed "NGO Darpan ID *" to "NGO Darpan ID"
+                                    <FormInput label="NGO Darpan ID" id="e_ngoDarpan" error={errors.ngoDarpanId} disabled={isView} {...field} />
+                                )}
+                            />
                             <Controller name="generalNgoEmail" control={control} render={({ field }) => (<FormInput label="NGO General Email *" id="e_generalNgoEmail" type="email" error={errors.generalNgoEmail} disabled={isView} {...field} />)} />
                             <Controller name="ngoMobile" control={control} render={({ field }) => (<FormInput label="NGO Mobile *" id="e_ngoMobile" type="tel" error={errors.ngoMobile} disabled={isView} {...field} />)} />
                         </div>

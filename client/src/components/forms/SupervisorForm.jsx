@@ -5,7 +5,7 @@ import * as z from 'zod';
 import Select from 'react-select';
 import { toast } from 'react-toastify';
 import { API_BASE_URL, DUMMY_AVATAR, indianZipRegex, indianPhoneRegex, styles, FormInput } from '../../config/constants';
-// IMPORT FIXED: Removed local PasswordInput, using shared one
+// IMPORT FIXED: Using the shared one from utils
 import { getSafeUser, PasswordInput, validateUniqueFields } from '../AccountSharedUtils';
 
 export const asthaMaaSchema = z.object({

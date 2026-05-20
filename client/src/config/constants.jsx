@@ -8,7 +8,6 @@ import React from 'react';
 const SERVER_ROOT = import.meta.env.PROD 
     ? 'https://ngo-shevasham-backend.onrender.com' 
     : '';
-
 export const API_BASE_URL = `${SERVER_ROOT}/api`;
 export const DOCS_URL = `${SERVER_ROOT}/allDocumentsFolder`;
 

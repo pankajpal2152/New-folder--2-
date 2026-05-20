@@ -36,39 +36,6 @@ export const asthaMaaSchema = z.object({
     aadharNo: z.string().length(12, "Must be exactly 12 digits").regex(/^\d+$/, "Numbers only")
 });
 
-const PasswordInput = ({ label, id, error, placeholder, disabled, ...props }) => {
-    const [showPassword, setShowPassword] = useState(false);
-    const togglePasswordVisibility = () => setShowPassword(!showPassword);
-
-    return (
-        <div style={styles.inputGroup}>
-            <label htmlFor={id} style={styles.label}>{label}</label>
-            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                <input
-                    id={id}
-                    type={showPassword ? "text" : "password"}
-                    style={disabled ? styles.inputDisabled : { ...styles.input(!!error), paddingRight: '40px' }}
-                    placeholder={placeholder}
-                    disabled={disabled}
-                    {...props}
-                />
-                <button
-                    type="button"
-                    onClick={togglePasswordVisibility}
-                    style={{
-                        position: 'absolute', right: '10px', background: 'transparent', border: 'none', cursor: 'pointer',
-                        color: '#697a8d', fontSize: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0
-                    }}
-                    title={showPassword ? "Hide password" : "Show password"}
-                >
-                    {showPassword ? '👁️‍🗨️' : '👁️'}
-                </button>
-            </div>
-            {error && <p style={styles.errorText}>{error.message}</p>}
-        </div>
-    );
-};
-
 const SupervisorForm = ({ onSuccess, externalFilters }) => {
     const { filterMotherNgo, filterState, filterDistrict } = externalFilters || {};
 
@@ -76,8 +43,6 @@ const SupervisorForm = ({ onSuccess, externalFilters }) => {
     const [dbDistricts, setDbDistricts] = useState([]);
     const [profileImage, setProfileImage] = useState(DUMMY_AVATAR);
     const fileInputRef = useRef(null);
-
-    // 👇 State to track if the logged-in user is a District Administrator
     const [isDistrictAdmin, setIsDistrictAdmin] = useState(false);
 
     const { control, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm({
@@ -94,26 +59,18 @@ const SupervisorForm = ({ onSuccess, externalFilters }) => {
     const selectedState = watch("state");
     const fullNameValue = watch("fullName");
 
-    // 👇 Check the user's role on component mount
     useEffect(() => {
         const loggedInUser = getSafeUser ? getSafeUser() : null;
         if (loggedInUser) {
             const role = loggedInUser?.role || loggedInUser?.UserSignUpRole || '';
-            // If either property equals "district administrator" (ignoring case), grant access
-            if (role.toLowerCase() === 'district administrator') {
-                setIsDistrictAdmin(true);
-            } else {
-                setIsDistrictAdmin(false);
-            }
+            setIsDistrictAdmin(role.toLowerCase() === 'district administrator');
         }
     }, []);
 
-    // DYNAMIC SYNC: Automatically sets User Name based on Full Name
     useEffect(() => {
         setValue("userName", fullNameValue || "", { shouldValidate: true });
     }, [fullNameValue, setValue]);
 
-    // Smart mapping for States based on external filter
     useEffect(() => {
         if (filterState) {
             setDbStates([filterState]);
@@ -125,7 +82,6 @@ const SupervisorForm = ({ onSuccess, externalFilters }) => {
         }
     }, [filterState, setValue]);
 
-    // Smart mapping for Districts based on external filter
     useEffect(() => {
         if (filterDistrict) {
             setDbDistricts([filterDistrict]);
@@ -197,10 +153,7 @@ const SupervisorForm = ({ onSuccess, externalFilters }) => {
             SupSignupEmail: data.email,
             SupSignupPassword: data.password,
             SupCreatedByAuthRegId: currentUserId,
-
-            // Link the Supervisor to the selected District NGO automatically!
             DistNGORegId: filterMotherNgo ? filterMotherNgo.value : null,
-
             SupBankName: data.bankName || "",
             SupBranchName: data.branchName || "",
             SupAcctNo: data.accountNo || "0",
@@ -217,7 +170,6 @@ const SupervisorForm = ({ onSuccess, externalFilters }) => {
 
         try {
             toast.loading("Saving Supervisor data...", { toastId: 'saving' });
-
             const response = await fetch(`${API_BASE_URL}/supervisor`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -239,8 +191,6 @@ const SupervisorForm = ({ onSuccess, externalFilters }) => {
     };
 
     const onErrorForm = () => toast.error("Error: Please check the red fields.", { position: "top-right" });
-
-    // 👇 Define if the form is completely enabled (must be District Admin AND have selected one from the filter)
     const isFormEnabled = isDistrictAdmin && !!filterMotherNgo;
 
     return (

@@ -5,7 +5,7 @@ import Select from 'react-select';
 import { toast } from 'react-toastify';
 import { API_BASE_URL, styles, FormInput, fileToBase64 } from '../config/constants';
 import { ngoSchema } from './forms/DistrictAdminForm';
-// FIXED IMPORT PATH: Use './' because it is in the same folder as AccountSharedUtils.js
+// FIXED IMPORT PATH: Using './' because it is in the same folder as AccountSharedUtils.js
 import { getSafeUser, PasswordInput, handleViewPdf, validateUniqueFields } from './AccountSharedUtils';
 
 const formatDisplayDate = (dbDateStr) => {
@@ -129,7 +129,7 @@ const DistrictAdminModal = ({ member, mode, onClose, onSuccess }) => {
             { table: 'dist_ngo_reg', column: 'DistNGOSignupUserName', value: data.userName, idColumn: 'DistNGORegId', idValue: member.DistNGORegId, label: 'Username' }
         ];
         if (!(await validateUniqueFields(checks))) return;
-        
+
         const dbPayload = {
             ...member,
             DistNGOName: data.ngoName,

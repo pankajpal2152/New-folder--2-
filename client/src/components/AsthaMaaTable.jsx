@@ -3,11 +3,9 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Select from 'react-select';
 import { toast } from 'react-toastify';
-// import { checkDuplicate } from '../AccountSharedUtils';
+
 import { API_BASE_URL, DUMMY_AVATAR, extractBase64, styles, FormInput } from '../config/constants';
 import { asthaMaaSchema } from './forms/AsthaMaaForm';
-// import { getSafeUser, PasswordInput } from './AccountSharedUtils';
-// import { validateUniqueFields } from '../AccountSharedUtils';
 import { getSafeUser, PasswordInput, validateUniqueFields } from './AccountSharedUtils';
 
 const formatDisplayDate = (dbDateStr) => {
@@ -94,7 +92,6 @@ const AsthaMaaModal = ({ member, mode, onClose, onSuccess }) => {
     };
 
     const onSubmit = async (data) => {
-        if (isView) { onClose(); return; }
 
         const checks = [
             { table: 'asthama_reg', column: 'AsthaMaMailId', value: data.email, idColumn: 'AsthaMaRegId', idValue: member.AsthaMaRegId, label: 'Email ID' },

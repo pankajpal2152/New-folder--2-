@@ -5,9 +5,7 @@ import * as z from 'zod';
 import Select from 'react-select';
 import { toast } from 'react-toastify';
 import { API_BASE_URL, DUMMY_AVATAR, indianZipRegex, indianPhoneRegex, styles, FormInput } from '../../config/constants';
-import { getSafeUser } from '../AccountSharedUtils';
-import { checkDuplicate } from '../AccountSharedUtils';
-import { validateUniqueFields } from '../AccountSharedUtils';
+import { getSafeUser, PasswordInput, validateUniqueFields } from '../AccountSharedUtils';
 
 export const asthaMaaSchema = z.object({
     joiningAmount: z.string().min(1, "Joining Amount is required"),
@@ -162,19 +160,12 @@ const SupervisorForm = ({ onSuccess, externalFilters }) => {
     };
 
     const onSubmitSupervisor = async (data) => {
-        // 👇 Ultimate security check: Prevent submission if not District Admin
-        if (!isDistrictAdmin) {
-            toast.error("Access Denied: Only a District Administrator can submit this form.", { position: "top-right" });
-            return;
-        }
-        const onSubmitSupervisor = async (data) => {
-    // PERFORM CHECKS
-    const checks = [
-        { table: 'suvervisor_reg', column: 'SupMailId', value: data.email, label: 'Email ID' },
-        { table: 'suvervisor_reg', column: 'SupSignupUserName', value: data.userName, label: 'Username' },
-        { table: 'suvervisor_reg', column: 'SupAadharNo', value: data.aadharNo, label: 'Aadhar No' }
-    ];
-    if (!(await validateUniqueFields(checks))) return;
+        const checks = [
+            { table: 'suvervisor_reg', column: 'SupMailId', value: data.email, label: 'Email' },
+            { table: 'suvervisor_reg', column: 'SupSignupUserName', value: data.userName, label: 'Username' },
+            { table: 'suvervisor_reg', column: 'SupAadharNo', value: data.aadharNo, label: 'Aadhar No' }
+        ];
+        if (!(await validateUniqueFields(checks))) return;
 
         const stateName = data.state ? data.state.label : "";
         const districtName = data.district ? data.district.label : "";

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -32,7 +32,7 @@ export const asthaMaaSchema = z.object({
     accountNo: z.string().optional(),
     ifsCode: z.string().optional(),
     panNo: z.string().optional(),
-    aadharNo: z.string().length(12, "Must be exactly 12 digits").regex(/^\d+$/, "Numbers only").optional().or(z.literal(''))
+    aadharNo: z.string().length(12, "Must be exactly 12 digits").regex(/^\d+$/, "Numbers only")
 });
 
 const PasswordInput = ({ label, id, error, placeholder, disabled, ...props }) => {
@@ -154,15 +154,10 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
     };
 
     const onSubmitAsthaMaa = async (data) => {
-        // 👇 Ultimate security check: Prevent submission if not Astha Didi
-        if (!isAsthaDidi) {
-            toast.error("Access Denied: Only an Astha Didi can submit this form.", { position: "top-right" });
-            return;
-        }
+        if (!isAsthaDidi) { toast.error("Access Denied."); return; }
 
-        // PERFORM DUPLICATE CHECKS
         const checks = [
-            { table: 'asthama_reg', column: 'AsthaMaMailId', value: data.email, label: 'Email ID' },
+            { table: 'asthama_reg', column: 'AsthaMaMailId', value: data.email, label: 'Email' },
             { table: 'asthama_reg', column: 'AsthaMaSignupUserName', value: data.userName, label: 'Username' },
             { table: 'asthama_reg', column: 'AsthaMaAadharNo', value: data.aadharNo, label: 'Aadhar No' }
         ];

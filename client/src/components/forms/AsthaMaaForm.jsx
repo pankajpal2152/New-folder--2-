@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import Select from 'react-select';
 import { toast } from 'react-toastify';
-import { API_BASE_URL, DUMMY_AVATAR, indianZipRegex, indianPhoneRegex, styles, FormInput } from '../../config/constants';
+import { API_BASE_URL, DUMMY_AVATAR, indianZipRegex, indianPhoneRegex, styles, FormInput, fileToBase64 } from '../../config/constants';
 // IMPORT FIXED: Using the shared one from utils
 import { getSafeUser, PasswordInput, validateUniqueFields } from '../AccountSharedUtils';
 
@@ -36,36 +36,6 @@ export const asthaMaaSchema = z.object({
     aadharNo: z.string().length(12, "Must be exactly 12 digits").regex(/^\d+$/, "Numbers only")
 });
 
-const PasswordInput = ({ label, id, error, placeholder, disabled, ...props }) => {
-    const [showPassword, setShowPassword] = useState(false);
-    const togglePasswordVisibility = () => setShowPassword(!showPassword);
-
-    return (
-        <div style={styles.inputGroup}>
-            <label htmlFor={id} style={styles.label}>{label}</label>
-            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                <input
-                    id={id}
-                    type={showPassword ? "text" : "password"}
-                    style={disabled ? styles.inputDisabled : { ...styles.input(!!error), paddingRight: '40px' }}
-                    placeholder={placeholder}
-                    disabled={disabled}
-                    {...props}
-                />
-                <button
-                    type="button"
-                    onClick={togglePasswordVisibility}
-                    style={{ position: 'absolute', right: '10px', background: 'transparent', border: 'none', cursor: 'pointer', color: '#697a8d', fontSize: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}
-                    title={showPassword ? "Hide password" : "Show password"}
-                >
-                    {showPassword ? '👁️‍🗨️' : '👁️'}
-                </button>
-            </div>
-            {error && <p style={styles.errorText}>{error.message}</p>}
-        </div>
-    );
-};
-
 const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
     const { filterMotherNgo, filterState, filterDistrict, filterSupervisor, filterAsthaDidi } = externalFilters || {};
 
@@ -74,7 +44,6 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
     const [profileImage, setProfileImage] = useState(DUMMY_AVATAR);
     const fileInputRef = useRef(null);
 
-    // 👇 State to track if the logged-in user is an Astha Didi
     const [isAsthaDidi, setIsAsthaDidi] = useState(false);
 
     const { control, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm({
@@ -91,17 +60,11 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
     const selectedState = watch("state");
     const fullNameValue = watch("fullName");
 
-    // 👇 Check the user's role on component mount
     useEffect(() => {
         const loggedInUser = getSafeUser ? getSafeUser() : null;
         if (loggedInUser) {
             const role = loggedInUser?.role || loggedInUser?.UserSignUpRole || '';
-            // If either property equals "astha didi" (ignoring case), grant access
-            if (role.toLowerCase() === 'astha didi') {
-                setIsAsthaDidi(true);
-            } else {
-                setIsAsthaDidi(false);
-            }
+            setIsAsthaDidi(role.toLowerCase() === 'astha didi');
         }
     }, []);
 
@@ -166,7 +129,6 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
 
         const stateName = data.state ? data.state.label : "";
         const districtName = data.district ? data.district.label : "";
-
         const loggedInUser = getSafeUser ? getSafeUser() : null;
         const currentUserId = loggedInUser ? (loggedInUser.UserSignUpId || loggedInUser.id) : null;
 
@@ -187,12 +149,10 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
             AsthaMaPincode: parseInt(data.pinCode),
             AsthaMaContactNo: data.mobileNo,
             AsthaMaMailId: data.email,
-
             AsthaMaSignupUserName: data.userName,
             AsthaMaSignupEmail: data.email,
             AsthaMaSignupPassword: data.password,
             AsthaMaCreatedByAuthRegId: currentUserId,
-
             AsthaMaBankName: data.bankName || "",
             AsthaMaBranchName: data.branchName || "",
             AsthaMaBankAcctNo: data.accountNo || "0",
@@ -201,12 +161,10 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
             AsthaMaAadharNo: data.aadharNo || "",
             AsthaMaJoiningAmt: parseInt(data.joiningAmount) || 105,
             AsthaMaWalletBalance: parseInt(data.walletBalance) || 0,
-
             StateNGORegId: null,
             DistNGORegId: filterMotherNgo ? filterMotherNgo.value : null,
             SupRegId: filterSupervisor ? filterSupervisor.value : null,
             AsthaDidiRegId: filterAsthaDidi ? filterAsthaDidi.value : null,
-
             AsthaMaIsActive: 1,
             AsthaMaAprovedBy: null,
             AsthaMaAprovalDate: null,
@@ -214,31 +172,21 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
         };
 
         try {
-            toast.loading("Saving Astha Maa data...", { toastId: 'savingMaa' });
-
+            toast.loading("Saving...", { toastId: 'savingMaa' });
             const response = await fetch(`${API_BASE_URL}/asthamaa`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(dbPayload)
             });
             toast.dismiss('savingMaa');
-
             if (response.ok) {
-                toast.success("Success: Data saved to Database!", { position: "top-right" });
+                toast.success("Saved successfully!");
                 handleCancelAsthaMaa();
                 if (onSuccess) onSuccess();
-            } else {
-                toast.error("Failed to save data. Check backend logs.", { position: "top-right" });
-            }
-        } catch (error) {
-            toast.dismiss('savingMaa');
-            toast.error("Network error. Could not reach server.", { position: "top-right" });
-        }
+            } else { toast.error("Failed to save."); }
+        } catch (error) { toast.dismiss('savingMaa'); toast.error("Network error."); }
     };
 
-    const onErrorAsthaMaa = () => toast.error("Error: Please check the red fields.", { position: "top-right" });
-
-    // 👇 Define if the form is completely enabled (must be Astha Didi AND have selected one from the filter)
     const isFormEnabled = isAsthaDidi && !!filterAsthaDidi;
 
     return (

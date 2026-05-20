@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 import Select from 'react-select';
 import { toast } from 'react-toastify';
-import { API_BASE_URL, DUMMY_AVATAR, styles, FormInput } from '../../config/constants';
+import { API_BASE_URL, DUMMY_AVATAR, indianZipRegex, indianPhoneRegex, styles, FormInput } from '../../config/constants';
 // IMPORT FIXED
 import { getSafeUser, PasswordInput, validateUniqueFields } from '../AccountSharedUtils';
 

@@ -3,10 +3,10 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Select from 'react-select';
 import { toast } from 'react-toastify';
-import { checkDuplicate } from '../AccountSharedUtils';
+// import { checkDuplicate } from '../AccountSharedUtils';
 import { API_BASE_URL, DUMMY_AVATAR, extractBase64, styles, FormInput } from '../config/constants';
 import { accountSchema } from './forms/AsthaDidiForm';
-import { getSafeUser, PasswordInput } from './AccountSharedUtils';
+import { getSafeUser, PasswordInput, validateUniqueFields } from './AccountSharedUtils';
 
 const formatDisplayDate = (dbDateStr) => {
     if (!dbDateStr) return '-';
@@ -126,18 +126,12 @@ const AsthaDidiModal = ({ member, mode, onClose, onSuccess }) => {
     };
 
     const onSubmit = async (data) => {
-        if (isView) { onClose(); return; }
-
-        // 1. Define the checks (For Modals, add idColumn/idValue to exclude current record)
-        const isEdit = !!member?.AsthaDidiRegId; // Check if we are in Modal
-
+        const isEdit = !!member?.AsthaDidiRegId;
         const checks = [
-            { table: 'asthadidi_reg', column: 'AsthaDidiMailId', value: data.email, label: 'Email', idColumn: isEdit ? 'AsthaDidiRegId' : null, idValue: isEdit ? member.AsthaDidiRegId : null },
-            { table: 'asthadidi_reg', column: 'AsthaDidiSignupUserName', value: data.userName, label: 'Username', idColumn: isEdit ? 'AsthaDidiRegId' : null, idValue: isEdit ? member.AsthaDidiRegId : null },
-            { table: 'asthadidi_reg', column: 'AsthaDidiAadharNo', value: data.aadharNo, label: 'Aadhar No', idColumn: isEdit ? 'AsthaDidiRegId' : null, idValue: isEdit ? member.AsthaDidiRegId : null }
+            { table: 'asthadidi_reg', column: 'AsthaDidiMailId', value: data.email, idColumn: isEdit ? 'AsthaDidiRegId' : null, idValue: isEdit ? member.AsthaDidiRegId : null, label: 'Email ID' },
+            { table: 'asthadidi_reg', column: 'AsthaDidiSignupUserName', value: data.userName, idColumn: isEdit ? 'AsthaDidiRegId' : null, idValue: isEdit ? member.AsthaDidiRegId : null, label: 'Username' },
+            { table: 'asthadidi_reg', column: 'AsthaDidiAadharNo', value: data.aadharNo, idColumn: isEdit ? 'AsthaDidiRegId' : null, idValue: isEdit ? member.AsthaDidiRegId : null, label: 'Aadhar No' }
         ];
-
-        // 2. Validate
         if (!(await validateUniqueFields(checks))) return;
 
         const stateName = data.state ? data.state.label : "";

@@ -5,7 +5,7 @@ import * as z from 'zod';
 import Select from 'react-select';
 import { toast } from 'react-toastify';
 import { API_BASE_URL, indianPhoneRegex, styles, FormInput, fileToBase64 } from '../../config/constants';
-import { checkDuplicate } from '../AccountSharedUtils';
+// import { checkDuplicate } from '../AccountSharedUtils';
 // ✅ Import the Smart PDF Viewer we just created
 import { getSafeUser, handleViewPdf } from '../AccountSharedUtils';
 import { validateUniqueFields } from '../AccountSharedUtils';
@@ -149,7 +149,7 @@ const DistrictAdminForm = ({ onSuccess }) => {
             { table: 'dist_ngo_reg', column: 'DistNGOSignupUserName', value: data.userName, label: 'Username' }
         ];
         if (!(await validateUniqueFields(checks))) return;
-        
+
         const loggedInUser = getSafeUser ? getSafeUser() : null;
         const currentUserId = loggedInUser ? (loggedInUser.UserSignUpId || loggedInUser.id) : null;
 

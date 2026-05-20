@@ -4,8 +4,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import Select from 'react-select';
 import { toast } from 'react-toastify';
-import { API_BASE_URL, DUMMY_AVATAR, indianZipRegex, indianPhoneRegex, styles, FormInput } from '../../config/constants';
-import { getSafeUser } from '../AccountSharedUtils';
+import { API_BASE_URL, DUMMY_AVATAR, indianZipRegex, indianPhoneRegex, styles, FormInput, fileToBase64 } from '../../config/constants';
+import { getSafeUser, PasswordInput, validateUniqueFields } from '../AccountSharedUtils';
 
 export const asthaMaaSchema = z.object({
     joiningAmount: z.string().min(1, "Joining Amount is required"),
@@ -160,6 +160,14 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
             return;
         }
 
+        // PERFORM DUPLICATE CHECKS
+        const checks = [
+            { table: 'asthama_reg', column: 'AsthaMaMailId', value: data.email, label: 'Email ID' },
+            { table: 'asthama_reg', column: 'AsthaMaSignupUserName', value: data.userName, label: 'Username' },
+            { table: 'asthama_reg', column: 'AsthaMaAadharNo', value: data.aadharNo, label: 'Aadhar No' }
+        ];
+        if (!(await validateUniqueFields(checks))) return;
+
         const stateName = data.state ? data.state.label : "";
         const districtName = data.district ? data.district.label : "";
 
@@ -198,11 +206,11 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
             AsthaMaJoiningAmt: parseInt(data.joiningAmount) || 105,
             AsthaMaWalletBalance: parseInt(data.walletBalance) || 0,
 
-            StateNGORegId: null, 
+            StateNGORegId: null,
             DistNGORegId: filterMotherNgo ? filterMotherNgo.value : null,
             SupRegId: filterSupervisor ? filterSupervisor.value : null,
             AsthaDidiRegId: filterAsthaDidi ? filterAsthaDidi.value : null,
-            
+
             AsthaMaIsActive: 1,
             AsthaMaAprovedBy: null,
             AsthaMaAprovalDate: null,
@@ -345,7 +353,7 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
                         <Controller name="email" control={control} render={({ field }) => (
                             <FormInput label={<>Email ID (For Login) <span style={{ color: '#ff3e1d' }}>*</span></>} id="email" error={errors.email} placeholder="Email ID" type="email" maxLength={100} autoComplete="off" {...field} />
                         )} />
-                        
+
                         <Controller name="password" control={control} render={({ field }) => (
                             <PasswordInput label={<>Set Password <span style={{ color: '#ff3e1d' }}>*</span></>} id="password" error={errors.password} autoComplete="new-password" {...field} />
                         )} />

@@ -3,10 +3,11 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Select from 'react-select';
 import { toast } from 'react-toastify';
-
+import { checkDuplicate } from '../AccountSharedUtils';
 import { API_BASE_URL, DUMMY_AVATAR, extractBase64, styles, FormInput } from '../config/constants';
-import { asthaMaaSchema } from './forms/AsthaMaaForm'; 
+import { asthaMaaSchema } from './forms/AsthaMaaForm';
 import { getSafeUser, PasswordInput } from './AccountSharedUtils';
+import { validateUniqueFields } from '../AccountSharedUtils';
 
 const formatDisplayDate = (dbDateStr) => {
     if (!dbDateStr) return '-';
@@ -94,6 +95,14 @@ const AsthaMaaModal = ({ member, mode, onClose, onSuccess }) => {
     const onSubmit = async (data) => {
         if (isView) { onClose(); return; }
 
+        // PERFORM CHECKS (Passing ID to exclude current record)
+        const checks = [
+            { table: 'asthama_reg', column: 'AsthaMaMailId', value: data.email, idColumn: 'AsthaMaRegId', idValue: member.AsthaMaRegId, label: 'Email ID' },
+            { table: 'asthama_reg', column: 'AsthaMaSignupUserName', value: data.userName, idColumn: 'AsthaMaRegId', idValue: member.AsthaMaRegId, label: 'Username' },
+            { table: 'asthama_reg', column: 'AsthaMaAadharNo', value: data.aadharNo, idColumn: 'AsthaMaRegId', idValue: member.AsthaMaRegId, label: 'Aadhar No' }
+        ];
+        if (!(await validateUniqueFields(checks))) return;
+
         const stateName = data.state ? data.state.label : "";
         const districtName = data.district ? data.district.label : "";
 
@@ -171,15 +180,15 @@ const AsthaMaaModal = ({ member, mode, onClose, onSuccess }) => {
                             <div style={styles.inputGroup}>
                                 <label style={styles.label}>Select State *</label>
                                 <Controller name="state" control={control} render={({ field }) => (
-                                    <Select 
-                                        {...field} 
-                                        options={dbStates} 
+                                    <Select
+                                        {...field}
+                                        options={dbStates}
                                         styles={{
                                             ...styles.selectStyles(!!errors.state),
                                             menuPortal: base => ({ ...base, zIndex: 99999 }),
                                             menu: base => ({ ...base, zIndex: 99999 })
-                                        }} 
-                                        isDisabled={isView} 
+                                        }}
+                                        isDisabled={isView}
                                         menuPortalTarget={document.body}
                                         menuPosition="fixed"
                                     />
@@ -188,15 +197,15 @@ const AsthaMaaModal = ({ member, mode, onClose, onSuccess }) => {
                             <div style={styles.inputGroup}>
                                 <label style={styles.label}>District *</label>
                                 <Controller name="district" control={control} render={({ field }) => (
-                                    <Select 
-                                        {...field} 
-                                        options={dbDistricts} 
+                                    <Select
+                                        {...field}
+                                        options={dbDistricts}
                                         styles={{
                                             ...styles.selectStyles(!!errors.district),
                                             menuPortal: base => ({ ...base, zIndex: 99999 }),
                                             menu: base => ({ ...base, zIndex: 99999 })
-                                        }} 
-                                        isDisabled={isView || !selectedState} 
+                                        }}
+                                        isDisabled={isView || !selectedState}
                                         menuPortalTarget={document.body}
                                         menuPosition="fixed"
                                     />
@@ -292,7 +301,7 @@ const AsthaMaaTable = ({ refreshTrigger, externalFilters }) => {
             if (user) {
                 if (user.role === 'Astha Didi') {
                     data = data.filter(member => String(member.AsthaMaCreatedByAuthRegId) === String(user.id || user.UserSignUpId));
-                } 
+                }
                 else if (user.role === 'Astha Maa') {
                     data = data.filter(member => String(member.AsthaMaRegId) === String(user.ProfileRegId));
                 }
@@ -308,7 +317,7 @@ const AsthaMaaTable = ({ refreshTrigger, externalFilters }) => {
     const filteredMembers = useMemo(() => {
         if (userRole !== 'Astha Didi' && userRole !== 'Astha Maa') {
             if (!externalFilters?.filterMotherNgo || !externalFilters?.filterState || !externalFilters?.filterDistrict || !externalFilters?.filterSupervisor || !externalFilters?.filterAsthaDidi) {
-                return []; 
+                return [];
             }
         }
 
@@ -345,7 +354,7 @@ const AsthaMaaTable = ({ refreshTrigger, externalFilters }) => {
             let matchesSupervisor = true;
             if (externalFilters?.filterSupervisor) {
                 matchesSupervisor = String(member.AsthaMaCreatedByAuthRegId) === String(externalFilters.filterSupervisor.userSignUpId) ||
-                                    String(member.SupRegId) === String(externalFilters.filterSupervisor.value);
+                    String(member.SupRegId) === String(externalFilters.filterSupervisor.value);
             }
 
             let matchesAsthaDidi = true;
@@ -596,12 +605,12 @@ const AsthaMaaTable = ({ refreshTrigger, externalFilters }) => {
                                             <td style={styles.td}>{row.AsthaMaRegNo || '-'}</td>
                                             <td style={styles.stickyRightTd}>
                                                 <button onClick={() => openModal('view', row)} style={styles.actionBtn}>👁️</button>
-                                                
+
                                                 {/* 👇 Fixed bug: Changed to lowercase comparison! */}
                                                 {userRole && userRole.toLowerCase() === 'astha didi' && (
                                                     <button onClick={() => openModal('edit', row)} style={styles.actionBtn}>✏️</button>
                                                 )}
-                                                
+
                                                 {/* 👇 Also secured the approve button comparison! */}
                                                 {Number(row.AsthaMaIsActive) !== 2 && userRole && userRole.toLowerCase() === 'astha didi' && (
                                                     <button onClick={() => openModal('approve', row)} style={styles.actionBtn}>✅</button>

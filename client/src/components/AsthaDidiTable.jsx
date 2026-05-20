@@ -3,7 +3,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Select from 'react-select';
 import { toast } from 'react-toastify';
-
+import { checkDuplicate } from '../AccountSharedUtils';
 import { API_BASE_URL, DUMMY_AVATAR, extractBase64, styles, FormInput } from '../config/constants';
 import { accountSchema } from './forms/AsthaDidiForm';
 import { getSafeUser, PasswordInput } from './AccountSharedUtils';
@@ -33,23 +33,23 @@ const AsthaDidiModal = ({ member, mode, onClose, onSuccess }) => {
             sdwOf: member.AsthaDidiGuardianName || '',
             dob: member.AsthaDidiDOB ? String(member.AsthaDidiDOB).substring(0, 10) : '',
             guardianContactNo: member.AsthaDidiGuardianContactNo || '',
-            state: null, 
-            district: null, 
-            city: member.AsthaDidiCity || '', 
+            state: null,
+            district: null,
+            city: member.AsthaDidiCity || '',
             block: member.AsthaDidiBlockName || '',
-            postOffice: member.AsthaDidiPO || '', 
-            policeStation: member.AsthaDidiPS || '', 
+            postOffice: member.AsthaDidiPO || '',
+            policeStation: member.AsthaDidiPS || '',
             gramPanchayet: member.AsthaDidiGramPanchayet || '',
-            village: member.AsthaDidiVillage || '', 
-            pinCode: String(member.AsthaDidiPincode || ''), 
+            village: member.AsthaDidiVillage || '',
+            pinCode: String(member.AsthaDidiPincode || ''),
             mobileNo: member.AsthaDidiContactNo || '',
             email: member.AsthaDidiSignupEmail || member.AsthaDidiMailId || '',
             userName: member.AsthaDidiSignupUserName || '',
             password: member.AsthaDidiSignupPassword || '',
-            bankName: member.AsthaDidiBankName || '', 
+            bankName: member.AsthaDidiBankName || '',
             branchName: member.AsthaDidiBranchName || '',
-            accountNo: member.AsthaDidiBankAcctNo || '', 
-            ifsCode: member.AsthaDidiIFSCode || '', 
+            accountNo: member.AsthaDidiBankAcctNo || '',
+            ifsCode: member.AsthaDidiIFSCode || '',
             panNo: member.AsthaDidiPanNo || '',
             aadharNo: member.AsthaDidiAadharNo || '',
             deactivateConfirm: false
@@ -128,6 +128,18 @@ const AsthaDidiModal = ({ member, mode, onClose, onSuccess }) => {
     const onSubmit = async (data) => {
         if (isView) { onClose(); return; }
 
+        // 1. Define the checks (For Modals, add idColumn/idValue to exclude current record)
+        const isEdit = !!member?.AsthaDidiRegId; // Check if we are in Modal
+
+        const checks = [
+            { table: 'asthadidi_reg', column: 'AsthaDidiMailId', value: data.email, label: 'Email', idColumn: isEdit ? 'AsthaDidiRegId' : null, idValue: isEdit ? member.AsthaDidiRegId : null },
+            { table: 'asthadidi_reg', column: 'AsthaDidiSignupUserName', value: data.userName, label: 'Username', idColumn: isEdit ? 'AsthaDidiRegId' : null, idValue: isEdit ? member.AsthaDidiRegId : null },
+            { table: 'asthadidi_reg', column: 'AsthaDidiAadharNo', value: data.aadharNo, label: 'Aadhar No', idColumn: isEdit ? 'AsthaDidiRegId' : null, idValue: isEdit ? member.AsthaDidiRegId : null }
+        ];
+
+        // 2. Validate
+        if (!(await validateUniqueFields(checks))) return;
+
         const stateName = data.state ? data.state.label : "";
         const districtName = data.district ? data.district.label : "";
         const loggedInUser = getSafeUser();
@@ -136,31 +148,31 @@ const AsthaDidiModal = ({ member, mode, onClose, onSuccess }) => {
         const dbPayload = {
             ...member,
             AsthaDidiProfileImage: profileImage === DUMMY_AVATAR ? null : profileImage,
-            AsthaDidiUserName: data.fullName, 
-            AsthaDidiGuardianName: data.sdwOf || "", 
-            AsthaDidiDOB: data.dob, 
+            AsthaDidiUserName: data.fullName,
+            AsthaDidiGuardianName: data.sdwOf || "",
+            AsthaDidiDOB: data.dob,
             AsthaDidiGuardianContactNo: data.guardianContactNo || "",
-            AsthaDidiStateName: stateName, 
-            AsthaDidiDistName: districtName, 
-            AsthaDidiCity: data.city || "", 
+            AsthaDidiStateName: stateName,
+            AsthaDidiDistName: districtName,
+            AsthaDidiCity: data.city || "",
             AsthaDidiBlockName: data.block || "",
-            AsthaDidiPO: data.postOffice || "", 
-            AsthaDidiPS: data.policeStation || "", 
+            AsthaDidiPO: data.postOffice || "",
+            AsthaDidiPS: data.policeStation || "",
             AsthaDidiGramPanchayet: data.gramPanchayet || "",
-            AsthaDidiVillage: data.village || "", 
-            AsthaDidiPincode: parseInt(data.pinCode), 
-            AsthaDidiContactNo: data.mobileNo, 
+            AsthaDidiVillage: data.village || "",
+            AsthaDidiPincode: parseInt(data.pinCode),
+            AsthaDidiContactNo: data.mobileNo,
             AsthaDidiMailId: data.email,
-            AsthaDidiSignupUserName: data.userName, 
-            AsthaDidiSignupEmail: data.email, 
+            AsthaDidiSignupUserName: data.userName,
+            AsthaDidiSignupEmail: data.email,
             AsthaDidiSignupPassword: data.password,
-            AsthaDidiBankName: data.bankName || "", 
-            AsthaDidiBranchName: data.branchName || "", 
+            AsthaDidiBankName: data.bankName || "",
+            AsthaDidiBranchName: data.branchName || "",
             AsthaDidiBankAcctNo: data.accountNo || "0",
-            AsthaDidiIFSCode: data.ifsCode || "", 
-            AsthaDidiPanNo: data.panNo || "", 
+            AsthaDidiIFSCode: data.ifsCode || "",
+            AsthaDidiPanNo: data.panNo || "",
             AsthaDidiAadharNo: data.aadharNo,
-            AsthaDidiJoiningAmt: parseInt(data.joiningAmount) || 5000, 
+            AsthaDidiJoiningAmt: parseInt(data.joiningAmount) || 5000,
             AsthaDidiWalletBalance: parseInt(data.walletBalance) || 0,
             AsthaDidiCreatedByAuthRegId: currentUserId
         };
@@ -226,16 +238,16 @@ const AsthaDidiModal = ({ member, mode, onClose, onSuccess }) => {
                             <div style={styles.inputGroup}>
                                 <label style={styles.label}>Select State *</label>
                                 <Controller name="state" control={control} render={({ field }) => (
-                                    <Select 
-                                        {...field} 
-                                        options={dbStates} 
+                                    <Select
+                                        {...field}
+                                        options={dbStates}
                                         placeholder={member.AsthaDidiStateName || "Select..."}
                                         styles={{
                                             ...styles.selectStyles(!!errors.state),
                                             menuPortal: base => ({ ...base, zIndex: 99999 }),
                                             menu: base => ({ ...base, zIndex: 99999 })
-                                        }} 
-                                        isDisabled={isReadOnlyField} 
+                                        }}
+                                        isDisabled={isReadOnlyField}
                                         menuPortalTarget={document.body}
                                         menuPosition="fixed"
                                     />
@@ -244,16 +256,16 @@ const AsthaDidiModal = ({ member, mode, onClose, onSuccess }) => {
                             <div style={styles.inputGroup}>
                                 <label style={styles.label}>District *</label>
                                 <Controller name="district" control={control} render={({ field }) => (
-                                    <Select 
-                                        {...field} 
-                                        options={dbDistricts} 
+                                    <Select
+                                        {...field}
+                                        options={dbDistricts}
                                         placeholder={member.AsthaDidiDistName || "Select..."}
                                         styles={{
                                             ...styles.selectStyles(!!errors.district),
                                             menuPortal: base => ({ ...base, zIndex: 99999 }),
                                             menu: base => ({ ...base, zIndex: 99999 })
-                                        }} 
-                                        isDisabled={isReadOnlyField} 
+                                        }}
+                                        isDisabled={isReadOnlyField}
                                         menuPortalTarget={document.body}
                                         menuPosition="fixed"
                                     />
@@ -347,15 +359,15 @@ const MembersTable = ({ refreshTrigger, externalFilters }) => {
             const user = getSafeUser();
             if (user) {
                 const currentRole = user.role || user.UserSignUpRole || '';
-                
+
                 if (currentRole === 'Astha Didi') {
                     data = data.filter(member => String(member.AsthaDidiRegId) === String(user.ProfileRegId));
-                } 
+                }
                 else if (currentRole === 'Supervisor') {
                     data = data.filter(member => String(member.AsthaDidiCreatedByAuthRegId) === String(user.id || user.UserSignUpId));
                 }
             }
-            
+
             setMembers(data);
         } catch (error) { toast.error("Failed to load table data.", { position: "top-right" }); }
         finally { setLoading(false); }
@@ -367,7 +379,7 @@ const MembersTable = ({ refreshTrigger, externalFilters }) => {
     const filteredMembers = useMemo(() => {
         if (userRole !== 'Astha Didi' && userRole !== 'Astha Maa') {
             if (!externalFilters?.filterMotherNgo || !externalFilters?.filterState || !externalFilters?.filterDistrict || !externalFilters?.filterSupervisor) {
-                return []; 
+                return [];
             }
         }
 
@@ -404,7 +416,7 @@ const MembersTable = ({ refreshTrigger, externalFilters }) => {
             let matchesSupervisor = true;
             if (externalFilters?.filterSupervisor) {
                 matchesSupervisor = String(member.AsthaDidiCreatedByAuthRegId) === String(externalFilters.filterSupervisor.userSignUpId) ||
-                                    String(member.SupRegId) === String(externalFilters.filterSupervisor.value);
+                    String(member.SupRegId) === String(externalFilters.filterSupervisor.value);
             }
 
             const statusStr = Number(member.AsthaDidiIsActive) === 2 ? 'Approved' : 'Pending';
@@ -642,7 +654,7 @@ const MembersTable = ({ refreshTrigger, externalFilters }) => {
                                             <td style={styles.td}>{row.AsthaDidiRegNo || '-'}</td>
                                             <td style={styles.stickyRightTd}>
                                                 <button onClick={() => openModal('view', row)} style={styles.actionBtn}>👁️</button>
-                                                
+
                                                 {/* 👇 New check added here to restrict the edit button to Supervisors only */}
                                                 {userRole && userRole.toLowerCase() === 'supervisor' && (
                                                     <button onClick={() => openModal('edit', row)} style={styles.actionBtn}>✏️</button>

@@ -3,10 +3,10 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Select from 'react-select';
 import { toast } from 'react-toastify';
-
+import { checkDuplicate } from '../AccountSharedUtils';
 import { API_BASE_URL, styles, FormInput, fileToBase64 } from '../config/constants';
 import { ngoSchema } from './forms/DistrictAdminForm';
-
+import { validateUniqueFields } from '../AccountSharedUtils';
 // ✅ Import our shared helpers and Smart PDF viewer
 import { getSafeUser, PasswordInput, handleViewPdf } from './AccountSharedUtils';
 
@@ -126,6 +126,11 @@ const DistrictAdminModal = ({ member, mode, onClose, onSuccess }) => {
     const onSubmit = async (data) => {
         if (isView) { onClose(); return; }
 
+        const checks = [
+            { table: 'dist_ngo_reg', column: 'DistNGOMailId', value: data.generalNgoEmail, idColumn: 'DistNGORegId', idValue: member.DistNGORegId, label: 'Email ID' },
+            { table: 'dist_ngo_reg', column: 'DistNGOSignupUserName', value: data.userName, idColumn: 'DistNGORegId', idValue: member.DistNGORegId, label: 'Username' }
+        ];
+        if (!(await validateUniqueFields(checks))) return;
         const dbPayload = {
             ...member,
             DistNGOName: data.ngoName,
@@ -601,7 +606,7 @@ const DistrictAdminTable = ({ refreshTrigger, externalFilters }) => {
                                         <td style={styles.td}>{row.ApproverDisplayName || row.DistNGOAprovedBy || '-'}</td>
                                         <td style={styles.td}>{formatDisplayDate(row.DistNGOAprovedDate)}</td>
                                         <td style={styles.td}>{row.DistNGOGenRegNo || '-'}</td>
-                                        
+
                                         {/* ✅ NEW: Clickable PDF Links directly in the table! */}
                                         <td style={styles.td}>
                                             {row.DistNGORecCertificate ? (

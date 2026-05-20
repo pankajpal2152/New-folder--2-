@@ -5,9 +5,10 @@ import * as z from 'zod';
 import Select from 'react-select';
 import { toast } from 'react-toastify';
 import { API_BASE_URL, indianPhoneRegex, styles, FormInput, fileToBase64 } from '../../config/constants';
-
+import { checkDuplicate } from '../AccountSharedUtils';
 // ✅ Import the Smart PDF Viewer we just created
 import { getSafeUser, handleViewPdf } from '../AccountSharedUtils';
+import { validateUniqueFields } from '../AccountSharedUtils';
 
 // ==========================================
 // 1. Validation Schema
@@ -29,7 +30,7 @@ export const ngoSchema = z.object({
     secretaryEmail: z.string().email("Valid email required"),
     secretaryMobile: z.string().regex(indianPhoneRegex, "Valid phone required"),
     secretaryAadhar: z.string().length(12, "Must be exactly 12 digits").regex(/^\d+$/, "Numbers only"),
-    
+
     bankAccountHolderName: z.string().min(1, "Account Holder Name is required"),
     bankName: z.string().min(1, "Bank Name is required"),
     accountNo: z.string().min(1, "Account Number is required"),
@@ -142,7 +143,13 @@ const DistrictAdminForm = ({ onSuccess }) => {
             toast.error("Required: Please upload all three mandatory documents (Reg Cert, PAN, and Darpan PDF) before submitting.", { position: "top-right" });
             return;
         }
-
+        // PERFORM CHECKS
+        const checks = [
+            { table: 'dist_ngo_reg', column: 'DistNGOMailId', value: data.generalNgoEmail, label: 'Email ID' },
+            { table: 'dist_ngo_reg', column: 'DistNGOSignupUserName', value: data.userName, label: 'Username' }
+        ];
+        if (!(await validateUniqueFields(checks))) return;
+        
         const loggedInUser = getSafeUser ? getSafeUser() : null;
         const currentUserId = loggedInUser ? (loggedInUser.UserSignUpId || loggedInUser.id) : null;
 
@@ -176,7 +183,7 @@ const DistrictAdminForm = ({ onSuccess }) => {
             DistNGOSignupPassword: data.password,
             DistNGOCreatedByAuthRegId: currentUserId,
             DistNGOIsActive: 1,
-            StateNGORegId: null, 
+            StateNGORegId: null,
             DistNGOAprovedBy: null,
             DistNGOAprovedDate: null,
             DistNGOGenRegNo: null

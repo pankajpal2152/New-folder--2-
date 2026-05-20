@@ -318,3 +318,34 @@ exports.deleteSupervisor = (req, res) => {
         res.json({ message: 'Supervisor deleted successfully' });
     });
 };
+
+
+exports.checkDuplicate = (req, res) => {
+    const { table, column, value, idColumn, idValue } = req.body;
+    
+    // Whitelist tables/columns to prevent SQL Injection
+    const allowed = {
+        'asthadidi_reg': ['AsthaDidiMailId', 'AsthaDidiSignupUserName', 'AsthaDidiAadharNo'],
+        'asthama_reg': ['AsthaMaMailId', 'AsthaMaSignupUserName', 'AsthaMaAadharNo'],
+        'suvervisor_reg': ['SupMailId', 'SupSignupUserName', 'SupAadharNo'],
+        'dist_ngo_reg': ['DistNGOMailId', 'DistNGOSignupUserName', 'DistNGOSDPAadhaarNo']
+    };
+
+    if (!allowed[table] || !allowed[table].includes(column)) {
+        return res.status(400).json({ error: 'Invalid check parameters' });
+    }
+
+    let query = `SELECT * FROM ?? WHERE ?? = ?`;
+    let params = [table, column, value];
+
+    // If idColumn/idValue are provided, we exclude the current record (important for Edit/Update!)
+    if (idColumn && idValue) {
+        query += ` AND ?? != ?`;
+        params.push(idColumn, idValue);
+    }
+
+    db.query(query, params, (err, results) => {
+        if (err) { console.error("❌ Duplicate Check Error:", err); return res.status(500).json({ error: 'Database error' }); }
+        res.json({ exists: results.length > 0 });
+    });
+};

@@ -5,6 +5,7 @@ import * as z from 'zod';
 import Select from 'react-select';
 import { toast } from 'react-toastify';
 import { API_BASE_URL, DUMMY_AVATAR, indianZipRegex, indianPhoneRegex, styles, FormInput } from '../../config/constants';
+import { validateUniqueFields } from '../AccountSharedUtils';
 
 export const accountSchema = z.object({
     joiningAmount: z.string().min(1, "Joining Amount is required"),
@@ -100,10 +101,10 @@ const AsthaDidiForm = ({ onSuccess, externalFilters }) => {
         if (userStr) {
             try {
                 const loggedInUser = JSON.parse(userStr);
-                
+
                 const role = loggedInUser?.role || '';
                 const signUpRole = loggedInUser?.UserSignUpRole || '';
-                
+
                 // If either property equals "supervisor" (ignoring case), grant access
                 if (role.toLowerCase() === 'supervisor' || signUpRole.toLowerCase() === 'supervisor') {
                     setIsSupervisor(true);
@@ -172,7 +173,16 @@ const AsthaDidiForm = ({ onSuccess, externalFilters }) => {
             toast.error("Access Denied: Only a Supervisor can submit this form.", { position: "top-right" });
             return;
         }
+        const isEdit = !!member?.AsthaDidiRegId; // Check if we are in Modal
 
+        const checks = [
+            { table: 'asthadidi_reg', column: 'AsthaDidiMailId', value: data.email, label: 'Email', idColumn: isEdit ? 'AsthaDidiRegId' : null, idValue: isEdit ? member.AsthaDidiRegId : null },
+            { table: 'asthadidi_reg', column: 'AsthaDidiSignupUserName', value: data.userName, label: 'Username', idColumn: isEdit ? 'AsthaDidiRegId' : null, idValue: isEdit ? member.AsthaDidiRegId : null },
+            { table: 'asthadidi_reg', column: 'AsthaDidiAadharNo', value: data.aadharNo, label: 'Aadhar No', idColumn: isEdit ? 'AsthaDidiRegId' : null, idValue: isEdit ? member.AsthaDidiRegId : null }
+        ];
+
+        // 2. Validate
+        if (!(await validateUniqueFields(checks))) return;
         const stateName = data.state ? data.state.label : "";
         const districtName = data.district ? data.district.label : "";
 
@@ -215,8 +225,8 @@ const AsthaDidiForm = ({ onSuccess, externalFilters }) => {
             AsthaDidiSignupUserName: data.userName,
             AsthaDidiSignupEmail: data.email,
             AsthaDidiSignupPassword: data.password,
-            AsthaDidiCreatedByAuthRegId: currentUserId, 
-            StateNGORegId: null, 
+            AsthaDidiCreatedByAuthRegId: currentUserId,
+            StateNGORegId: null,
             DistNGORegId: filterMotherNgo ? filterMotherNgo.value : null,
             SupRegId: filterSupervisor ? filterSupervisor.value : null,
             AsthaDidiIsActive: 1,

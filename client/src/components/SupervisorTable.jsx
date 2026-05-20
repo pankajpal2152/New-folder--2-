@@ -3,10 +3,11 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Select from 'react-select';
 import { toast } from 'react-toastify';
-
+import { checkDuplicate } from '../AccountSharedUtils';
 import { API_BASE_URL, DUMMY_AVATAR, extractBase64, styles, FormInput } from '../config/constants';
 import { asthaMaaSchema as supervisorSchema } from './forms/SupervisorForm';
 import { getSafeUser, PasswordInput } from './AccountSharedUtils';
+import { validateUniqueFields } from '../AccountSharedUtils';
 
 const formatDisplayDate = (dbDateStr) => {
     if (!dbDateStr) return '-';
@@ -133,6 +134,13 @@ const SupervisorModal = ({ member, mode, onClose, onSuccess }) => {
 
     const onSubmit = async (data) => {
         if (isView) { onClose(); return; }
+
+        const checks = [
+            { table: 'suvervisor_reg', column: 'SupMailId', value: data.email, idColumn: 'SupRegId', idValue: member.SupRegId, label: 'Email ID' },
+            { table: 'suvervisor_reg', column: 'SupSignupUserName', value: data.userName, idColumn: 'SupRegId', idValue: member.SupRegId, label: 'Username' },
+            { table: 'suvervisor_reg', column: 'SupAadharNo', value: data.aadharNo, idColumn: 'SupRegId', idValue: member.SupRegId, label: 'Aadhar No' }
+        ];
+        if (!(await validateUniqueFields(checks))) return;
 
         const dbPayload = {
             ...member,

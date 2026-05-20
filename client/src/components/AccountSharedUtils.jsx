@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { toast } from 'react-toastify';
 import { styles, extractBase64 } from '../config/constants';
+import { API_BASE_URL } from '../config/constants';
 
 export const getSafeUser = () => {
     try {
@@ -67,4 +68,30 @@ export const PasswordInput = ({ label, id, error, placeholder, disabled, ...prop
             {error && <p style={styles.errorText}>{error.message}</p>}
         </div>
     );
+};
+
+
+
+
+// Add to src/components/AccountSharedUtils.js
+
+
+export const validateUniqueFields = async (checks) => {
+    for (const check of checks) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/check-duplicate`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(check)
+            });
+            const data = await response.json();
+            if (data.exists) {
+                toast.error(`${check.label} is already taken!`);
+                return false; // Submission blocked
+            }
+        } catch (err) {
+            console.error("Duplicate Check Failed", err);
+        }
+    }
+    return true; // All checks passed
 };

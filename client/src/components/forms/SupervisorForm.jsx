@@ -6,6 +6,8 @@ import Select from 'react-select';
 import { toast } from 'react-toastify';
 import { API_BASE_URL, DUMMY_AVATAR, indianZipRegex, indianPhoneRegex, styles, FormInput } from '../../config/constants';
 import { getSafeUser } from '../AccountSharedUtils';
+import { checkDuplicate } from '../AccountSharedUtils';
+import { validateUniqueFields } from '../AccountSharedUtils';
 
 export const asthaMaaSchema = z.object({
     joiningAmount: z.string().min(1, "Joining Amount is required"),
@@ -70,7 +72,7 @@ const PasswordInput = ({ label, id, error, placeholder, disabled, ...props }) =>
 
 const SupervisorForm = ({ onSuccess, externalFilters }) => {
     const { filterMotherNgo, filterState, filterDistrict } = externalFilters || {};
-    
+
     const [dbStates, setDbStates] = useState([]);
     const [dbDistricts, setDbDistricts] = useState([]);
     const [profileImage, setProfileImage] = useState(DUMMY_AVATAR);
@@ -165,6 +167,14 @@ const SupervisorForm = ({ onSuccess, externalFilters }) => {
             toast.error("Access Denied: Only a District Administrator can submit this form.", { position: "top-right" });
             return;
         }
+        const onSubmitSupervisor = async (data) => {
+    // PERFORM CHECKS
+    const checks = [
+        { table: 'suvervisor_reg', column: 'SupMailId', value: data.email, label: 'Email ID' },
+        { table: 'suvervisor_reg', column: 'SupSignupUserName', value: data.userName, label: 'Username' },
+        { table: 'suvervisor_reg', column: 'SupAadharNo', value: data.aadharNo, label: 'Aadhar No' }
+    ];
+    if (!(await validateUniqueFields(checks))) return;
 
         const stateName = data.state ? data.state.label : "";
         const districtName = data.district ? data.district.label : "";
@@ -193,7 +203,7 @@ const SupervisorForm = ({ onSuccess, externalFilters }) => {
             SupSignupEmail: data.email,
             SupSignupPassword: data.password,
             SupCreatedByAuthRegId: currentUserId,
-            
+
             // Link the Supervisor to the selected District NGO automatically!
             DistNGORegId: filterMotherNgo ? filterMotherNgo.value : null,
 
@@ -244,7 +254,7 @@ const SupervisorForm = ({ onSuccess, externalFilters }) => {
             <div style={styles.cardHeader}>
                 <h5>Supervisor Registration:-</h5>
             </div>
-            
+
             {/* 👇 Show error banner if the logged-in user is NOT a District Admin */}
             {!isDistrictAdmin && (
                 <div style={{ padding: '12px 24px', backgroundColor: '#f8d7da', color: '#721c24', borderBottom: '1px solid #f5c6cb' }}>
@@ -345,12 +355,12 @@ const SupervisorForm = ({ onSuccess, externalFilters }) => {
                         <Controller name="userName" control={control} render={({ field }) => (
                             <FormInput label={<>User Name <span style={{ color: '#ff3e1d' }}>*</span></>} id="userName" error={errors.userName} type="text" readOnly disabled={true} {...field} />
                         )} />
-                        
+
                         {/* Added autoComplete="off" here */}
                         <Controller name="email" control={control} render={({ field }) => (
                             <FormInput label={<>Email ID (For Login) <span style={{ color: '#ff3e1d' }}>*</span></>} id="email" error={errors.email} placeholder="Email ID" type="email" maxLength={100} autoComplete="off" {...field} />
                         )} />
-                        
+
                         {/* Added autoComplete="new-password" here */}
                         <Controller name="password" control={control} render={({ field }) => (
                             <PasswordInput label={<>Set Password <span style={{ color: '#ff3e1d' }}>*</span></>} id="password" error={errors.password} autoComplete="new-password" {...field} />

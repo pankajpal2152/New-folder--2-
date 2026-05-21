@@ -36,6 +36,7 @@ const AccountTab = () => {
     const [dbSupervisors, setDbSupervisors] = useState([]);
     const [dbAsthaDidis, setDbAsthaDidis] = useState([]);
 
+    // Role-based locks
     const isLockedRole = appUserRole === 'District Administrator' || appUserRole === 'Supervisor';
 
     useEffect(() => {
@@ -45,6 +46,7 @@ const AccountTab = () => {
             setAppUserRole(role);
             setLoggedInProfileId(user.ProfileRegId);
 
+            // Default initial view
             if (role === 'State Super Administrator' || role.toLowerCase() === 'developer') {
                 setAdminActiveView('District Administrator');
             } else if (role === 'District Administrator') {
@@ -65,6 +67,7 @@ const AccountTab = () => {
         fetch(`${API_BASE_URL}/asthadidi`).then(res => res.json()).then(data => setDbAsthaDidis(data.map(a => ({ value: a.AsthaDidiRegId, label: a.AsthaDidiUserName, stateName: a.AsthaDidiStateName, distName: a.AsthaDidiDistName, motherNgoId: a.DistNGORegId, supRegId: a.SupRegId, createdByAuthRegId: a.AsthaDidiCreatedByAuthRegId })))).catch(console.error);
     }, []);
 
+    // Fetch districts when state changes
     useEffect(() => {
         if (filterState && filterState.value) {
             fetch(`${API_BASE_URL}/districts/${filterState.value}`).then(res => res.json()).then(data => {
@@ -75,7 +78,7 @@ const AccountTab = () => {
         }
     }, [filterState]);
 
-    // Data filtering logic
+    // Data Filtering Helpers
     const filteredMotherNgos = useMemo(() => {
         if (appUserRole === 'District Administrator' && loggedInProfileId) return dbMotherNgos.filter(ngo => String(ngo.value) === String(loggedInProfileId));
         return dbMotherNgos;
@@ -122,7 +125,9 @@ const AccountTab = () => {
         });
     }, [dbAsthaDidis, filterMotherNgo, filterState, filterDistrict, filterSupervisor]);
 
+    // Cleanup chain
     const handleReset = (level) => {
+        if (level <= 0) setFilterMotherNgo(null);
         if (level <= 1) setFilterState(null);
         if (level <= 2) setFilterDistrict(null);
         if (level <= 3) setFilterSupervisor(null);
@@ -140,52 +145,102 @@ const AccountTab = () => {
         { value: 'Astha Maa', label: 'Astha Maa' }
     ];
 
-    const isMotherNgoVisible = ['Supervisor', 'Astha Maa', 'Astha Didi', 'District Administrator'].includes(adminActiveView);
-    const isSupervisorVisible = ['Astha Maa', 'Astha Didi'].includes(adminActiveView);
-    const isAsthaDidiVisible = ['Astha Maa'].includes(adminActiveView);
-
     return (
         <>
             <ToastContainer autoClose={3000} pauseOnHover={false} />
-            <div style={{ ...styles.card, padding: '24px', marginBottom: '24px', display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+            <div style={{ ...styles.card, padding: '24px', marginBottom: '24px', overflow: 'visible', display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                
+                {/* Role View */}
                 <div style={{ width: '100%', maxWidth: '250px' }}>
-                    <label style={{ ...styles.label, marginBottom: '8px', display: 'block' }}>Select View</label>
-                    <Select options={adminOptions} value={adminOptions.find(o => o.value === adminActiveView)} onChange={(s) => setAdminActiveView(s.value)} />
+                    <label style={{ ...styles.label, marginBottom: '8px', display: 'block' }}>Select Role View <span style={{ color: '#ff3e1d' }}>*</span></label>
+                    <Select 
+                        options={adminOptions} 
+                        value={adminOptions.find(o => o.value === adminActiveView)} 
+                        onChange={(s) => setAdminActiveView(s.value)} 
+                        styles={{ ...styles.selectStyles(false), menuPortal: base => ({ ...base, zIndex: 99999 }) }} 
+                        menuPortalTarget={document.body} 
+                        menuPosition="fixed" 
+                        isSearchable={false} 
+                    />
                 </div>
 
-                {isMotherNgoVisible && (
-                    <div style={{ width: '100%', maxWidth: '200px' }}>
-                        <label style={{ ...styles.label, marginBottom: '8px', display: 'block' }}>DISTRICT NGO</label>
-                        <Select options={filteredMotherNgos} value={filterMotherNgo} onChange={(s) => { setFilterMotherNgo(s); handleReset(1); }} isDisabled={isLockedRole} placeholder="Select NGO" />
-                    </div>
-                )}
+                {/* 1. DISTRICT NGO */}
+                <div style={{ width: '100%', maxWidth: '200px' }}>
+                    <label style={{ ...styles.label, marginBottom: '8px', display: 'block' }}>DISTRICT NGO</label>
+                    <Select 
+                        options={filteredMotherNgos} 
+                        value={filterMotherNgo} 
+                        onChange={(s) => { setFilterMotherNgo(s); handleReset(1); }} 
+                        isDisabled={isLockedRole} 
+                        isClearable={!isLockedRole} 
+                        placeholder="Select NGO" 
+                        styles={{ ...styles.selectStyles(false), menuPortal: base => ({ ...base, zIndex: 99999 }) }} 
+                        menuPortalTarget={document.body} menuPosition="fixed" 
+                    />
+                </div>
 
+                {/* 2. STATE */}
                 <div style={{ width: '100%', maxWidth: '150px' }}>
                     <label style={{ ...styles.label, marginBottom: '8px', display: 'block' }}>State</label>
-                    <Select options={filteredStateOptions} value={filterState} onChange={(s) => { setFilterState(s); handleReset(2); }} isDisabled={!filterMotherNgo} placeholder="State" />
+                    <Select 
+                        options={filteredStateOptions} 
+                        value={filterState} 
+                        onChange={(s) => { setFilterState(s); handleReset(2); }} 
+                        isDisabled={!filterMotherNgo} 
+                        isClearable={true} 
+                        placeholder="Select State" 
+                        styles={{ ...styles.selectStyles(false), menuPortal: base => ({ ...base, zIndex: 99999 }) }} 
+                        menuPortalTarget={document.body} menuPosition="fixed" 
+                    />
                 </div>
 
+                {/* 3. DISTRICT */}
                 <div style={{ width: '100%', maxWidth: '150px' }}>
                     <label style={{ ...styles.label, marginBottom: '8px', display: 'block' }}>District</label>
-                    <Select options={filteredDistrictOptions} value={filterDistrict} onChange={(s) => { setFilterDistrict(s); handleReset(3); }} isDisabled={!filterState} placeholder="District" />
+                    <Select 
+                        options={filteredDistrictOptions} 
+                        value={filterDistrict} 
+                        onChange={(s) => { setFilterDistrict(s); handleReset(3); }} 
+                        isDisabled={!filterState} 
+                        isClearable={true} 
+                        placeholder="Select District" 
+                        styles={{ ...styles.selectStyles(false), menuPortal: base => ({ ...base, zIndex: 99999 }) }} 
+                        menuPortalTarget={document.body} menuPosition="fixed" 
+                    />
                 </div>
 
-                {isSupervisorVisible && (
-                    <div style={{ width: '100%', maxWidth: '200px' }}>
-                        <label style={{ ...styles.label, marginBottom: '8px', display: 'block' }}>Supervisor</label>
-                        <Select options={filteredSupervisorOptions} value={filterSupervisor} onChange={(s) => { setFilterSupervisor(s); handleReset(4); }} isDisabled={!filterDistrict} placeholder="Supervisor" />
-                    </div>
-                )}
+                {/* 4. SUPERVISOR */}
+                <div style={{ width: '100%', maxWidth: '200px' }}>
+                    <label style={{ ...styles.label, marginBottom: '8px', display: 'block' }}>Supervisor</label>
+                    <Select 
+                        options={filteredSupervisorOptions} 
+                        value={filterSupervisor} 
+                        onChange={(s) => { setFilterSupervisor(s); handleReset(4); }} 
+                        isDisabled={!filterDistrict} 
+                        isClearable={true} 
+                        placeholder="Select Supervisor" 
+                        styles={{ ...styles.selectStyles(false), menuPortal: base => ({ ...base, zIndex: 99999 }) }} 
+                        menuPortalTarget={document.body} menuPosition="fixed" 
+                    />
+                </div>
 
-                {isAsthaDidiVisible && (
-                    <div style={{ width: '100%', maxWidth: '200px' }}>
-                        <label style={{ ...styles.label, marginBottom: '8px', display: 'block' }}>Astha Didi</label>
-                        <Select options={filteredAsthaDidiOptions} value={filterAsthaDidi} onChange={setFilterAsthaDidi} isDisabled={!filterSupervisor} placeholder="Astha Didi" />
-                    </div>
-                )}
+                {/* 5. ASTHA DIDI */}
+                <div style={{ width: '100%', maxWidth: '200px' }}>
+                    <label style={{ ...styles.label, marginBottom: '8px', display: 'block' }}>Astha Didi</label>
+                    <Select 
+                        options={filteredAsthaDidiOptions} 
+                        value={filterAsthaDidi} 
+                        onChange={setFilterAsthaDidi} 
+                        isDisabled={!filterSupervisor} 
+                        isClearable={true} 
+                        placeholder="Select Astha Didi" 
+                        styles={{ ...styles.selectStyles(false), menuPortal: base => ({ ...base, zIndex: 99999 }) }} 
+                        menuPortalTarget={document.body} menuPosition="fixed" 
+                    />
+                </div>
             </div>
 
-            {/* Forms and Tables rendering */}
+            {/* View Rendering */}
             {adminActiveView === 'District Administrator' ? (
                 <><DistrictAdminForm onSuccess={handleFormSuccess} /><DistrictAdminTable refreshTrigger={refreshTrigger} /></>
             ) : adminActiveView === 'Supervisor' ? (

@@ -6,13 +6,11 @@ import 'react-toastify/dist/ReactToastify.css';
 import { styles, API_BASE_URL } from '../config/constants';
 import { getSafeUser } from './AccountSharedUtils';
 
-// Import Forms
 import DistrictAdminForm from './forms/DistrictAdminForm';
 import SupervisorForm from './forms/SupervisorForm';
 import AsthaMaaForm from './forms/AsthaMaaForm';
 import AsthaDidiForm from './forms/AsthaDidiForm';
 
-// Import Split Tables
 import DistrictAdminTable from './DistrictAdminTable';
 import SupervisorTable from './SupervisorTable';
 import AsthaMaaTable from './AsthaMaaTable';
@@ -43,7 +41,6 @@ const AccountTab = () => {
             setAppUserRole(role);
             setLoggedInProfileId(user.ProfileRegId);
 
-            // Mapping based on DB roles
             if (role === 'State Super Administrator' || role.toLowerCase() === 'developer') {
                 setAdminActiveView('District Administrator');
             } else if (role === 'District Administrator') {

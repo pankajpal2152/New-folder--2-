@@ -240,6 +240,37 @@ const AccountTab = () => {
     filterSupervisor,
   ]);
 
+  // --- Auto-Selection Logic (NEW) ---
+  
+  // 1. Auto-select Mother NGO if there is only 1 restricted option
+  useEffect(() => {
+    if (filteredMotherNgos.length === 1 && !filterMotherNgo) {
+      setFilterMotherNgo(filteredMotherNgos[0]);
+    }
+  }, [filteredMotherNgos, filterMotherNgo]);
+
+  // 2. Auto-select State if there is only 1 valid option based on the NGO
+  useEffect(() => {
+    if (filteredStateOptions.length === 1 && !filterState) {
+      setFilterState(filteredStateOptions[0]);
+    }
+  }, [filteredStateOptions, filterState]);
+
+  // 3. Auto-select District if there is only 1 valid option based on the State/NGO
+  useEffect(() => {
+    if (filteredDistrictOptions.length === 1 && !filterDistrict) {
+      setFilterDistrict(filteredDistrictOptions[0]);
+    }
+  }, [filteredDistrictOptions, filterDistrict]);
+
+  // 4. Auto-select Supervisor if user IS a Supervisor
+  useEffect(() => {
+    if (appUserRole === "Supervisor" && filteredSupervisorOptions.length === 1 && !filterSupervisor) {
+      setFilterSupervisor(filteredSupervisorOptions[0]);
+    }
+  }, [appUserRole, filteredSupervisorOptions, filterSupervisor]);
+
+
   // --- Helpers for cleaner Change Events ---
   const handleReset = (level) => {
     if (level <= 0) setFilterMotherNgo(null);
@@ -272,6 +303,7 @@ const AccountTab = () => {
     "Astha Didi",
     "District Administrator",
   ].includes(adminActiveView);
+  
   const isSupervisorVisible = ["Astha Maa", "Astha Didi"].includes(
     adminActiveView,
   );
@@ -328,7 +360,8 @@ const AccountTab = () => {
                 setFilterMotherNgo(s);
                 handleReset(1);
               }}
-              isDisabled={isLockedRole && filterMotherNgo !== null}
+              // Removed the "&& filterMotherNgo !== null" so it stays disabled reliably for locked roles
+              isDisabled={isLockedRole} 
               isClearable={!isLockedRole}
               placeholder="Select NGO"
               styles={{

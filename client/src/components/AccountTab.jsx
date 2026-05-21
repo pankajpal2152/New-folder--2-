@@ -35,6 +35,7 @@ const AccountTab = () => {
   const [dbDistricts, setDbDistricts] = useState([]);
   const [dbSupervisors, setDbSupervisors] = useState([]);
   const [dbAsthaDidis, setDbAsthaDidis] = useState([]);
+  const [dbAsthaMaas, setDbAsthaMaas] = useState([]);
 
   // --- Configuration Logic ---
   const isLockedRole =
@@ -76,6 +77,7 @@ const AccountTab = () => {
         ),
       )
       .catch(console.error);
+
     fetch(`${API_BASE_URL}/districtadmin`)
       .then((res) => res.json())
       .then((data) =>
@@ -89,6 +91,7 @@ const AccountTab = () => {
         ),
       )
       .catch(console.error);
+
     fetch(`${API_BASE_URL}/supervisor`)
       .then((res) => res.json())
       .then((data) =>
@@ -104,6 +107,7 @@ const AccountTab = () => {
         ),
       )
       .catch(console.error);
+
     fetch(`${API_BASE_URL}/asthadidi`)
       .then((res) => res.json())
       .then((data) =>
@@ -120,32 +124,59 @@ const AccountTab = () => {
         ),
       )
       .catch(console.error);
+
+    fetch(`${API_BASE_URL}/asthama`)
+      .then((res) => res.json())
+      .then((data) =>
+        setDbAsthaMaas(
+          data.map((a) => ({
+            value: a.AsthaMaRegId,
+            label: a.AsthaMaUserName,
+            stateName: a.AsthaMaStateName,
+            distName: a.AsthaMaDistName,
+            motherNgoId: a.DistNGORegId,
+            supRegId: a.SupRegId,
+            didiRegId: a.AsthaDidiRegId,
+          })),
+        ),
+      )
+      .catch(console.error);
   }, []);
 
-  // --- Auto-Selection Logic for Astha Didi ---
+  // --- Auto-Selection Logic for Astha Didi & Astha Maa ---
   useEffect(() => {
+    // Logic for Astha Didi
     if (appUserRole === "Astha Didi" && dbAsthaDidis.length > 0 && dbMotherNgos.length > 0 && loggedInProfileId) {
       const myDidi = dbAsthaDidis.find((d) => String(d.value) === String(loggedInProfileId));
-      
       if (myDidi) {
-        // Auto-select NGO
         const matchedNgo = dbMotherNgos.find((n) => String(n.value) === String(myDidi.motherNgoId));
         if (matchedNgo) setFilterMotherNgo(matchedNgo);
-
-        // Auto-select State
         const matchedState = dbStates.find((s) => s.label.toLowerCase() === myDidi.stateName?.toLowerCase());
         if (matchedState) setFilterState(matchedState);
-
-        // Auto-select District
         const matchedDist = dbDistricts.find((d) => d.label.toLowerCase() === myDidi.distName?.toLowerCase());
         if (matchedDist) setFilterDistrict(matchedDist);
-
-        // Auto-select Supervisor
         const matchedSup = dbSupervisors.find((s) => String(s.value) === String(myDidi.supRegId));
         if (matchedSup) setFilterSupervisor(matchedSup);
       }
     }
-  }, [appUserRole, dbAsthaDidis, dbMotherNgos, dbStates, dbDistricts, dbSupervisors, loggedInProfileId]);
+
+    // Logic for Astha Maa
+    if (appUserRole === "Astha Maa" && dbAsthaMaas.length > 0 && dbMotherNgos.length > 0 && loggedInProfileId) {
+        const myMaa = dbAsthaMaas.find((m) => String(m.value) === String(loggedInProfileId));
+        if (myMaa) {
+            const matchedNgo = dbMotherNgos.find((n) => String(n.value) === String(myMaa.motherNgoId));
+            if (matchedNgo) setFilterMotherNgo(matchedNgo);
+            const matchedState = dbStates.find((s) => s.label.toLowerCase() === myMaa.stateName?.toLowerCase());
+            if (matchedState) setFilterState(matchedState);
+            const matchedDist = dbDistricts.find((d) => d.label.toLowerCase() === myMaa.distName?.toLowerCase());
+            if (matchedDist) setFilterDistrict(matchedDist);
+            const matchedSup = dbSupervisors.find((s) => String(s.value) === String(myMaa.supRegId));
+            if (matchedSup) setFilterSupervisor(matchedSup);
+            const matchedDidi = dbAsthaDidis.find((d) => String(d.value) === String(myMaa.didiRegId));
+            if (matchedDidi) setFilterAsthaDidi(matchedDidi);
+        }
+    }
+  }, [appUserRole, dbAsthaDidis, dbAsthaMaas, dbMotherNgos, dbStates, dbDistricts, dbSupervisors, loggedInProfileId]);
 
   // --- Data Fetching/Filtering ---
   useEffect(() => {
@@ -249,17 +280,13 @@ const AccountTab = () => {
       )
         matches = false;
 
-      // NEW LOGIC: Filter specifically for logged in Supervisors using their own ID
       if (appUserRole === "Supervisor") {
         const matchBySupRegId =
           ad.supRegId != null && String(ad.supRegId) === String(currentProfileId);
         const matchByCreator =
           ad.createdByAuthRegId != null && String(ad.createdByAuthRegId) === String(currentUserId);
-        
         if (!matchBySupRegId && !matchByCreator) matches = false;
-
       } else if (filterSupervisor) {
-        // Fallback for Admins who explicitly select a supervisor from the dropdown
         const matchBySupRegId =
           ad.supRegId != null &&
           String(ad.supRegId) === String(filterSupervisor.value);
@@ -268,7 +295,6 @@ const AccountTab = () => {
           filterSupervisor.userSignUpId != null &&
           String(ad.createdByAuthRegId) ===
             String(filterSupervisor.userSignUpId);
-        
         if (!matchBySupRegId && !matchByCreator) matches = false;
       }
 
@@ -283,8 +309,7 @@ const AccountTab = () => {
     appUserRole
   ]);
 
-  // --- Auto-Selection Logic ---
-  
+  // --- Auto-Selection Logic for Cascade ---
   useEffect(() => {
     if (filteredMotherNgos.length === 1 && !filterMotherNgo) {
       setFilterMotherNgo(filteredMotherNgos[0]);
@@ -340,6 +365,9 @@ const AccountTab = () => {
     if (appUserRole === "Astha Didi") {
       return ["Astha Maa"].includes(o.value);
     }
+    if (appUserRole === "Astha Maa") {
+      return ["Astha Maa"].includes(o.value);
+    }
     return true;
   });
 
@@ -355,6 +383,8 @@ const AccountTab = () => {
     appUserRole !== "Supervisor";
 
   const isAsthaDidiVisible = ["Astha Maa"].includes(adminActiveView);
+
+  const isBlockedForUser = appUserRole === "Astha Didi" || appUserRole === "Astha Maa";
 
   return (
     <>
@@ -389,6 +419,7 @@ const AccountTab = () => {
             menuPortalTarget={document.body}
             menuPosition="fixed"
             isSearchable={false}
+            isDisabled={isBlockedForUser}
           />
         </div>
 
@@ -407,8 +438,8 @@ const AccountTab = () => {
                 setFilterMotherNgo(s);
                 handleReset(1);
               }}
-              isDisabled={isLockedRole || appUserRole === "Astha Didi"} 
-              isClearable={!isLockedRole && appUserRole !== "Astha Didi"}
+              isDisabled={isLockedRole || isBlockedForUser} 
+              isClearable={!isLockedRole && !isBlockedForUser}
               placeholder="Select NGO"
               styles={{
                 ...styles.selectStyles(false),
@@ -433,8 +464,8 @@ const AccountTab = () => {
               setFilterState(s);
               handleReset(2);
             }}
-            isDisabled={!filterMotherNgo || isLockedRole || appUserRole === "Astha Didi"}
-            isClearable={!isLockedRole && appUserRole !== "Astha Didi"}
+            isDisabled={!filterMotherNgo || isLockedRole || isBlockedForUser}
+            isClearable={!isLockedRole && !isBlockedForUser}
             placeholder="State"
             styles={{
               ...styles.selectStyles(false),
@@ -458,8 +489,8 @@ const AccountTab = () => {
               setFilterDistrict(s);
               handleReset(3);
             }}
-            isDisabled={!filterState || isLockedRole || appUserRole === "Astha Didi"}
-            isClearable={!isLockedRole && appUserRole !== "Astha Didi"}
+            isDisabled={!filterState || isLockedRole || isBlockedForUser}
+            isClearable={!isLockedRole && !isBlockedForUser}
             placeholder="District"
             styles={{
               ...styles.selectStyles(false),
@@ -484,8 +515,8 @@ const AccountTab = () => {
                 setFilterSupervisor(s);
                 handleReset(4);
               }}
-              isDisabled={!filterDistrict || appUserRole === "Astha Didi"}
-              isClearable={appUserRole !== "Astha Didi"}
+              isDisabled={!filterDistrict || isBlockedForUser}
+              isClearable={!isBlockedForUser}
               placeholder="Supervisor"
               styles={{
                 ...styles.selectStyles(false),
@@ -508,9 +539,8 @@ const AccountTab = () => {
               options={filteredAsthaDidiOptions}
               value={filterAsthaDidi}
               onChange={setFilterAsthaDidi}
-              // NEW LOGIC: Only wait for District if the user is a Supervisor
-              isDisabled={appUserRole === "Supervisor" ? !filterDistrict : !filterSupervisor}
-              isClearable
+              isDisabled={appUserRole === "Supervisor" ? !filterDistrict : !filterSupervisor || isBlockedForUser}
+              isClearable={!isBlockedForUser}
               placeholder="Astha Didi"
               styles={{
                 ...styles.selectStyles(false),

@@ -92,7 +92,6 @@ const AsthaMaaModal = ({ member, mode, onClose, onSuccess }) => {
     };
 
     const onSubmit = async (data) => {
-
         const checks = [
             { table: 'asthama_reg', column: 'AsthaMaMailId', value: data.email, idColumn: 'AsthaMaRegId', idValue: member.AsthaMaRegId, label: 'Email ID' },
             { table: 'asthama_reg', column: 'AsthaMaSignupUserName', value: data.userName, idColumn: 'AsthaMaRegId', idValue: member.AsthaMaRegId, label: 'Username' },
@@ -291,7 +290,6 @@ const AsthaMaaTable = ({ refreshTrigger, externalFilters }) => {
             if (!res.ok) throw new Error("Failed to fetch table data");
             let data = await res.json();
 
-            // Filter out deleted items (IsActive == '0')
             data = data.filter(member => String(member.AsthaMaIsActive) !== '0');
 
             const user = getSafeUser();
@@ -310,10 +308,13 @@ const AsthaMaaTable = ({ refreshTrigger, externalFilters }) => {
 
     useEffect(() => { fetchMembers(); }, [refreshTrigger]);
 
-    // STRICT DATA VISIBILITY: MUST SELECT ALL FILTERS DOWN TO ASTHA DIDI
     const filteredMembers = useMemo(() => {
-        if (userRole !== 'Astha Didi' && userRole !== 'Astha Maa') {
+        if (userRole === 'State Super Administrator' || userRole === 'District Administrator') {
             if (!externalFilters?.filterMotherNgo || !externalFilters?.filterState || !externalFilters?.filterDistrict || !externalFilters?.filterSupervisor || !externalFilters?.filterAsthaDidi) {
+                return [];
+            }
+        } else if (userRole === 'Supervisor') {
+            if (!externalFilters?.filterMotherNgo || !externalFilters?.filterState || !externalFilters?.filterDistrict || !externalFilters?.filterAsthaDidi) {
                 return [];
             }
         }
@@ -349,7 +350,9 @@ const AsthaMaaTable = ({ refreshTrigger, externalFilters }) => {
             }
 
             let matchesSupervisor = true;
-            if (externalFilters?.filterSupervisor) {
+            if (userRole === 'Supervisor') {
+                matchesSupervisor = true; 
+            } else if (externalFilters?.filterSupervisor) {
                 matchesSupervisor = String(member.AsthaMaCreatedByAuthRegId) === String(externalFilters.filterSupervisor.userSignUpId) ||
                     String(member.SupRegId) === String(externalFilters.filterSupervisor.value);
             }
@@ -603,12 +606,10 @@ const AsthaMaaTable = ({ refreshTrigger, externalFilters }) => {
                                             <td style={styles.stickyRightTd}>
                                                 <button onClick={() => openModal('view', row)} style={styles.actionBtn}>👁️</button>
 
-                                                {/* 👇 Fixed bug: Changed to lowercase comparison! */}
                                                 {userRole && userRole.toLowerCase() === 'astha didi' && (
                                                     <button onClick={() => openModal('edit', row)} style={styles.actionBtn}>✏️</button>
                                                 )}
 
-                                                {/* 👇 Also secured the approve button comparison! */}
                                                 {Number(row.AsthaMaIsActive) !== 2 && userRole && userRole.toLowerCase() === 'astha didi' && (
                                                     <button onClick={() => openModal('approve', row)} style={styles.actionBtn}>✅</button>
                                                 )}
@@ -621,8 +622,10 @@ const AsthaMaaTable = ({ refreshTrigger, externalFilters }) => {
                                     {currentMembers.length === 0 && (
                                         <tr>
                                             <td colSpan="30" style={{ ...styles.td, textAlign: 'center' }}>
-                                                {(userRole !== 'Astha Didi' && userRole !== 'Astha Maa' && (!externalFilters?.filterMotherNgo || !externalFilters?.filterState || !externalFilters?.filterDistrict || !externalFilters?.filterSupervisor || !externalFilters?.filterAsthaDidi))
+                                                {((userRole === 'State Super Administrator' || userRole === 'District Administrator') && (!externalFilters?.filterMotherNgo || !externalFilters?.filterState || !externalFilters?.filterDistrict || !externalFilters?.filterSupervisor || !externalFilters?.filterAsthaDidi))
                                                     ? "Please select all filters above (DISTRICT NGO, State, District, Supervisor, and Astha Didi) to view data."
+                                                    : (userRole === 'Supervisor' && (!externalFilters?.filterMotherNgo || !externalFilters?.filterState || !externalFilters?.filterDistrict || !externalFilters?.filterAsthaDidi))
+                                                    ? "Please select all filters above (DISTRICT NGO, State, District, and Astha Didi) to view data."
                                                     : "No members found. Try clearing your search filters!"}
                                             </td>
                                         </tr>

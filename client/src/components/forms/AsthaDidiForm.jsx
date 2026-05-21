@@ -77,7 +77,6 @@ const AsthaDidiForm = ({ onSuccess, externalFilters }) => {
     const [profileImage, setProfileImage] = useState(DUMMY_AVATAR);
     const fileInputRef = useRef(null);
 
-    // 👇 State to track if the logged-in user is a supervisor
     const [isSupervisor, setIsSupervisor] = useState(false);
 
     const { control, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm({
@@ -95,17 +94,14 @@ const AsthaDidiForm = ({ onSuccess, externalFilters }) => {
     const selectedState = watch("state");
     const fullNameValue = watch("fullName");
 
-    // 👇 Check the user's role exactly as it appears in your screenshot
     useEffect(() => {
         const userStr = localStorage.getItem('loggedInUser');
         if (userStr) {
             try {
                 const loggedInUser = JSON.parse(userStr);
-
                 const role = loggedInUser?.role || '';
                 const signUpRole = loggedInUser?.UserSignUpRole || '';
 
-                // If either property equals "supervisor" (ignoring case), grant access
                 if (role.toLowerCase() === 'supervisor' || signUpRole.toLowerCase() === 'supervisor') {
                     setIsSupervisor(true);
                 } else {
@@ -168,12 +164,11 @@ const AsthaDidiForm = ({ onSuccess, externalFilters }) => {
     };
 
     const onSubmitAsthaDidi = async (data) => {
-        // 👇 Ultimate security check: Prevent submission if not a supervisor
         if (!isSupervisor) {
             toast.error("Access Denied: Only a Supervisor can submit this form.", { position: "top-right" });
             return;
         }
-        const isEdit = !!member?.AsthaDidiRegId; // Check if we are in Modal
+        const isEdit = !!member?.AsthaDidiRegId; 
 
         const checks = [
             { table: 'asthadidi_reg', column: 'AsthaDidiMailId', value: data.email, label: 'Email', idColumn: isEdit ? 'AsthaDidiRegId' : null, idValue: isEdit ? member.AsthaDidiRegId : null },
@@ -181,19 +176,20 @@ const AsthaDidiForm = ({ onSuccess, externalFilters }) => {
             { table: 'asthadidi_reg', column: 'AsthaDidiAadharNo', value: data.aadharNo, label: 'Aadhar No', idColumn: isEdit ? 'AsthaDidiRegId' : null, idValue: isEdit ? member.AsthaDidiRegId : null }
         ];
 
-        // 2. Validate
         if (!(await validateUniqueFields(checks))) return;
         const stateName = data.state ? data.state.label : "";
         const districtName = data.district ? data.district.label : "";
 
         let currentUserId = null;
+        let currentUserProfileId = null;
         const userStr = localStorage.getItem('loggedInUser');
         if (userStr) {
             try {
                 const loggedInUser = JSON.parse(userStr);
                 currentUserId = loggedInUser?.UserSignUpId || loggedInUser?.id || null;
+                currentUserProfileId = loggedInUser?.ProfileRegId || null;
             } catch (e) {
-                console.error("Error parsing loggedInUser from localStorage", e);
+                console.error("Error parsing loggedInUser", e);
             }
         }
 
@@ -228,7 +224,8 @@ const AsthaDidiForm = ({ onSuccess, externalFilters }) => {
             AsthaDidiCreatedByAuthRegId: currentUserId,
             StateNGORegId: null,
             DistNGORegId: filterMotherNgo ? filterMotherNgo.value : null,
-            SupRegId: filterSupervisor ? filterSupervisor.value : null,
+            // Automatically map the Supervisor's Profile ID if they are logged in!
+            SupRegId: isSupervisor && currentUserProfileId ? currentUserProfileId : (filterSupervisor ? filterSupervisor.value : null),
             AsthaDidiIsActive: 1,
             AsthaDidiAprovedBy: null,
             AsthaDidiAprovalDate: null,
@@ -259,8 +256,8 @@ const AsthaDidiForm = ({ onSuccess, externalFilters }) => {
 
     const onErrorAsthaDidi = () => toast.error("Error: Please check the red fields.", { position: "top-right" });
 
-    // 👇 Define if the form is completely enabled (must be a supervisor AND have selected one from the filter)
-    const isFormEnabled = isSupervisor && !!filterSupervisor;
+    // Since they no longer select a dropdown filter, if they are a supervisor, the form is ready to go!
+    const isFormEnabled = isSupervisor;
 
     return (
         <div style={styles.card}>
@@ -268,21 +265,12 @@ const AsthaDidiForm = ({ onSuccess, externalFilters }) => {
                 <h5>Astha Didi Registration</h5>
             </div>
 
-            {/* 👇 Show error banner if the logged-in user is NOT a supervisor */}
             {!isSupervisor && (
                 <div style={{ padding: '12px 24px', backgroundColor: '#f8d7da', color: '#721c24', borderBottom: '1px solid #f5c6cb' }}>
                     <strong>Access Denied:</strong> Only a user with the role of <strong>Supervisor</strong> can submit this form. Your current role does not permit this action.
                 </div>
             )}
 
-            {/* Show notice if they ARE a supervisor, but haven't picked a supervisor in the filter dropdown yet */}
-            {isSupervisor && !filterSupervisor && (
-                <div style={{ padding: '12px 24px', backgroundColor: '#fff3cd', color: '#856404', borderBottom: '1px solid #ffeeba' }}>
-                    <strong>Notice:</strong> Please select a <strong>Supervisor</strong> from the top filters before filling out this registration form.
-                </div>
-            )}
-
-            {/* Form layout wrapper - applies visual disabled effect if isFormEnabled is false */}
             <div style={{ ...styles.cardBody, opacity: !isFormEnabled ? 0.6 : 1, pointerEvents: !isFormEnabled ? 'none' : 'auto' }}>
                 <div style={styles.profileSection}>
                     <img src={profileImage} alt="Profile Avatar" style={styles.avatar} />
@@ -402,7 +390,6 @@ const AsthaDidiForm = ({ onSuccess, externalFilters }) => {
 
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '16px', marginTop: '32px' }}>
                         <button type="button" style={styles.btnOutline} onClick={handleCancelAsthaDidi}>Cancel</button>
-                        {/* 👇 Button is only clickable if isFormEnabled is true */}
                         <button type="submit" style={{ ...styles.btnPrimary, opacity: !isFormEnabled ? 0.5 : 1 }} disabled={!isFormEnabled}>Submit</button>
                     </div>
                 </form>

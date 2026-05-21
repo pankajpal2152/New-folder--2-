@@ -3,7 +3,6 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Select from 'react-select';
 import { toast } from 'react-toastify';
-// import { checkDuplicate } from '../AccountSharedUtils';
 import { API_BASE_URL, DUMMY_AVATAR, extractBase64, styles, FormInput } from '../config/constants';
 import { accountSchema } from './forms/AsthaDidiForm';
 import { getSafeUser, PasswordInput, validateUniqueFields } from './AccountSharedUtils';
@@ -369,10 +368,13 @@ const MembersTable = ({ refreshTrigger, externalFilters }) => {
 
     useEffect(() => { fetchMembers(); }, [refreshTrigger]);
 
-    // STRICT DATA VISIBILITY: MUST SELECT ALL FILTERS DOWN TO SUPERVISOR
     const filteredMembers = useMemo(() => {
-        if (userRole !== 'Astha Didi' && userRole !== 'Astha Maa') {
+        if (userRole === 'State Super Administrator' || userRole === 'District Administrator') {
             if (!externalFilters?.filterMotherNgo || !externalFilters?.filterState || !externalFilters?.filterDistrict || !externalFilters?.filterSupervisor) {
+                return [];
+            }
+        } else if (userRole === 'Supervisor') {
+            if (!externalFilters?.filterMotherNgo || !externalFilters?.filterState || !externalFilters?.filterDistrict) {
                 return [];
             }
         }
@@ -408,7 +410,9 @@ const MembersTable = ({ refreshTrigger, externalFilters }) => {
             }
 
             let matchesSupervisor = true;
-            if (externalFilters?.filterSupervisor) {
+            if (userRole === 'Supervisor') {
+                matchesSupervisor = true; 
+            } else if (externalFilters?.filterSupervisor) {
                 matchesSupervisor = String(member.AsthaDidiCreatedByAuthRegId) === String(externalFilters.filterSupervisor.userSignUpId) ||
                     String(member.SupRegId) === String(externalFilters.filterSupervisor.value);
             }
@@ -649,7 +653,6 @@ const MembersTable = ({ refreshTrigger, externalFilters }) => {
                                             <td style={styles.stickyRightTd}>
                                                 <button onClick={() => openModal('view', row)} style={styles.actionBtn}>👁️</button>
 
-                                                {/* 👇 New check added here to restrict the edit button to Supervisors only */}
                                                 {userRole && userRole.toLowerCase() === 'supervisor' && (
                                                     <button onClick={() => openModal('edit', row)} style={styles.actionBtn}>✏️</button>
                                                 )}
@@ -657,9 +660,6 @@ const MembersTable = ({ refreshTrigger, externalFilters }) => {
                                                 {userRole === 'State Super Administrator' && (
                                                     <button onClick={() => openModal('delete', row)} style={styles.actionBtn}>🗑️</button>
                                                 )}
-                                                {/* {Number(row.AsthaDidiIsActive) !== 2 && userRole !== 'Astha Didi' && (
-                                                    <button onClick={() => openModal('approve', row)} style={styles.actionBtn}>✅</button>
-                                                )} */}
                                                 {Number(row.AsthaDidiIsActive) !== 2 && userRole && userRole.toLowerCase() === 'supervisor' && (
                                                     <button onClick={() => openModal('approve', row)} style={styles.actionBtn}>✅</button>
                                                 )}
@@ -669,8 +669,10 @@ const MembersTable = ({ refreshTrigger, externalFilters }) => {
                                     {currentMembers.length === 0 && (
                                         <tr>
                                             <td colSpan="31" style={{ ...styles.td, textAlign: 'center' }}>
-                                                {(userRole !== 'Astha Didi' && userRole !== 'Astha Maa' && (!externalFilters?.filterMotherNgo || !externalFilters?.filterState || !externalFilters?.filterDistrict || !externalFilters?.filterSupervisor))
+                                                {((userRole === 'State Super Administrator' || userRole === 'District Administrator') && (!externalFilters?.filterMotherNgo || !externalFilters?.filterState || !externalFilters?.filterDistrict || !externalFilters?.filterSupervisor))
                                                     ? "Please select all filters above (DISTRICT NGO, State, District, and Supervisor) to view data."
+                                                    : (userRole === 'Supervisor' && (!externalFilters?.filterMotherNgo || !externalFilters?.filterState || !externalFilters?.filterDistrict))
+                                                    ? "Please select all filters above (DISTRICT NGO, State, and District) to view data."
                                                     : "No members found. Try clearing your search filters!"}
                                             </td>
                                         </tr>

@@ -240,30 +240,26 @@ const AccountTab = () => {
     filterSupervisor,
   ]);
 
-  // --- Auto-Selection Logic (NEW) ---
+  // --- Auto-Selection Logic ---
   
-  // 1. Auto-select Mother NGO if there is only 1 restricted option
   useEffect(() => {
     if (filteredMotherNgos.length === 1 && !filterMotherNgo) {
       setFilterMotherNgo(filteredMotherNgos[0]);
     }
   }, [filteredMotherNgos, filterMotherNgo]);
 
-  // 2. Auto-select State if there is only 1 valid option based on the NGO
   useEffect(() => {
     if (filteredStateOptions.length === 1 && !filterState) {
       setFilterState(filteredStateOptions[0]);
     }
   }, [filteredStateOptions, filterState]);
 
-  // 3. Auto-select District if there is only 1 valid option based on the State/NGO
   useEffect(() => {
     if (filteredDistrictOptions.length === 1 && !filterDistrict) {
       setFilterDistrict(filteredDistrictOptions[0]);
     }
   }, [filteredDistrictOptions, filterDistrict]);
 
-  // 4. Auto-select Supervisor if user IS a Supervisor
   useEffect(() => {
     if (appUserRole === "Supervisor" && filteredSupervisorOptions.length === 1 && !filterSupervisor) {
       setFilterSupervisor(filteredSupervisorOptions[0]);
@@ -292,8 +288,13 @@ const AccountTab = () => {
     { value: "Astha Didi", label: "Astha Didi" },
     { value: "Astha Maa", label: "Astha Maa" },
   ].filter((o) => {
-    if (appUserRole === "District Administrator")
+    if (appUserRole === "District Administrator") {
       return ["Supervisor", "Astha Didi", "Astha Maa"].includes(o.value);
+    }
+    // NEW LOGIC: If Supervisor, restrict dropdown strictly to Astha Didi and Astha Maa
+    if (appUserRole === "Supervisor") {
+      return ["Astha Didi", "Astha Maa"].includes(o.value);
+    }
     return true;
   });
 
@@ -304,9 +305,11 @@ const AccountTab = () => {
     "District Administrator",
   ].includes(adminActiveView);
   
-  const isSupervisorVisible = ["Astha Maa", "Astha Didi"].includes(
-    adminActiveView,
-  );
+  // NEW LOGIC: Hide the Supervisor dropdown if the user IS a Supervisor
+  const isSupervisorVisible = 
+    ["Astha Maa", "Astha Didi"].includes(adminActiveView) && 
+    appUserRole !== "Supervisor";
+
   const isAsthaDidiVisible = ["Astha Maa"].includes(adminActiveView);
 
   return (
@@ -360,7 +363,6 @@ const AccountTab = () => {
                 setFilterMotherNgo(s);
                 handleReset(1);
               }}
-              // Removed the "&& filterMotherNgo !== null" so it stays disabled reliably for locked roles
               isDisabled={isLockedRole} 
               isClearable={!isLockedRole}
               placeholder="Select NGO"

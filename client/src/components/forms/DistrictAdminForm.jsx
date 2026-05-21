@@ -5,14 +5,9 @@ import * as z from 'zod';
 import Select from 'react-select';
 import { toast } from 'react-toastify';
 import { API_BASE_URL, indianPhoneRegex, styles, FormInput, fileToBase64 } from '../../config/constants';
-// import { checkDuplicate } from '../AccountSharedUtils';
-// ✅ Import the Smart PDF Viewer we just created
 import { getSafeUser, handleViewPdf } from '../AccountSharedUtils';
 import { validateUniqueFields } from '../AccountSharedUtils';
 
-// ==========================================
-// 1. Validation Schema
-// ==========================================
 export const ngoSchema = z.object({
     ngoName: z.string().min(2, "NGO Name is required"),
     ngoRegistrationDate: z.string().min(1, "Date is required"),
@@ -42,15 +37,9 @@ export const ngoSchema = z.object({
     password: z.string().min(1, "Password is required")
 });
 
-// ==========================================
-// Password Input Helper Component
-// ==========================================
 const PasswordInput = ({ label, id, error, placeholder, disabled, ...props }) => {
     const [showPassword, setShowPassword] = useState(false);
-
-    const togglePasswordVisibility = () => {
-        setShowPassword(!showPassword);
-    };
+    const togglePasswordVisibility = () => setShowPassword(!showPassword);
 
     return (
         <div style={styles.inputGroup}>
@@ -68,7 +57,6 @@ const PasswordInput = ({ label, id, error, placeholder, disabled, ...props }) =>
                     type="button"
                     onClick={togglePasswordVisibility}
                     style={{ position: 'absolute', right: '10px', background: 'transparent', border: 'none', cursor: 'pointer', color: '#697a8d', fontSize: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}
-                    title={showPassword ? "Hide password" : "Show password"}
                 >
                     {showPassword ? '👁️‍🗨️' : '👁️'}
                 </button>
@@ -78,7 +66,7 @@ const PasswordInput = ({ label, id, error, placeholder, disabled, ...props }) =>
     );
 };
 
-const DistrictAdminForm = ({ onSuccess }) => {
+const DistrictAdminForm = ({ onSuccess, defaultState, defaultDistrict }) => {
     const [dbStates, setDbStates] = useState([]);
     const [dbDistricts, setDbDistricts] = useState([]);
 
@@ -96,6 +84,12 @@ const DistrictAdminForm = ({ onSuccess }) => {
 
     const selectedState = watch("state");
     const ngoNameValue = watch("ngoName");
+
+    // Pre-fill Logic
+    useEffect(() => {
+        if (defaultState) setValue("state", defaultState, { shouldValidate: true });
+        if (defaultDistrict) setValue("district", defaultDistrict, { shouldValidate: true });
+    }, [defaultState, defaultDistrict, setValue]);
 
     useEffect(() => {
         setValue("userName", ngoNameValue || "", { shouldValidate: true });
@@ -143,7 +137,6 @@ const DistrictAdminForm = ({ onSuccess }) => {
             toast.error("Required: Please upload all three mandatory documents (Reg Cert, PAN, and Darpan PDF) before submitting.", { position: "top-right" });
             return;
         }
-        // PERFORM CHECKS
         const checks = [
             { table: 'dist_ngo_reg', column: 'DistNGOMailId', value: data.generalNgoEmail, label: 'Email ID' },
             { table: 'dist_ngo_reg', column: 'DistNGOSignupUserName', value: data.userName, label: 'Username' }
@@ -191,15 +184,12 @@ const DistrictAdminForm = ({ onSuccess }) => {
 
         try {
             toast.loading("Saving District Admin data...", { toastId: 'savingAdmin' });
-
             const response = await fetch(`${API_BASE_URL}/districtadmin`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(dbPayload)
             });
-
             toast.dismiss('savingAdmin');
-
             if (response.ok) {
                 toast.success("Success: Data saved to Database!", { position: "top-right" });
                 handleCancel();
@@ -222,7 +212,6 @@ const DistrictAdminForm = ({ onSuccess }) => {
             </div>
             <div style={styles.cardBody}>
                 <form onSubmit={handleSubmit(onSubmitDistrictAdmin, onError)} autoComplete="off">
-
                     <h6 style={styles.sectionHeader}>NGO Details</h6>
                     <div style={styles.formGrid}>
                         <Controller name="ngoName" control={control} render={({ field }) => (
@@ -241,7 +230,6 @@ const DistrictAdminForm = ({ onSuccess }) => {
                             name="ngoDarpanId"
                             control={control}
                             render={({ field }) => (
-                                // Removed the <span style={{ color: '#ff3e1d' }}>*</span>
                                 <FormInput label="NGO Darpan ID" id="ngoDarpanId" error={errors.ngoDarpanId} type="text" {...field} />
                             )}
                         />
@@ -258,19 +246,30 @@ const DistrictAdminForm = ({ onSuccess }) => {
                         <div style={styles.inputGroup}>
                             <label style={styles.label}>Willing to work State Name <span style={{ color: '#ff3e1d' }}>*</span></label>
                             <Controller name="state" control={control} render={({ field }) => (
-                                <Select {...field} options={dbStates} styles={styles.selectStyles(!!errors.state)} placeholder="Select State" />
+                                <Select 
+                                    {...field} 
+                                    options={dbStates} 
+                                    styles={styles.selectStyles(!!errors.state)} 
+                                    placeholder="Select State" 
+                                    isDisabled={!!defaultState}
+                                />
                             )} />
                         </div>
                         <div style={styles.inputGroup}>
                             <label style={styles.label}>Willing to work which district Name <span style={{ color: '#ff3e1d' }}>*</span></label>
                             <Controller name="district" control={control} render={({ field }) => (
-                                <Select {...field} options={dbDistricts} styles={styles.selectStyles(!!errors.district)} placeholder="Select District" isDisabled={!selectedState} />
+                                <Select 
+                                    {...field} 
+                                    options={dbDistricts} 
+                                    styles={styles.selectStyles(!!errors.district)} 
+                                    placeholder="Select District" 
+                                    isDisabled={!selectedState || !!defaultDistrict} 
+                                />
                             )} />
                         </div>
                         <Controller name="blockName" control={control} render={({ field }) => (
                             <FormInput label={<>Willing to work which Block Name <span style={{ color: '#ff3e1d' }}>* (Can type multiple)</span></>} id="blockName" error={errors.blockName} type="text" {...field} />
                         )} />
-
                         <Controller name="ngoRegAddress" control={control} render={({ field }) => (
                             <div style={{ ...styles.inputGroup, gridColumn: '1 / -1' }}>
                                 <label htmlFor="ngoRegAddress" style={styles.label}>NGO Register Address <span style={{ color: '#ff3e1d' }}>*</span></label>

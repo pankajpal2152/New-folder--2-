@@ -36,7 +36,6 @@ const AccountTab = () => {
   const [dbSupervisors, setDbSupervisors] = useState([]);
   const [dbAsthaDidis, setDbAsthaDidis] = useState([]);
 
-  // --- Configuration Logic ---
   const isLockedRole =
     appUserRole === "District Administrator" || appUserRole === "Supervisor";
 
@@ -122,32 +121,26 @@ const AccountTab = () => {
       .catch(console.error);
   }, []);
 
-  // --- Auto-Selection Logic for Astha Didi ---
   useEffect(() => {
     if (appUserRole === "Astha Didi" && dbAsthaDidis.length > 0 && dbMotherNgos.length > 0 && loggedInProfileId) {
       const myDidi = dbAsthaDidis.find((d) => String(d.value) === String(loggedInProfileId));
       
       if (myDidi) {
-        // Auto-select NGO
         const matchedNgo = dbMotherNgos.find((n) => String(n.value) === String(myDidi.motherNgoId));
         if (matchedNgo) setFilterMotherNgo(matchedNgo);
 
-        // Auto-select State
         const matchedState = dbStates.find((s) => s.label.toLowerCase() === myDidi.stateName?.toLowerCase());
         if (matchedState) setFilterState(matchedState);
 
-        // Auto-select District
         const matchedDist = dbDistricts.find((d) => d.label.toLowerCase() === myDidi.distName?.toLowerCase());
         if (matchedDist) setFilterDistrict(matchedDist);
 
-        // Auto-select Supervisor
         const matchedSup = dbSupervisors.find((s) => String(s.value) === String(myDidi.supRegId));
         if (matchedSup) setFilterSupervisor(matchedSup);
       }
     }
   }, [appUserRole, dbAsthaDidis, dbMotherNgos, dbStates, dbDistricts, dbSupervisors, loggedInProfileId]);
 
-  // --- Data Fetching/Filtering ---
   useEffect(() => {
     if (filterState && filterState.value) {
       fetch(`${API_BASE_URL}/districts/${filterState.value}`)
@@ -163,7 +156,6 @@ const AccountTab = () => {
     }
   }, [filterState]);
 
-  // Derived State Logic
   const filteredMotherNgos = useMemo(() => {
     if (appUserRole === "District Administrator" && loggedInProfileId)
       return dbMotherNgos.filter(
@@ -249,7 +241,6 @@ const AccountTab = () => {
       )
         matches = false;
 
-      // NEW LOGIC: Filter specifically for logged in Supervisors using their own ID
       if (appUserRole === "Supervisor") {
         const matchBySupRegId =
           ad.supRegId != null && String(ad.supRegId) === String(currentProfileId);
@@ -259,7 +250,6 @@ const AccountTab = () => {
         if (!matchBySupRegId && !matchByCreator) matches = false;
 
       } else if (filterSupervisor) {
-        // Fallback for Admins who explicitly select a supervisor from the dropdown
         const matchBySupRegId =
           ad.supRegId != null &&
           String(ad.supRegId) === String(filterSupervisor.value);
@@ -283,8 +273,6 @@ const AccountTab = () => {
     appUserRole
   ]);
 
-  // --- Auto-Selection Logic ---
-  
   useEffect(() => {
     if (filteredMotherNgos.length === 1 && !filterMotherNgo) {
       setFilterMotherNgo(filteredMotherNgos[0]);
@@ -309,8 +297,6 @@ const AccountTab = () => {
     }
   }, [appUserRole, filteredSupervisorOptions, filterSupervisor]);
 
-
-  // --- Helpers for cleaner Change Events ---
   const handleReset = (level) => {
     if (level <= 0) setFilterMotherNgo(null);
     if (level <= 1) setFilterState(null);
@@ -324,7 +310,6 @@ const AccountTab = () => {
   if (appUserRole === null)
     return <div style={{ padding: "24px" }}>Loading Interface...</div>;
 
-  // --- UI Variables ---
   const adminOptions = [
     { value: "District Administrator", label: "District Administrator" },
     { value: "Supervisor", label: "Supervisor" },
@@ -371,7 +356,6 @@ const AccountTab = () => {
           alignItems: "flex-end",
         }}
       >
-        {/* Role View Toggle */}
         <div style={{ width: "100%", maxWidth: "250px" }}>
           <label
             style={{ ...styles.label, marginBottom: "8px", display: "block" }}
@@ -392,7 +376,6 @@ const AccountTab = () => {
           />
         </div>
 
-        {/* --- Filters (Cascading) --- */}
         {isMotherNgoVisible && (
           <div style={{ width: "100%", maxWidth: "200px" }}>
             <label
@@ -508,7 +491,6 @@ const AccountTab = () => {
               options={filteredAsthaDidiOptions}
               value={filterAsthaDidi}
               onChange={setFilterAsthaDidi}
-              // NEW LOGIC: Only wait for District if the user is a Supervisor
               isDisabled={appUserRole === "Supervisor" ? !filterDistrict : !filterSupervisor}
               isClearable
               placeholder="Astha Didi"
@@ -523,11 +505,17 @@ const AccountTab = () => {
         )}
       </div>
 
-      {/* View Rendering */}
       {adminActiveView === "District Administrator" ? (
         <>
-          <DistrictAdminForm onSuccess={handleFormSuccess} />
-          <DistrictAdminTable refreshTrigger={refreshTrigger} />
+          <DistrictAdminForm 
+            onSuccess={handleFormSuccess}
+            defaultState={filterState}
+            defaultDistrict={filterDistrict}
+          />
+          <DistrictAdminTable 
+            refreshTrigger={refreshTrigger} 
+            externalFilters={{ filterMotherNgo, filterState, filterDistrict }} 
+          />
         </>
       ) : adminActiveView === "Supervisor" ? (
         <>

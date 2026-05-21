@@ -6,11 +6,13 @@ import 'react-toastify/dist/ReactToastify.css';
 import { styles, API_BASE_URL } from '../config/constants';
 import { getSafeUser } from './AccountSharedUtils';
 
+// Import Forms
 import DistrictAdminForm from './forms/DistrictAdminForm';
 import SupervisorForm from './forms/SupervisorForm';
 import AsthaMaaForm from './forms/AsthaMaaForm';
 import AsthaDidiForm from './forms/AsthaDidiForm';
 
+// Import Split Tables
 import DistrictAdminTable from './DistrictAdminTable';
 import SupervisorTable from './SupervisorTable';
 import AsthaMaaTable from './AsthaMaaTable';
@@ -48,7 +50,7 @@ const AccountTab = () => {
             } else if (role === 'Supervisor') {
                 setAdminActiveView('Astha Didi');
             } else if (role === 'Astha Didi') {
-                setAdminActiveView('Astha Didi');
+                setAdminActiveView('Astha Maa');
             } else if (role === 'Astha Maa') {
                 setAdminActiveView('Astha Maa');
             } else {
@@ -64,6 +66,18 @@ const AccountTab = () => {
         fetch(`${API_BASE_URL}/supervisor`).then(res => res.json()).then(data => setDbSupervisors(data.map(s => ({ value: s.SupRegId, label: s.SupName, userSignUpId: s.UserSignUpId || s.SupRegId, stateName: s.SupStateName, distName: s.SupDistName, motherNgoId: s.DistNGORegId })))).catch(console.error);
         fetch(`${API_BASE_URL}/asthadidi`).then(res => res.json()).then(data => setDbAsthaDidis(data.map(a => ({ value: a.AsthaDidiRegId, label: a.AsthaDidiUserName, stateName: a.AsthaDidiStateName, distName: a.AsthaDidiDistName, motherNgoId: a.DistNGORegId, supRegId: a.SupRegId, createdByAuthRegId: a.AsthaDidiCreatedByAuthRegId })))).catch(console.error);
     }, []);
+
+    // AUTO-POPULATE FILTER FOR ASTHA DIDI
+    useEffect(() => {
+        if (appUserRole === 'Astha Didi' && dbAsthaDidis.length > 0 && loggedInProfileId && !filterAsthaDidi) {
+            const myProfile = dbAsthaDidis.find(ad => String(ad.value) === String(loggedInProfileId));
+            if (myProfile) {
+                setFilterAsthaDidi({ value: myProfile.value, label: myProfile.label });
+                setFilterMotherNgo({ value: myProfile.motherNgoId, label: 'Auto-Selected' });
+                setFilterSupervisor({ value: myProfile.supRegId, label: 'Auto-Selected' });
+            }
+        }
+    }, [appUserRole, dbAsthaDidis, loggedInProfileId, filterAsthaDidi]);
 
     useEffect(() => {
         if (filterState && filterState.value) {

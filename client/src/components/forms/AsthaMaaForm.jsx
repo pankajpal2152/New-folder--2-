@@ -184,7 +184,7 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
         } catch (error) { toast.dismiss('savingMaa'); toast.error("Network error."); }
     };
 
-    // ✅ FIXED: Missing error handler defined here!
+    // FIXED: Function defined to prevent ReferenceError
     const onErrorAsthaMaa = () => {
         toast.error("Error: Please check the required red fields.");
     };
@@ -291,7 +291,7 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
                     <h6 style={styles.sectionHeader}>Login & Account Setup</h6>
                     <div style={styles.formGrid}>
                         <Controller name="userName" control={control} render={({ field }) => (
-                            <FormInput label={<>User Name <span style={{ color: '#ff3e1d' }}>*</span></>} id="userName" error={errors.userName} type="text" readOnly disabled={true} {...field} />
+                            <FormInput label={<>User Name <span style={{ color: '#ff3e1d' }}>*</span></>} id="userName" error={errors.userName} type="text" readOnly disabled {...field} />
                         )} />
                         <Controller name="email" control={control} render={({ field }) => (
                             <FormInput label={<>Email ID (For Login) <span style={{ color: '#ff3e1d' }}>*</span></>} id="email" error={errors.email} placeholder="Email ID" type="email" maxLength={100} autoComplete="off" {...field} />

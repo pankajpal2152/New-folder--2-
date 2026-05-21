@@ -37,8 +37,11 @@ const AccountTab = () => {
   const [dbAsthaDidis, setDbAsthaDidis] = useState([]);
 
   // --- Configuration Logic ---
-  const isLockedRole =
-    appUserRole === "District Administrator" || appUserRole === "Supervisor";
+  // Using robust case-insensitive checks
+  const currentRoleLower = appUserRole?.trim().toLowerCase() || "";
+  const isSup = currentRoleLower === "supervisor";
+  const isDistAdmin = currentRoleLower === "district administrator";
+  const isLockedRole = isSup || isDistAdmin;
 
   useEffect(() => {
     const user = getSafeUser();
@@ -47,18 +50,14 @@ const AccountTab = () => {
       setAppUserRole(role);
       setLoggedInProfileId(user.ProfileRegId);
 
-      if (
-        role === "State Super Administrator" ||
-        role.toLowerCase() === "developer"
-      ) {
+      const roleLower = role.toLowerCase();
+      if (roleLower === "state super administrator" || roleLower === "developer") {
         setAdminActiveView("District Administrator");
-      } else if (role === "District Administrator") {
+      } else if (roleLower === "district administrator") {
         setAdminActiveView("Supervisor");
-      } else if (role === "Supervisor") {
+      } else if (roleLower === "supervisor") {
         setAdminActiveView("Astha Didi");
-      } else if (role === "Astha Didi") {
-        setAdminActiveView("Astha Maa");
-      } else if (role === "Astha Maa") {
+      } else if (roleLower === "astha didi" || roleLower === "astha maa") {
         setAdminActiveView("Astha Maa");
       } else {
         setAdminActiveView("Astha Didi");
@@ -140,15 +139,11 @@ const AccountTab = () => {
 
   // Derived State Logic
   const filteredMotherNgos = useMemo(() => {
-    if (appUserRole === "District Administrator" && loggedInProfileId)
+    if (isDistAdmin && loggedInProfileId)
       return dbMotherNgos.filter(
         (ngo) => String(ngo.value) === String(loggedInProfileId),
       );
-    if (
-      appUserRole === "Supervisor" &&
-      loggedInProfileId &&
-      dbSupervisors.length > 0
-    ) {
+    if (isSup && loggedInProfileId && dbSupervisors.length > 0) {
       const currentSupervisor = dbSupervisors.find(
         (sup) => String(sup.value) === String(loggedInProfileId),
       );
@@ -158,7 +153,7 @@ const AccountTab = () => {
         );
     }
     return dbMotherNgos;
-  }, [dbMotherNgos, appUserRole, loggedInProfileId, dbSupervisors]);
+  }, [dbMotherNgos, isDistAdmin, isSup, loggedInProfileId, dbSupervisors]);
 
   const filteredStateOptions = useMemo(() => {
     if (filterMotherNgo && filterMotherNgo.stateName) {
@@ -181,21 +176,9 @@ const AccountTab = () => {
   const filteredSupervisorOptions = useMemo(() => {
     return dbSupervisors.filter((sup) => {
       let matches = true;
-      if (
-        filterMotherNgo &&
-        String(sup.motherNgoId) !== String(filterMotherNgo.value)
-      )
-        matches = false;
-      if (
-        filterState &&
-        sup.stateName?.toLowerCase() !== filterState.label.toLowerCase()
-      )
-        matches = false;
-      if (
-        filterDistrict &&
-        sup.distName?.toLowerCase() !== filterDistrict.label.toLowerCase()
-      )
-        matches = false;
+      if (filterMotherNgo && String(sup.motherNgoId) !== String(filterMotherNgo.value)) matches = false;
+      if (filterState && sup.stateName?.toLowerCase() !== filterState.label.toLowerCase()) matches = false;
+      if (filterDistrict && sup.distName?.toLowerCase() !== filterDistrict.label.toLowerCase()) matches = false;
       return matches;
     });
   }, [dbSupervisors, filterMotherNgo, filterState, filterDistrict]);
@@ -207,42 +190,20 @@ const AccountTab = () => {
 
     return dbAsthaDidis.filter((ad) => {
       let matches = true;
-      if (
-        filterMotherNgo &&
-        ad.motherNgoId != null &&
-        String(ad.motherNgoId) !== String(filterMotherNgo.value)
-      )
-        matches = false;
-      if (
-        filterState &&
-        ad.stateName?.toLowerCase() !== filterState.label.toLowerCase()
-      )
-        matches = false;
-      if (
-        filterDistrict &&
-        ad.distName?.toLowerCase() !== filterDistrict.label.toLowerCase()
-      )
-        matches = false;
+      if (filterMotherNgo && ad.motherNgoId != null && String(ad.motherNgoId) !== String(filterMotherNgo.value)) matches = false;
+      if (filterState && ad.stateName?.toLowerCase() !== filterState.label.toLowerCase()) matches = false;
+      if (filterDistrict && ad.distName?.toLowerCase() !== filterDistrict.label.toLowerCase()) matches = false;
 
-      // NEW LOGIC: Filter specifically for logged in Supervisors using their own ID
-      if (appUserRole === "Supervisor") {
-        const matchBySupRegId =
-          ad.supRegId != null && String(ad.supRegId) === String(currentProfileId);
-        const matchByCreator =
-          ad.createdByAuthRegId != null && String(ad.createdByAuthRegId) === String(currentUserId);
+      // Filter specifically for logged in Supervisors using their own ID safely
+      if (isSup) {
+        const matchBySupRegId = ad.supRegId != null && String(ad.supRegId) === String(currentProfileId);
+        const matchByCreator = ad.createdByAuthRegId != null && String(ad.createdByAuthRegId) === String(currentUserId);
         
         if (!matchBySupRegId && !matchByCreator) matches = false;
 
       } else if (filterSupervisor) {
-        // Fallback for Admins who explicitly select a supervisor from the dropdown
-        const matchBySupRegId =
-          ad.supRegId != null &&
-          String(ad.supRegId) === String(filterSupervisor.value);
-        const matchByCreator =
-          ad.createdByAuthRegId != null &&
-          filterSupervisor.userSignUpId != null &&
-          String(ad.createdByAuthRegId) ===
-            String(filterSupervisor.userSignUpId);
+        const matchBySupRegId = ad.supRegId != null && String(ad.supRegId) === String(filterSupervisor.value);
+        const matchByCreator = ad.createdByAuthRegId != null && filterSupervisor.userSignUpId != null && String(ad.createdByAuthRegId) === String(filterSupervisor.userSignUpId);
         
         if (!matchBySupRegId && !matchByCreator) matches = false;
       }
@@ -255,7 +216,7 @@ const AccountTab = () => {
     filterState,
     filterDistrict,
     filterSupervisor,
-    appUserRole
+    isSup
   ]);
 
   // --- Auto-Selection Logic ---
@@ -279,10 +240,10 @@ const AccountTab = () => {
   }, [filteredDistrictOptions, filterDistrict]);
 
   useEffect(() => {
-    if (appUserRole === "Supervisor" && filteredSupervisorOptions.length === 1 && !filterSupervisor) {
+    if (isSup && filteredSupervisorOptions.length === 1 && !filterSupervisor) {
       setFilterSupervisor(filteredSupervisorOptions[0]);
     }
-  }, [appUserRole, filteredSupervisorOptions, filterSupervisor]);
+  }, [isSup, filteredSupervisorOptions, filterSupervisor]);
 
 
   // --- Helpers for cleaner Change Events ---
@@ -306,25 +267,24 @@ const AccountTab = () => {
     { value: "Astha Didi", label: "Astha Didi" },
     { value: "Astha Maa", label: "Astha Maa" },
   ].filter((o) => {
-    if (appUserRole === "District Administrator") {
+    if (isDistAdmin) {
       return ["Supervisor", "Astha Didi", "Astha Maa"].includes(o.value);
     }
-    if (appUserRole === "Supervisor") {
+    if (isSup) {
       return ["Astha Didi", "Astha Maa"].includes(o.value);
     }
     return true;
   });
 
+  // Removed "District Administrator" from here so the NGO dropdown correctly hides for Super Admins!
   const isMotherNgoVisible = [
     "Supervisor",
     "Astha Maa",
-    "Astha Didi",
-    "District Administrator",
+    "Astha Didi"
   ].includes(adminActiveView);
   
   const isSupervisorVisible = 
-    ["Astha Maa", "Astha Didi"].includes(adminActiveView) && 
-    appUserRole !== "Supervisor";
+    ["Astha Maa", "Astha Didi"].includes(adminActiveView) && !isSup;
 
   const isAsthaDidiVisible = ["Astha Maa"].includes(adminActiveView);
 
@@ -405,7 +365,8 @@ const AccountTab = () => {
               setFilterState(s);
               handleReset(2);
             }}
-            isDisabled={!filterMotherNgo || isLockedRole}
+            // State unlocks naturally if the NGO dropdown is hidden, fixing the Super Admin bug!
+            isDisabled={(isMotherNgoVisible && !filterMotherNgo) || isLockedRole}
             isClearable={!isLockedRole}
             placeholder="State"
             styles={{
@@ -480,8 +441,8 @@ const AccountTab = () => {
               options={filteredAsthaDidiOptions}
               value={filterAsthaDidi}
               onChange={setFilterAsthaDidi}
-              // NEW LOGIC: Only wait for District if the user is a Supervisor
-              isDisabled={appUserRole === "Supervisor" ? !filterDistrict : !filterSupervisor}
+              // Fixed unlocking rule specifically for Supervisors so it doesn't freeze
+              isDisabled={isSup ? !filterDistrict : !filterSupervisor}
               isClearable
               placeholder="Astha Didi"
               styles={{
@@ -499,7 +460,11 @@ const AccountTab = () => {
       {adminActiveView === "District Administrator" ? (
         <>
           <DistrictAdminForm onSuccess={handleFormSuccess} />
-          <DistrictAdminTable refreshTrigger={refreshTrigger} />
+          {/* External filters successfully passed down! */}
+          <DistrictAdminTable 
+            refreshTrigger={refreshTrigger} 
+            externalFilters={{ filterState, filterDistrict }}
+          />
         </>
       ) : adminActiveView === "Supervisor" ? (
         <>

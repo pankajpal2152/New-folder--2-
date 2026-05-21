@@ -1,8 +1,7 @@
-// src/pages/RoleManagement.jsx
 import React, { useState, useEffect } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { API_BASE_URL } from '../config/constants'; // ✅ FIXED: Using dynamic URL
+import { API_BASE_URL } from '../config/constants'; // Fixed
 
 const RoleManagement = () => {
     const [roles, setRoles] = useState([]);
@@ -15,16 +14,11 @@ const RoleManagement = () => {
     const fetchRoles = async () => {
         setLoading(true);
         try {
-            const response = await fetch(`${API_BASE_URL}/userinfo`); // ✅ FIXED URL
+            const response = await fetch(`${API_BASE_URL}/userinfo`);
             if (!response.ok) throw new Error("Failed to fetch");
             const data = await response.json();
             setRoles(data);
-        } catch (error) {
-            console.error("Error fetching roles:", error);
-            toast.error("Failed to load roles.");
-        } finally {
-            setLoading(false);
-        }
+        } catch (error) { toast.error("Failed to load roles."); } finally { setLoading(false); }
     };
 
     useEffect(() => { fetchRoles(); }, []);
@@ -56,13 +50,13 @@ const RoleManagement = () => {
             const response = await fetch(url, {
                 method: method,
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData)
+                body: JSON.stringify({ UserType: formData.UserType, UserRole: formData.UserRole, ActStatus: formData.IsActive })
             });
             if (response.ok) {
-                toast.success("Saved successfully!");
-                closeModals();
+                toast.success("Saved!");
+                setIsModalOpen(false);
                 fetchRoles();
-            } else { toast.error("Failed to save."); }
+            } else { toast.error("Error saving."); }
         } catch (error) { toast.error("Network error."); }
     };
 
@@ -72,37 +66,20 @@ const RoleManagement = () => {
     };
 
     const handleDelete = async () => {
-        toast.loading("Deleting role...", { toastId: 'deleteRole' });
-
+        toast.loading("Deleting...", { toastId: 'deleteRole' });
         try {
-            const response = await fetch(`${API_URL}/${selectedRole.UserInfoId}`, {
-                method: 'DELETE'
-            });
-
+            const response = await fetch(`${API_BASE_URL}/userinfo/${selectedRole.UserInfoId}`, { method: 'DELETE' });
             toast.dismiss('deleteRole');
-
-            if (response.ok) {
-                toast.success("Role deleted successfully!");
-                closeModals();
-                fetchRoles();
-            } else {
-                toast.error(`Error: Failed to delete`);
-            }
-        } catch (error) {
-            toast.dismiss('deleteRole');
-            toast.error("Network error.");
-        }
+            if (response.ok) { toast.success("Deleted!"); setIsDeleteModalOpen(false); fetchRoles(); }
+            else { toast.error("Failed to delete"); }
+        } catch (error) { toast.dismiss('deleteRole'); toast.error("Network error."); }
     };
 
     const getRoleStyles = (roleName) => {
         switch (roleName) {
-            case 'Superadmin':
-                return { backgroundColor: 'rgba(255, 62, 29, 0.16)', color: '#ff3e1d' };
-            case 'Admin':
-                return { backgroundColor: 'rgba(105, 108, 255, 0.16)', color: '#696cff' };
-            case 'Viewer':
-            default:
-                return { backgroundColor: 'rgba(113, 221, 55, 0.16)', color: '#71dd37' };
+            case 'Superadmin': return { backgroundColor: 'rgba(255, 62, 29, 0.16)', color: '#ff3e1d' };
+            case 'Admin': return { backgroundColor: 'rgba(105, 108, 255, 0.16)', color: '#696cff' };
+            default: return { backgroundColor: 'rgba(113, 221, 55, 0.16)', color: '#71dd37' };
         }
     };
 
@@ -136,10 +113,7 @@ const RoleManagement = () => {
                     <h4 style={styles.title}>System Role Management</h4>
                     <button style={styles.btnPrimary} onClick={openCreateModal}>+ Create New Role</button>
                 </div>
-
-                {loading ? (
-                    <p style={{ color: '#a1acb8' }}>Loading roles from local database...</p>
-                ) : (
+                {loading ? <p>Loading...</p> : (
                     <div style={styles.tableContainer}>
                         <table style={styles.table}>
                             <thead>
@@ -153,105 +127,45 @@ const RoleManagement = () => {
                             </thead>
                             <tbody>
                                 {roles.map(role => (
-                                    <tr key={role.UserInfoId} style={{ transition: 'background-color 0.2s' }} onMouseOver={e => e.currentTarget.style.backgroundColor = '#f9f9fb'} onMouseOut={e => e.currentTarget.style.backgroundColor = 'transparent'}>
+                                    <tr key={role.UserInfoId}>
                                         <td style={styles.td}>#{role.UserInfoId}</td>
                                         <td style={styles.td}><strong>{role.UserType}</strong></td>
+                                        <td style={styles.td}><span style={{ ...getRoleStyles(role.UserRole), padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: '600' }}>{role.UserRole}</span></td>
+                                        <td style={styles.td}><span style={{ backgroundColor: role.ActStatus == 1 ? 'rgba(113, 221, 55, 0.16)' : 'rgba(255, 62, 29, 0.16)', color: role.ActStatus == 1 ? '#71dd37' : '#ff3e1d', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: '600' }}>{role.ActStatus == 1 ? 'Active' : 'Inactive'}</span></td>
                                         <td style={styles.td}>
-                                            <span style={{
-                                                ...getRoleStyles(role.UserRole),
-                                                padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: '600'
-                                            }}>
-                                                {role.UserRole}
-                                            </span>
-                                        </td>
-                                        <td style={styles.td}>
-                                            <span style={{
-                                                backgroundColor: role.IsActive == 1 || role.IsActive === undefined ? 'rgba(113, 221, 55, 0.16)' : 'rgba(255, 62, 29, 0.16)',
-                                                color: role.IsActive == 1 || role.IsActive === undefined ? '#71dd37' : '#ff3e1d',
-                                                padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: '600'
-                                            }}>
-                                                {role.IsActive == 1 || role.IsActive === undefined ? 'Active' : 'Inactive'}
-                                            </span>
-                                        </td>
-                                        <td style={styles.td}>
-                                            <button style={styles.actionBtnEdit} onClick={() => openEditModal(role)} title="Edit">✏️</button>
-                                            <button style={styles.actionBtnDelete} onClick={() => confirmDelete(role)} title="Delete">🗑️</button>
+                                            <button style={styles.actionBtnEdit} onClick={() => openEditModal(role)}>✏️</button>
+                                            <button style={styles.actionBtnDelete} onClick={() => confirmDelete(role)}>🗑️</button>
                                         </td>
                                     </tr>
                                 ))}
-                                {roles.length === 0 && (
-                                    <tr><td colSpan="5" style={{ ...styles.td, textAlign: 'center' }}>No roles found in local database. Create one above!</td></tr>
-                                )}
                             </tbody>
                         </table>
                     </div>
                 )}
-
                 {isModalOpen && (
                     <div style={styles.modalOverlay}>
                         <div style={styles.modalContent}>
                             <button style={styles.closeBtn} onClick={closeModals}>×</button>
-                            <h4 style={{ marginTop: 0, color: '#566a7f', marginBottom: '24px' }}>
-                                {formData.UserInfoId ? 'Edit Existing Role' : 'Create New Role'}
-                            </h4>
+                            <h4>{formData.UserInfoId ? 'Edit Role' : 'Create Role'}</h4>
                             <form onSubmit={handleFormSubmit}>
-                                <div>
-                                    <label style={styles.label}>Role Name (User Type)</label>
-                                    <input
-                                        type="text"
-                                        style={styles.input}
-                                        placeholder="e.g. Finance Manager, Astha Didi"
-                                        value={formData.UserType}
-                                        onChange={(e) => setFormData({ ...formData, UserType: e.target.value })}
-                                        required
-                                    />
-                                </div>
-                                <div>
-                                    <label style={styles.label}>Category Level (User Role)</label>
-                                    <select
-                                        style={styles.input}
-                                        value={formData.UserRole}
-                                        onChange={(e) => setFormData({ ...formData, UserRole: e.target.value })}
-                                    >
-                                        <option value="Superadmin">Superadmin</option>
-                                        <option value="Admin">Admin</option>
-                                        <option value="Viewer">Viewer</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label style={styles.label}>Status (Visibility)</label>
-                                    <select
-                                        style={styles.input}
-                                        value={formData.IsActive}
-                                        onChange={(e) => setFormData({ ...formData, IsActive: parseInt(e.target.value) })}
-                                    >
-                                        <option value={1}>Active (Visible)</option>
-                                        <option value={0}>Inactive (Hidden)</option>
-                                    </select>
-                                </div>
+                                <label style={styles.label}>Role Name</label>
+                                <input type="text" style={styles.input} value={formData.UserType} onChange={(e) => setFormData({ ...formData, UserType: e.target.value })} required />
+                                <label style={styles.label}>Category</label>
+                                <select style={styles.input} value={formData.UserRole} onChange={(e) => setFormData({ ...formData, UserRole: e.target.value })}>
+                                    <option value="Superadmin">Superadmin</option>
+                                    <option value="Admin">Admin</option>
+                                    <option value="Viewer">Viewer</option>
+                                </select>
+                                <label style={styles.label}>Status</label>
+                                <select style={styles.input} value={formData.IsActive} onChange={(e) => setFormData({ ...formData, IsActive: parseInt(e.target.value) })}>
+                                    <option value={1}>Active</option>
+                                    <option value={0}>Inactive</option>
+                                </select>
                                 <div style={styles.modalActions}>
                                     <button type="button" style={styles.btnOutline} onClick={closeModals}>Cancel</button>
-                                    <button type="submit" style={styles.btnPrimary}>
-                                        {formData.UserInfoId ? 'Update Role' : 'Save Role'}
-                                    </button>
+                                    <button type="submit" style={styles.btnPrimary}>{formData.UserInfoId ? 'Update' : 'Save'}</button>
                                 </div>
                             </form>
-                        </div>
-                    </div>
-                )}
-
-                {isDeleteModalOpen && (
-                    <div style={styles.modalOverlay}>
-                        <div style={{ ...styles.modalContent, maxWidth: '400px', textAlign: 'center' }}>
-                            <button style={styles.closeBtn} onClick={closeModals}>×</button>
-                            <h4 style={{ marginTop: 0, color: '#ff3e1d' }}>Confirm Delete</h4>
-                            <p style={{ color: '#697a8d', margin: '16px 0' }}>
-                                Are you sure you want to completely delete the role <strong style={{ color: '#566a7f' }}>{selectedRole?.UserType}</strong>? This action cannot be undone.
-                            </p>
-                            <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', marginTop: '24px' }}>
-                                <button onClick={closeModals} style={styles.btnOutline}>Cancel</button>
-                                <button onClick={handleDelete} style={styles.btnDanger}>Yes, Delete</button>
-                            </div>
                         </div>
                     </div>
                 )}
@@ -259,5 +173,4 @@ const RoleManagement = () => {
         </div>
     );
 };
-
 export default RoleManagement;

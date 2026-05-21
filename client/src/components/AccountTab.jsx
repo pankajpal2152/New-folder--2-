@@ -201,6 +201,10 @@ const AccountTab = () => {
   }, [dbSupervisors, filterMotherNgo, filterState, filterDistrict]);
 
   const filteredAsthaDidiOptions = useMemo(() => {
+    const user = getSafeUser();
+    const currentUserId = user ? (user.id || user.UserSignUpId) : null;
+    const currentProfileId = user ? user.ProfileRegId : null;
+
     return dbAsthaDidis.filter((ad) => {
       let matches = true;
       if (
@@ -219,7 +223,18 @@ const AccountTab = () => {
         ad.distName?.toLowerCase() !== filterDistrict.label.toLowerCase()
       )
         matches = false;
-      if (filterSupervisor) {
+
+      // NEW LOGIC: Filter specifically for logged in Supervisors using their own ID
+      if (appUserRole === "Supervisor") {
+        const matchBySupRegId =
+          ad.supRegId != null && String(ad.supRegId) === String(currentProfileId);
+        const matchByCreator =
+          ad.createdByAuthRegId != null && String(ad.createdByAuthRegId) === String(currentUserId);
+        
+        if (!matchBySupRegId && !matchByCreator) matches = false;
+
+      } else if (filterSupervisor) {
+        // Fallback for Admins who explicitly select a supervisor from the dropdown
         const matchBySupRegId =
           ad.supRegId != null &&
           String(ad.supRegId) === String(filterSupervisor.value);
@@ -228,8 +243,10 @@ const AccountTab = () => {
           filterSupervisor.userSignUpId != null &&
           String(ad.createdByAuthRegId) ===
             String(filterSupervisor.userSignUpId);
+        
         if (!matchBySupRegId && !matchByCreator) matches = false;
       }
+
       return matches;
     });
   }, [
@@ -238,6 +255,7 @@ const AccountTab = () => {
     filterState,
     filterDistrict,
     filterSupervisor,
+    appUserRole
   ]);
 
   // --- Auto-Selection Logic ---
@@ -291,7 +309,6 @@ const AccountTab = () => {
     if (appUserRole === "District Administrator") {
       return ["Supervisor", "Astha Didi", "Astha Maa"].includes(o.value);
     }
-    // NEW LOGIC: If Supervisor, restrict dropdown strictly to Astha Didi and Astha Maa
     if (appUserRole === "Supervisor") {
       return ["Astha Didi", "Astha Maa"].includes(o.value);
     }
@@ -305,7 +322,6 @@ const AccountTab = () => {
     "District Administrator",
   ].includes(adminActiveView);
   
-  // NEW LOGIC: Hide the Supervisor dropdown if the user IS a Supervisor
   const isSupervisorVisible = 
     ["Astha Maa", "Astha Didi"].includes(adminActiveView) && 
     appUserRole !== "Supervisor";
@@ -464,7 +480,8 @@ const AccountTab = () => {
               options={filteredAsthaDidiOptions}
               value={filterAsthaDidi}
               onChange={setFilterAsthaDidi}
-              isDisabled={!filterSupervisor}
+              // NEW LOGIC: Only wait for District if the user is a Supervisor
+              isDisabled={appUserRole === "Supervisor" ? !filterDistrict : !filterSupervisor}
               isClearable
               placeholder="Astha Didi"
               styles={{

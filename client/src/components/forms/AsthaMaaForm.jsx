@@ -5,7 +5,6 @@ import * as z from 'zod';
 import Select from 'react-select';
 import { toast } from 'react-toastify';
 import { API_BASE_URL, DUMMY_AVATAR, indianZipRegex, indianPhoneRegex, styles, FormInput } from '../../config/constants';
-// IMPORT FIXED: Using the shared one from utils, local declaration removed below
 import { getSafeUser, PasswordInput, validateUniqueFields } from '../AccountSharedUtils';
 
 export const asthaMaaSchema = z.object({
@@ -185,6 +184,11 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
         } catch (error) { toast.dismiss('savingMaa'); toast.error("Network error."); }
     };
 
+    // ✅ FIXED: Added missing error handler function
+    const onErrorAsthaMaa = () => {
+        toast.error("Error: Please check the required red fields.");
+    };
+
     const isFormEnabled = isAsthaDidi && !!filterAsthaDidi;
 
     return (
@@ -193,21 +197,18 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
                 <h5>Astha Maa Registration</h5>
             </div>
 
-            {/* 👇 Show error banner if the logged-in user is NOT an Astha Didi */}
             {!isAsthaDidi && (
                 <div style={{ padding: '12px 24px', backgroundColor: '#f8d7da', color: '#721c24', borderBottom: '1px solid #f5c6cb' }}>
-                    <strong>Access Denied:</strong> Only a user with the role of <strong>Astha Didi</strong> can submit this form. Your current role does not permit this action.
+                    <strong>Access Denied:</strong> Only a user with the role of <strong>Astha Didi</strong> can submit this form.
                 </div>
             )}
 
-            {/* Show notice if they ARE an Astha Didi, but haven't picked one in the filter dropdown yet */}
             {isAsthaDidi && !filterAsthaDidi && (
                 <div style={{ padding: '12px 24px', backgroundColor: '#fff3cd', color: '#856404', borderBottom: '1px solid #ffeeba' }}>
                     <strong>Notice:</strong> Please select an <strong>Astha Didi</strong> from the top filters before filling out this registration form.
                 </div>
             )}
 
-            {/* 👇 Form elements disabled using the combined 'isFormEnabled' check */}
             <div style={{ ...styles.cardBody, opacity: !isFormEnabled ? 0.6 : 1, pointerEvents: !isFormEnabled ? 'none' : 'auto' }}>
                 <div style={styles.profileSection}>
                     <img src={profileImage} alt="Profile Avatar" style={styles.avatar} />
@@ -290,12 +291,11 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
                     <h6 style={styles.sectionHeader}>Login & Account Setup</h6>
                     <div style={styles.formGrid}>
                         <Controller name="userName" control={control} render={({ field }) => (
-                            <FormInput label={<>User Name <span style={{ color: '#ff3e1d' }}>*</span></>} id="userName" error={errors.userName} type="text" readOnly disabled={true} {...field} />
+                            <FormInput label={<>User Name <span style={{ color: '#ff3e1d' }}>*</span></>} id="userName" error={errors.userName} type="text" readOnly disabled {...field} />
                         )} />
                         <Controller name="email" control={control} render={({ field }) => (
                             <FormInput label={<>Email ID (For Login) <span style={{ color: '#ff3e1d' }}>*</span></>} id="email" error={errors.email} placeholder="Email ID" type="email" maxLength={100} autoComplete="off" {...field} />
                         )} />
-
                         <Controller name="password" control={control} render={({ field }) => (
                             <PasswordInput label={<>Set Password <span style={{ color: '#ff3e1d' }}>*</span></>} id="password" error={errors.password} autoComplete="new-password" {...field} />
                         )} />
@@ -325,7 +325,6 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
 
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '16px', marginTop: '32px' }}>
                         <button type="button" style={styles.btnOutline} onClick={handleCancelAsthaMaa}>Cancel</button>
-                        {/* 👇 Submit button is disabled if isFormEnabled is false */}
                         <button type="submit" style={{ ...styles.btnPrimary, opacity: !isFormEnabled ? 0.5 : 1 }} disabled={!isFormEnabled}>Submit</button>
                     </div>
                 </form>

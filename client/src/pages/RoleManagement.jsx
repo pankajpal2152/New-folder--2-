@@ -2,38 +2,32 @@
 import React, { useState, useEffect } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-
-const API_URL = 'http://localhost:5000/api/userinfo';
+import { API_BASE_URL } from '../config/constants'; // ✅ FIXED: Using dynamic URL
 
 const RoleManagement = () => {
     const [roles, setRoles] = useState([]);
     const [loading, setLoading] = useState(true);
-
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-
-    // Added IsActive to the form state
     const [formData, setFormData] = useState({ UserInfoId: null, UserType: '', UserRole: 'Viewer', IsActive: 1 });
     const [selectedRole, setSelectedRole] = useState(null);
 
     const fetchRoles = async () => {
         setLoading(true);
         try {
-            const response = await fetch(API_URL);
+            const response = await fetch(`${API_BASE_URL}/userinfo`); // ✅ FIXED URL
             if (!response.ok) throw new Error("Failed to fetch");
             const data = await response.json();
             setRoles(data);
         } catch (error) {
             console.error("Error fetching roles:", error);
-            toast.error("Failed to load roles from local database.");
+            toast.error("Failed to load roles.");
         } finally {
             setLoading(false);
         }
     };
 
-    useEffect(() => {
-        fetchRoles();
-    }, []);
+    useEffect(() => { fetchRoles(); }, []);
 
     const openCreateModal = () => {
         setFormData({ UserInfoId: null, UserType: '', UserRole: 'Viewer', IsActive: 1 });
@@ -54,43 +48,22 @@ const RoleManagement = () => {
 
     const handleFormSubmit = async (e) => {
         e.preventDefault();
-        if (!formData.UserType.trim()) {
-            toast.warning("Role Name is required!");
-            return;
-        }
-
         const isEditing = formData.UserInfoId !== null;
-        const url = isEditing ? `${API_URL}/${formData.UserInfoId}` : API_URL;
+        const url = isEditing ? `${API_BASE_URL}/userinfo/${formData.UserInfoId}` : `${API_BASE_URL}/userinfo`;
         const method = isEditing ? 'PUT' : 'POST';
-
-        toast.loading(isEditing ? "Updating role..." : "Creating role...", { toastId: 'saveRole' });
 
         try {
             const response = await fetch(url, {
                 method: method,
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    UserType: formData.UserType,
-                    UserRole: formData.UserRole,
-                    IsActive: formData.IsActive // Send status to DB
-                })
+                body: JSON.stringify(formData)
             });
-
-            toast.dismiss('saveRole');
-
             if (response.ok) {
-                toast.success(`Role successfully ${isEditing ? 'updated' : 'created'}!`);
+                toast.success("Saved successfully!");
                 closeModals();
                 fetchRoles();
-            } else {
-                const text = await response.text();
-                toast.error(`Error: ${text}`);
-            }
-        } catch (error) {
-            toast.dismiss('saveRole');
-            console.error("Error saving role:", error);
-            toast.error("Network error.");
-        }
+            } else { toast.error("Failed to save."); }
+        } catch (error) { toast.error("Network error."); }
     };
 
     const confirmDelete = (role) => {

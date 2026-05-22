@@ -314,7 +314,6 @@ const DistrictAdminTable = ({ refreshTrigger, externalFilters }) => {
     useEffect(() => { fetchMembers(); }, [refreshTrigger]);
 
     const filteredMembers = useMemo(() => {
-        // Requirement: Only show data if all three filters are selected
         const isFiltersSelected = externalFilters?.filterMotherNgo && externalFilters?.filterState && externalFilters?.filterDistrict;
         if (!isFiltersSelected) return [];
 
@@ -437,7 +436,7 @@ const DistrictAdminTable = ({ refreshTrigger, externalFilters }) => {
                         <table style={styles.table}>
                             <thead>
                                 <tr>
-                                    {['NGO Name', 'Reg Date', 'Reg No', 'PAN No', 'Darpan ID', 'NGO Email', 'NGO Mobile', 'Block', 'State', 'District', 'Secretary Name', 'Secretary Email', 'Secretary Mobile', 'Secretary Aadhar', 'Bank Name', 'Account No', 'IFSC', 'Status', 'Actions'].map(h => <th style={styles.th} key={h}>{h}</th>)}
+                                    {['NGO Name', 'Reg Date', 'Reg No', 'PAN No', 'Darpan ID', 'Email', 'Mobile', 'Block', 'State', 'District', 'Sec Name', 'Sec Email', 'Sec Mobile', 'Sec Aadhar', 'Bank Name', 'Acc No', 'IFSC', 'Docs', 'Status', 'Appr By', 'Appr Date', 'Appr ID', 'Username', 'Login Email', 'Actions'].map(h => <th style={styles.th} key={h}>{h}</th>)}
                                 </tr>
                             </thead>
                             <tbody>
@@ -460,7 +459,15 @@ const DistrictAdminTable = ({ refreshTrigger, externalFilters }) => {
                                         <td style={styles.td}>{row.DistNGOBankName}</td>
                                         <td style={styles.td}>{row.DistNGOAcctNo}</td>
                                         <td style={styles.td}>{row.DistNGOIFSCode}</td>
+                                        <td style={styles.td}>
+                                            {row.DistNGORecCertificate ? "✅Reg" : "❌Reg"} | {row.DistNGOPanPic ? "✅Pan" : "❌Pan"} | {row.DistNGODarpanPic ? "✅Dar" : "❌Dar"}
+                                        </td>
                                         <td style={{ ...styles.td, color: Number(row.DistNGOIsActive) === 2 ? 'green' : 'orange' }}>{Number(row.DistNGOIsActive) === 2 ? 'Approved' : 'Pending'}</td>
+                                        <td style={styles.td}>{row.ApproverDisplayName || row.DistNGOAprovedBy || '-'}</td>
+                                        <td style={styles.td}>{formatDisplayDate(row.DistNGOAprovedDate)}</td>
+                                        <td style={styles.td}>{row.DistNGOGenRegNo || '-'}</td>
+                                        <td style={styles.td}>{row.DistNGOSignupUserName}</td>
+                                        <td style={styles.td}>{row.DistNGOSignupEmail}</td>
                                         <td style={styles.td}>
                                             <button onClick={() => openModal('view', row)} style={styles.actionBtn}>👁️</button>
                                             <button onClick={() => openModal('edit', row)} style={styles.actionBtn}>✏️</button>
@@ -469,7 +476,7 @@ const DistrictAdminTable = ({ refreshTrigger, externalFilters }) => {
                                         </td>
                                     </tr>
                                 ))}
-                                {filteredMembers.length === 0 && <tr><td colSpan="19" style={{ textAlign: 'center', padding: '20px' }}>{externalFilters?.filterState && externalFilters?.filterDistrict ? "No members found." : "Please select State and District to view records."}</td></tr>}
+                                {filteredMembers.length === 0 && <tr><td colSpan="25" style={{ textAlign: 'center', padding: '20px' }}>{externalFilters?.filterState && externalFilters?.filterDistrict ? "No members found." : "Please select State and District to view records."}</td></tr>}
                             </tbody>
                         </table>
                     </div>

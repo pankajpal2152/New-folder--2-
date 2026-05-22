@@ -47,7 +47,7 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
         resolver: zodResolver(asthaMaaSchema),
         mode: 'onChange',
         defaultValues: {
-            joiningAmount: '105', walletBalance: '27000',
+            joiningAmount: '105', walletBalance: '0', // Fixed: Changed from '27000' to '0'
             fullName: '', sdwOf: '', dob: '', guardianContactNo: '',
             state: null, district: null, city: '', block: '', postOffice: '', policeStation: '', gramPanchayet: '', village: '', pinCode: '', mobileNo: '', email: '', userName: '', password: '',
             bankName: '', branchName: '', accountNo: '', ifsCode: '', panNo: '', aadharNo: ''
@@ -184,7 +184,6 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
         } catch (error) { toast.dismiss('savingMaa'); toast.error("Network error."); }
     };
 
-    // FIXED: Function defined to prevent ReferenceError
     const onErrorAsthaMaa = () => {
         toast.error("Error: Please check the required red fields.");
     };
@@ -227,6 +226,10 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
                     <div style={styles.formGrid}>
                         <Controller name="joiningAmount" control={control} render={({ field }) => (
                             <FormInput label={<>Joining Amount <span style={{ color: '#ff3e1d' }}>*</span></>} id="joiningAmount" error={errors.joiningAmount} placeholder="Enter Amount" type="number" readOnly disabled={true} {...field} />
+                        )} />
+                        {/* Fixed: Added Wallet Balance field so it mirrors the Edit modal and is clearly visible to the user */}
+                        <Controller name="walletBalance" control={control} render={({ field }) => (
+                            <FormInput label={<>Wallet Balance <span style={{ color: '#ff3e1d' }}>*</span></>} id="walletBalance" error={errors.walletBalance} placeholder="Wallet Balance" type="number" readOnly disabled={true} {...field} />
                         )} />
                     </div>
 

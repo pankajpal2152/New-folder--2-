@@ -71,10 +71,11 @@ const AccountTab = () => {
       .then((res) => res.json())
       .then((data) =>
         setDbStates(
-          data.map((s) => ({ value: s.StateId, label: s.StateName })),
-        ),
+          data.map((s) => ({ value: s.StateId, label: s.StateName }))
+        )
       )
       .catch(console.error);
+
     fetch(`${API_BASE_URL}/districtadmin`)
       .then((res) => res.json())
       .then((data) =>
@@ -84,10 +85,11 @@ const AccountTab = () => {
             label: n.DistNGOName,
             districtName: n.DistNGODistName,
             stateName: n.DistNGOStateName,
-          })),
-        ),
+          }))
+        )
       )
       .catch(console.error);
+
     fetch(`${API_BASE_URL}/supervisor`)
       .then((res) => res.json())
       .then((data) =>
@@ -99,10 +101,11 @@ const AccountTab = () => {
             stateName: s.SupStateName,
             distName: s.SupDistName,
             motherNgoId: s.DistNGORegId,
-          })),
-        ),
+          }))
+        )
       )
       .catch(console.error);
+
     fetch(`${API_BASE_URL}/asthadidi`)
       .then((res) => res.json())
       .then((data) =>
@@ -115,8 +118,8 @@ const AccountTab = () => {
             motherNgoId: a.DistNGORegId,
             supRegId: a.SupRegId,
             createdByAuthRegId: a.AsthaDidiCreatedByAuthRegId,
-          })),
-        ),
+          }))
+        )
       )
       .catch(console.error);
   }, []);
@@ -147,7 +150,7 @@ const AccountTab = () => {
         .then((res) => res.json())
         .then((data) => {
           setDbDistricts(
-            data.map((d) => ({ value: d.DistId, label: d.DistName })),
+            data.map((d) => ({ value: d.DistId, label: d.DistName }))
           );
         })
         .catch(console.error);
@@ -159,7 +162,7 @@ const AccountTab = () => {
   const filteredMotherNgos = useMemo(() => {
     if (appUserRole === "District Administrator" && loggedInProfileId)
       return dbMotherNgos.filter(
-        (ngo) => String(ngo.value) === String(loggedInProfileId),
+        (ngo) => String(ngo.value) === String(loggedInProfileId)
       );
     if (
       appUserRole === "Supervisor" &&
@@ -167,11 +170,11 @@ const AccountTab = () => {
       dbSupervisors.length > 0
     ) {
       const currentSupervisor = dbSupervisors.find(
-        (sup) => String(sup.value) === String(loggedInProfileId),
+        (sup) => String(sup.value) === String(loggedInProfileId)
       );
       if (currentSupervisor && currentSupervisor.motherNgoId)
         return dbMotherNgos.filter(
-          (ngo) => String(ngo.value) === String(currentSupervisor.motherNgoId),
+          (ngo) => String(ngo.value) === String(currentSupervisor.motherNgoId)
         );
     }
     return dbMotherNgos;
@@ -189,7 +192,7 @@ const AccountTab = () => {
     if (filterMotherNgo && filterMotherNgo.districtName) {
       const ngoDist = filterMotherNgo.districtName.trim().toLowerCase();
       return dbDistricts.filter(
-        (d) => d.label.trim().toLowerCase() === ngoDist,
+        (d) => d.label.trim().toLowerCase() === ngoDist
       );
     }
     return dbDistricts;
@@ -241,7 +244,12 @@ const AccountTab = () => {
       )
         matches = false;
 
-      if (appUserRole === "Supervisor") {
+      // FIXED LOGIC: Ensure logged-in Astha Didis only see themselves in the dropdown
+      if (appUserRole === "Astha Didi") {
+        if (String(ad.value) !== String(currentProfileId)) {
+          matches = false;
+        }
+      } else if (appUserRole === "Supervisor") {
         const matchBySupRegId =
           ad.supRegId != null && String(ad.supRegId) === String(currentProfileId);
         const matchByCreator =
@@ -273,6 +281,7 @@ const AccountTab = () => {
     appUserRole
   ]);
 
+  // Handle single option logic
   useEffect(() => {
     if (filteredMotherNgos.length === 1 && !filterMotherNgo) {
       setFilterMotherNgo(filteredMotherNgos[0]);
@@ -296,6 +305,13 @@ const AccountTab = () => {
       setFilterSupervisor(filteredSupervisorOptions[0]);
     }
   }, [appUserRole, filteredSupervisorOptions, filterSupervisor]);
+
+  // NEW FIX: Automatically select the Astha Didi filter when only 1 option is available
+  useEffect(() => {
+    if (filteredAsthaDidiOptions.length === 1 && !filterAsthaDidi) {
+      setFilterAsthaDidi(filteredAsthaDidiOptions[0]);
+    }
+  }, [filteredAsthaDidiOptions, filterAsthaDidi]);
 
   const handleReset = (level) => {
     if (level <= 0) setFilterMotherNgo(null);
@@ -491,8 +507,12 @@ const AccountTab = () => {
               options={filteredAsthaDidiOptions}
               value={filterAsthaDidi}
               onChange={setFilterAsthaDidi}
-              isDisabled={appUserRole === "Supervisor" ? !filterDistrict : !filterSupervisor}
-              isClearable
+              /* FIXED LOGIC: Disable Dropdown if logged in as Astha Didi so they can't change it */
+              isDisabled={
+                appUserRole === "Astha Didi" ? true :
+                appUserRole === "Supervisor" ? !filterDistrict : !filterSupervisor
+              }
+              isClearable={appUserRole !== "Astha Didi"}
               placeholder="Astha Didi"
               styles={{
                 ...styles.selectStyles(false),

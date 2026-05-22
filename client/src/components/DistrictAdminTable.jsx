@@ -200,57 +200,25 @@ const DistrictAdminModal = ({ member, mode, onClose, onSuccess }) => {
                             <Controller name="ngoRegistrationDate" control={control} render={({ field }) => (<FormInput label="Date of Registration *" id="e_ngoRegDate" type="date" error={errors.ngoRegistrationDate} disabled={isView} {...field} />)} />
                             <Controller name="ngoRegistrationNo" control={control} render={({ field }) => (<FormInput label="Registration No *" id="e_ngoRegNo" error={errors.ngoRegistrationNo} disabled={isView} {...field} />)} />
                             <Controller name="ngoPanNo" control={control} render={({ field }) => (<FormInput label="NGO PAN No *" id="e_ngoPan" error={errors.ngoPanNo} disabled={isView} {...field} />)} />
-                            <Controller
-                                name="ngoDarpanId"
-                                control={control}
-                                render={({ field }) => (
-                                    <FormInput label="NGO Darpan ID" id="e_ngoDarpan" error={errors.ngoDarpanId} disabled={isView} {...field} />
-                                )}
-                            />
+                            <Controller name="ngoDarpanId" control={control} render={({ field }) => (<FormInput label="NGO Darpan ID" id="e_ngoDarpan" error={errors.ngoDarpanId} disabled={isView} {...field} />)} />
                             <Controller name="generalNgoEmail" control={control} render={({ field }) => (<FormInput label="NGO General Email *" id="e_generalNgoEmail" type="email" error={errors.generalNgoEmail} disabled={isView} {...field} />)} />
                             <Controller name="ngoMobile" control={control} render={({ field }) => (<FormInput label="NGO Mobile *" id="e_ngoMobile" type="tel" error={errors.ngoMobile} disabled={isView} {...field} />)} />
                         </div>
-
                         <h6 style={styles.sectionHeader}>Address Details</h6>
                         <div style={styles.formGrid}>
                             <div style={styles.inputGroup}>
                                 <label style={styles.label}>State *</label>
                                 <Controller name="state" control={control} render={({ field }) => (
-                                    <Select
-                                        {...field}
-                                        options={dbStates}
-                                        placeholder={member.DistNGOStateName || "Select..."}
-                                        styles={{
-                                            ...styles.selectStyles(!!errors.state),
-                                            menuPortal: base => ({ ...base, zIndex: 99999 }),
-                                            menu: base => ({ ...base, zIndex: 99999 })
-                                        }}
-                                        isDisabled={isReadOnlyField}
-                                        menuPortalTarget={document.body}
-                                        menuPosition="fixed"
-                                    />
+                                    <Select {...field} options={dbStates} placeholder={member.DistNGOStateName || "Select..."} styles={{ ...styles.selectStyles(!!errors.state), menuPortal: base => ({ ...base, zIndex: 99999 }), menu: base => ({ ...base, zIndex: 99999 }) }} isDisabled={isReadOnlyField} menuPortalTarget={document.body} menuPosition="fixed" />
                                 )} />
                             </div>
                             <div style={styles.inputGroup}>
                                 <label style={styles.label}>District *</label>
                                 <Controller name="district" control={control} render={({ field }) => (
-                                    <Select
-                                        {...field}
-                                        options={dbDistricts}
-                                        placeholder={member.DistNGODistName || "Select..."}
-                                        styles={{
-                                            ...styles.selectStyles(!!errors.district),
-                                            menuPortal: base => ({ ...base, zIndex: 99999 }),
-                                            menu: base => ({ ...base, zIndex: 99999 })
-                                        }}
-                                        isDisabled={isReadOnlyField}
-                                        menuPortalTarget={document.body}
-                                        menuPosition="fixed"
-                                    />
+                                    <Select {...field} options={dbDistricts} placeholder={member.DistNGODistName || "Select..."} styles={{ ...styles.selectStyles(!!errors.district), menuPortal: base => ({ ...base, zIndex: 99999 }), menu: base => ({ ...base, zIndex: 99999 }) }} isDisabled={isReadOnlyField} menuPortalTarget={document.body} menuPosition="fixed" />
                                 )} />
                             </div>
                             <Controller name="blockName" control={control} render={({ field }) => (<FormInput label="Block Name *" id="e_block" error={errors.blockName} disabled={isView} {...field} />)} />
-
                             <Controller name="ngoRegAddress" control={control} render={({ field }) => (
                                 <div style={{ ...styles.inputGroup, gridColumn: '1 / -1' }}>
                                     <label htmlFor="e_ngoRegAdd" style={styles.label}>NGO Register Address <span style={{ color: '#ff3e1d' }}>*</span></label>
@@ -266,7 +234,6 @@ const DistrictAdminModal = ({ member, mode, onClose, onSuccess }) => {
                                 </div>
                             )} />
                         </div>
-
                         <h6 style={styles.sectionHeader}>Secretary Details</h6>
                         <div style={styles.formGrid}>
                             <Controller name="sdpName" control={control} render={({ field }) => (<FormInput label="Secretary Name *" id="e_sdpName" error={errors.sdpName} disabled={isView} {...field} />)} />
@@ -274,14 +241,12 @@ const DistrictAdminModal = ({ member, mode, onClose, onSuccess }) => {
                             <Controller name="secretaryMobile" control={control} render={({ field }) => (<FormInput label="Secretary Mobile *" id="e_secMobile" type="tel" error={errors.secretaryMobile} disabled={isView} {...field} />)} />
                             <Controller name="secretaryAadhar" control={control} render={({ field }) => (<FormInput label="Secretary Aadhaar *" id="e_secAadhar" error={errors.secretaryAadhar} disabled={isView} {...field} />)} />
                         </div>
-
                         <h6 style={styles.sectionHeader}>Login & Account Setup</h6>
                         <div style={styles.formGrid}>
                             <Controller name="userName" control={control} render={({ field }) => (<FormInput label="User Name *" id="e_user" error={errors.userName} readOnly disabled={true} {...field} />)} />
                             <Controller name="ngoEmail" control={control} render={({ field }) => (<FormInput label="Email ID (For Login) *" id="e_loginEmail" type="email" error={errors.ngoEmail} disabled readOnly {...field} />)} />
                             <Controller name="password" control={control} render={({ field }) => (<PasswordInput label={<>Set Password <span style={{ color: '#ff3e1d' }}>*</span></>} id="e_pass" error={errors.password} disabled={isView} {...field} />)} />
                         </div>
-
                         <h6 style={styles.sectionHeader}>Banking & Account Setup</h6>
                         <div style={styles.formGrid}>
                             <Controller name="bankAccountHolderName" control={control} render={({ field }) => (<FormInput label="Account Holder Name *" id="e_acctHolder" error={errors.bankAccountHolderName} disabled={isView} {...field} />)} />
@@ -290,47 +255,11 @@ const DistrictAdminModal = ({ member, mode, onClose, onSuccess }) => {
                             <Controller name="ifsCode" control={control} render={({ field }) => (<FormInput label="IFS Code *" id="e_ifs" error={errors.ifsCode} disabled={isView} {...field} />)} />
                             <Controller name="bankAddress" control={control} render={({ field }) => (<FormInput label="Bank Address *" id="e_bankAdd" error={errors.bankAddress} disabled={isView} {...field} />)} />
                         </div>
-
-                        <h6 style={styles.sectionHeader}>Documents</h6>
                         <div style={styles.formGrid}>
-                            <div style={styles.inputGroup}>
-                                <label style={styles.label}>Reg Cert PDF</label>
-                                {!isView && <input type="file" accept="application/pdf" onChange={(e) => handlePdfUpload(e, setRegCertPdf)} style={styles.input(false)} />}
-                                {regCertPdf ? (
-                                    <div style={{ display: 'flex', alignItems: 'center', marginTop: '8px' }}>
-                                        <button type="button" onClick={() => handleViewPdf(regCertPdf)} style={{ ...styles.btnOutline, padding: '4px 8px', fontSize: '0.85rem' }}>👁️ View PDF</button>
-                                        {!isView && <span style={{ ...styles.hintText, color: '#71dd37', marginLeft: '10px', marginBottom: 0 }}>✅ Ready</span>}
-                                    </div>
-                                ) : (
-                                    <p style={styles.hintText}>❌ Missing</p>
-                                )}
-                            </div>
-                            <div style={styles.inputGroup}>
-                                <label style={styles.label}>NGO PAN PDF</label>
-                                {!isView && <input type="file" accept="application/pdf" onChange={(e) => handlePdfUpload(e, setPanPdf)} style={styles.input(false)} />}
-                                {panPdf ? (
-                                    <div style={{ display: 'flex', alignItems: 'center', marginTop: '8px' }}>
-                                        <button type="button" onClick={() => handleViewPdf(panPdf)} style={{ ...styles.btnOutline, padding: '4px 8px', fontSize: '0.85rem' }}>👁️ View PDF</button>
-                                        {!isView && <span style={{ ...styles.hintText, color: '#71dd37', marginLeft: '10px', marginBottom: 0 }}>✅ Ready</span>}
-                                    </div>
-                                ) : (
-                                    <p style={styles.hintText}>❌ Missing</p>
-                                )}
-                            </div>
-                            <div style={styles.inputGroup}>
-                                <label style={styles.label}>Darpan PDF</label>
-                                {!isView && <input type="file" accept="application/pdf" onChange={(e) => handlePdfUpload(e, setDarpanPdf)} style={styles.input(false)} />}
-                                {darpanPdf ? (
-                                    <div style={{ display: 'flex', alignItems: 'center', marginTop: '8px' }}>
-                                        <button type="button" onClick={() => handleViewPdf(darpanPdf)} style={{ ...styles.btnOutline, padding: '4px 8px', fontSize: '0.85rem' }}>👁️ View PDF</button>
-                                        {!isView && <span style={{ ...styles.hintText, color: '#71dd37', marginLeft: '10px', marginBottom: 0 }}>✅ Ready</span>}
-                                    </div>
-                                ) : (
-                                    <p style={styles.hintText}>❌ Missing</p>
-                                )}
-                            </div>
+                             <div style={styles.inputGroup}><label style={styles.label}>Reg Cert PDF</label>{!isView && <input type="file" accept="application/pdf" onChange={(e) => handlePdfUpload(e, setRegCertPdf)} style={styles.input(false)} />}{regCertPdf ? (<div style={{ display: 'flex', alignItems: 'center', marginTop: '8px' }}><button type="button" onClick={() => handleViewPdf(regCertPdf)} style={{ ...styles.btnOutline, padding: '4px 8px', fontSize: '0.85rem' }}>👁️ View PDF</button>{!isView && <span style={{ ...styles.hintText, color: '#71dd37', marginLeft: '10px', marginBottom: 0 }}>✅ Ready</span>}</div>) : (<p style={styles.hintText}>❌ Missing</p>)}</div>
+                             <div style={styles.inputGroup}><label style={styles.label}>NGO PAN PDF</label>{!isView && <input type="file" accept="application/pdf" onChange={(e) => handlePdfUpload(e, setPanPdf)} style={styles.input(false)} />}{panPdf ? (<div style={{ display: 'flex', alignItems: 'center', marginTop: '8px' }}><button type="button" onClick={() => handleViewPdf(panPdf)} style={{ ...styles.btnOutline, padding: '4px 8px', fontSize: '0.85rem' }}>👁️ View PDF</button>{!isView && <span style={{ ...styles.hintText, color: '#71dd37', marginLeft: '10px', marginBottom: 0 }}>✅ Ready</span>}</div>) : (<p style={styles.hintText}>❌ Missing</p>)}</div>
+                             <div style={styles.inputGroup}><label style={styles.label}>Darpan PDF</label>{!isView && <input type="file" accept="application/pdf" onChange={(e) => handlePdfUpload(e, setDarpanPdf)} style={styles.input(false)} />}{darpanPdf ? (<div style={{ display: 'flex', alignItems: 'center', marginTop: '8px' }}><button type="button" onClick={() => handleViewPdf(darpanPdf)} style={{ ...styles.btnOutline, padding: '4px 8px', fontSize: '0.85rem' }}>👁️ View PDF</button>{!isView && <span style={{ ...styles.hintText, color: '#71dd37', marginLeft: '10px', marginBottom: 0 }}>✅ Ready</span>}</div>) : (<p style={styles.hintText}>❌ Missing</p>)}</div>
                         </div>
-
                         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '32px', gap: '10px' }}>
                             <button type="button" style={styles.btnOutline} onClick={onClose}>{isView ? 'Close' : 'Cancel'}</button>
                             {!isView && <button type="submit" style={styles.btnPrimary}>Save Changes</button>}
@@ -349,12 +278,18 @@ const DistrictAdminTable = ({ refreshTrigger, externalFilters }) => {
     const [userName, setUserName] = useState('');
     const [userId, setUserId] = useState('');
     const [globalSearch, setGlobalSearch] = useState('');
+    
+    // Modal states
     const [viewModal, setViewModal] = useState(false);
     const [editModal, setEditModal] = useState(false);
     const [deleteModal, setDeleteModal] = useState(false);
     const [approveModal, setApproveModal] = useState(false);
     const [selectedRow, setSelectedRow] = useState(null);
     const [approvalData, setApprovalData] = useState({ id: '', dbDate: '' });
+
+    // Pagination states
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
 
     useEffect(() => {
         const user = getSafeUser();
@@ -380,6 +315,10 @@ const DistrictAdminTable = ({ refreshTrigger, externalFilters }) => {
     useEffect(() => { fetchMembers(); }, [refreshTrigger]);
 
     const filteredMembers = useMemo(() => {
+        // Requirement: Data not visible unless external filters (Mother NGO, State, District) are selected
+        const isFiltersSelected = externalFilters?.filterMotherNgo && externalFilters?.filterState && externalFilters?.filterDistrict;
+        if (!isFiltersSelected) return [];
+
         return members.filter((member) => {
             let matchesSearch = true;
             if (globalSearch) {
@@ -406,6 +345,12 @@ const DistrictAdminTable = ({ refreshTrigger, externalFilters }) => {
             return matchesSearch && matchesState && matchesDistrict;
         });
     }, [members, globalSearch, externalFilters]);
+
+    // Pagination calculation
+    const totalPages = Math.ceil(filteredMembers.length / itemsPerPage);
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    const currentTableData = filteredMembers.slice(indexOfFirstItem, indexOfLastItem);
 
     const openModal = async (type, member) => {
         setSelectedRow({ ...member });
@@ -495,18 +440,18 @@ const DistrictAdminTable = ({ refreshTrigger, externalFilters }) => {
             </div>
             <div style={styles.cardBody}>
                 <div style={{ marginBottom: '20px', paddingBottom: '20px', borderBottom: '1px solid #e0e0e0' }}>
-                    <input type="text" placeholder="🔍 Search..." value={globalSearch} onChange={(e) => setGlobalSearch(e.target.value)} style={{ ...styles.input(false), width: '100%', padding: '8px 12px' }} />
+                    <input type="text" placeholder="🔍 Search..." value={globalSearch} onChange={(e) => { setGlobalSearch(e.target.value); setCurrentPage(1); }} style={{ ...styles.input(false), width: '100%', padding: '8px 12px' }} />
                 </div>
                 {loading ? <p>Loading...</p> : (
                     <div style={styles.tableContainer}>
                         <table style={styles.table}>
                             <thead>
                                 <tr>
-                                    {['NGO Name', 'Reg Date', 'Reg No', 'PAN No', 'Darpan ID', 'NGO Email', 'NGO Mobile', 'State', 'District', 'Status', 'Actions'].map(h => <th style={styles.th} key={h}>{h}</th>)}
+                                    {['NGO Name', 'Reg Date', 'Reg No', 'PAN No', 'Darpan ID', 'Email', 'Mobile', 'Block', 'State', 'District', 'Status', 'Actions'].map(h => <th style={styles.th} key={h}>{h}</th>)}
                                 </tr>
                             </thead>
                             <tbody>
-                                {filteredMembers.map((row) => (
+                                {currentTableData.map((row) => (
                                     <tr key={row.DistNGORegId}>
                                         <td style={styles.td}>{row.DistNGOName}</td>
                                         <td style={styles.td}>{formatDisplayDate(row.DistNGORegDate)}</td>
@@ -515,6 +460,7 @@ const DistrictAdminTable = ({ refreshTrigger, externalFilters }) => {
                                         <td style={styles.td}>{row.DistNGODarpanId}</td>
                                         <td style={styles.td}>{row.DistNGOMailId}</td>
                                         <td style={styles.td}>{row.DistNGOPhoneNo}</td>
+                                        <td style={styles.td}>{row.DistNGOBlockName}</td>
                                         <td style={styles.td}>{row.DistNGOStateName}</td>
                                         <td style={styles.td}>{row.DistNGODistName}</td>
                                         <td style={{ ...styles.td, color: Number(row.DistNGOIsActive) === 2 ? 'green' : 'orange' }}>{Number(row.DistNGOIsActive) === 2 ? 'Approved' : 'Pending'}</td>
@@ -526,12 +472,22 @@ const DistrictAdminTable = ({ refreshTrigger, externalFilters }) => {
                                         </td>
                                     </tr>
                                 ))}
-                                {filteredMembers.length === 0 && <tr><td colSpan="11" style={{ textAlign: 'center', padding: '20px' }}>No members found.</td></tr>}
+                                {filteredMembers.length === 0 && <tr><td colSpan="12" style={{ textAlign: 'center', padding: '20px' }}>{externalFilters?.filterState && externalFilters?.filterDistrict ? "No members found." : "Please select State and District to view records."}</td></tr>}
                             </tbody>
                         </table>
+                        
+                        {/* Pagination Controls */}
+                        {filteredMembers.length > 0 && (
+                            <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'center', gap: '10px' }}>
+                                <button disabled={currentPage === 1} onClick={() => setCurrentPage(prev => prev - 1)} style={styles.btnOutline}>Previous</button>
+                                <span>Page {currentPage} of {totalPages}</span>
+                                <button disabled={currentPage === totalPages} onClick={() => setCurrentPage(prev => prev + 1)} style={styles.btnOutline}>Next</button>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>
+            
             {viewModal && selectedRow && <DistrictAdminModal member={selectedRow} mode="view" onClose={closeModal} onSuccess={closeModal} />}
             {editModal && selectedRow && <DistrictAdminModal member={selectedRow} mode="edit" onClose={closeModal} onSuccess={() => { closeModal(); fetchMembers(); }} />}
             {deleteModal && selectedRow && (

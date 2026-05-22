@@ -275,9 +275,12 @@ const DistrictAdminTable = ({ refreshTrigger, externalFilters }) => {
     const [members, setMembers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [userRole, setUserRole] = useState('');
-    const [userName, setUserName] = useState('');
     const [userId, setUserId] = useState('');
     const [globalSearch, setGlobalSearch] = useState('');
+    
+    // Pagination states
+    const [currentPage, setCurrentPage] = useState(1);
+    const [rowsPerPage, setRowsPerPage] = useState(10);
     
     // Modal states
     const [viewModal, setViewModal] = useState(false);
@@ -287,15 +290,10 @@ const DistrictAdminTable = ({ refreshTrigger, externalFilters }) => {
     const [selectedRow, setSelectedRow] = useState(null);
     const [approvalData, setApprovalData] = useState({ id: '', dbDate: '' });
 
-    // Pagination states
-    const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 10;
-
     useEffect(() => {
         const user = getSafeUser();
         if (user) {
             setUserRole(user.role || '');
-            setUserName(user.username || '');
             setUserId(user.UserSignUpId || user.id || '');
         }
     }, []);
@@ -315,7 +313,7 @@ const DistrictAdminTable = ({ refreshTrigger, externalFilters }) => {
     useEffect(() => { fetchMembers(); }, [refreshTrigger]);
 
     const filteredMembers = useMemo(() => {
-        // Requirement: Data not visible unless external filters (Mother NGO, State, District) are selected
+        // Requirement: Data visible only if filters are selected
         const isFiltersSelected = externalFilters?.filterMotherNgo && externalFilters?.filterState && externalFilters?.filterDistrict;
         if (!isFiltersSelected) return [];
 
@@ -346,11 +344,13 @@ const DistrictAdminTable = ({ refreshTrigger, externalFilters }) => {
         });
     }, [members, globalSearch, externalFilters]);
 
-    // Pagination calculation
-    const totalPages = Math.ceil(filteredMembers.length / itemsPerPage);
-    const indexOfLastItem = currentPage * itemsPerPage;
-    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    // Pagination Calculation
+    const totalPages = Math.max(1, Math.ceil(filteredMembers.length / rowsPerPage));
+    const indexOfLastItem = currentPage * rowsPerPage;
+    const indexOfFirstItem = indexOfLastItem - rowsPerPage;
     const currentTableData = filteredMembers.slice(indexOfFirstItem, indexOfLastItem);
+    
+    const handleRowsChange = (e) => { setRowsPerPage(Number(e.target.value)); setCurrentPage(1); };
 
     const openModal = async (type, member) => {
         setSelectedRow({ ...member });
@@ -443,11 +443,11 @@ const DistrictAdminTable = ({ refreshTrigger, externalFilters }) => {
                     <input type="text" placeholder="🔍 Search..." value={globalSearch} onChange={(e) => { setGlobalSearch(e.target.value); setCurrentPage(1); }} style={{ ...styles.input(false), width: '100%', padding: '8px 12px' }} />
                 </div>
                 {loading ? <p>Loading...</p> : (
-                    <div style={styles.tableContainer}>
+                    <div style={{...styles.tableContainer, overflowX: 'auto'}}>
                         <table style={styles.table}>
                             <thead>
                                 <tr>
-                                    {['NGO Name', 'Reg Date', 'Reg No', 'PAN No', 'Darpan ID', 'Email', 'Mobile', 'Block', 'State', 'District', 'Status', 'Actions'].map(h => <th style={styles.th} key={h}>{h}</th>)}
+                                    {['NGO Name', 'Reg Date', 'Reg No', 'PAN No', 'Darpan ID', 'Email', 'Mobile', 'Block', 'State', 'District', 'Sec Name', 'Sec Email', 'Sec Mobile', 'Sec Aadhaar', 'Bank Holder', 'Bank Name', 'Account No', 'IFS Code', 'Bank Address', 'Status', 'Actions'].map(h => <th style={styles.th} key={h}>{h}</th>)}
                                 </tr>
                             </thead>
                             <tbody>
@@ -463,6 +463,15 @@ const DistrictAdminTable = ({ refreshTrigger, externalFilters }) => {
                                         <td style={styles.td}>{row.DistNGOBlockName}</td>
                                         <td style={styles.td}>{row.DistNGOStateName}</td>
                                         <td style={styles.td}>{row.DistNGODistName}</td>
+                                        <td style={styles.td}>{row.DistNGOSDPName}</td>
+                                        <td style={styles.td}>{row.DistNGOSDPMailId}</td>
+                                        <td style={styles.td}>{row.DistNGOSDPPhoneNo}</td>
+                                        <td style={styles.td}>{row.DistNGOSDPAadhaarNo}</td>
+                                        <td style={styles.td}>{row.DistNGOBankAcctHolderName}</td>
+                                        <td style={styles.td}>{row.DistNGOBankName}</td>
+                                        <td style={styles.td}>{row.DistNGOAcctNo}</td>
+                                        <td style={styles.td}>{row.DistNGOIFSCode}</td>
+                                        <td style={styles.td}>{row.DistNGOBankAdd}</td>
                                         <td style={{ ...styles.td, color: Number(row.DistNGOIsActive) === 2 ? 'green' : 'orange' }}>{Number(row.DistNGOIsActive) === 2 ? 'Approved' : 'Pending'}</td>
                                         <td style={styles.td}>
                                             <button onClick={() => openModal('view', row)} style={styles.actionBtn}>👁️</button>
@@ -472,18 +481,27 @@ const DistrictAdminTable = ({ refreshTrigger, externalFilters }) => {
                                         </td>
                                     </tr>
                                 ))}
-                                {filteredMembers.length === 0 && <tr><td colSpan="12" style={{ textAlign: 'center', padding: '20px' }}>{externalFilters?.filterState && externalFilters?.filterDistrict ? "No members found." : "Please select State and District to view records."}</td></tr>}
+                                {filteredMembers.length === 0 && <tr><td colSpan="21" style={{ textAlign: 'center', padding: '20px' }}>{externalFilters?.filterState && externalFilters?.filterDistrict ? "No members found." : "Please select State and District to view records."}</td></tr>}
                             </tbody>
                         </table>
                         
-                        {/* Pagination Controls */}
-                        {filteredMembers.length > 0 && (
-                            <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'center', gap: '10px' }}>
-                                <button disabled={currentPage === 1} onClick={() => setCurrentPage(prev => prev - 1)} style={styles.btnOutline}>Previous</button>
-                                <span>Page {currentPage} of {totalPages}</span>
+                        {/* Pagination Footer */}
+                        <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div>
+                                <span>Rows per page: </span>
+                                <select value={rowsPerPage} onChange={handleRowsChange}>
+                                    <option value={5}>5</option>
+                                    <option value={10}>10</option>
+                                    <option value={20}>20</option>
+                                </select>
+                            </div>
+                            <div>
+                                <span style={{ marginRight: '16px' }}>Showing {filteredMembers.length === 0 ? 0 : indexOfFirstItem + 1} to {Math.min(indexOfLastItem, filteredMembers.length)} of {filteredMembers.length}</span>
+                                <button disabled={currentPage === 1} onClick={() => setCurrentPage(prev => prev - 1)} style={styles.btnOutline}>Prev</button>
+                                <span style={{ margin: '0 12px' }}>Page {currentPage} of {totalPages}</span>
                                 <button disabled={currentPage === totalPages} onClick={() => setCurrentPage(prev => prev + 1)} style={styles.btnOutline}>Next</button>
                             </div>
-                        )}
+                        </div>
                     </div>
                 )}
             </div>

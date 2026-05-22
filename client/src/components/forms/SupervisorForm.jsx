@@ -48,7 +48,8 @@ const SupervisorForm = ({ onSuccess, externalFilters }) => {
         resolver: zodResolver(asthaMaaSchema),
         mode: 'onChange',
         defaultValues: {
-            joiningAmount: '5000', walletBalance: '27000',
+            joiningAmount: '5000', 
+            walletBalance: '27000',
             fullName: '', sdwOf: '', dob: '', guardianContactNo: '',
             state: null, district: null, city: '', block: '', postOffice: '', policeStation: '', gramPanchayet: '', village: '', pinCode: '', mobileNo: '', email: '', userName: '', password: '',
             bankName: '', branchName: '', accountNo: '', ifsCode: '', panNo: '', aadharNo: ''
@@ -160,7 +161,7 @@ const SupervisorForm = ({ onSuccess, externalFilters }) => {
             SupPanNo: data.panNo || "",
             SupAadharNo: data.aadharNo,
             SupJoiningAmt: parseInt(data.joiningAmount) || 5000,
-            SupWalletBalance: parseInt(data.walletBalance) || 0,
+            SupWalletBalance: parseInt(data.walletBalance) || 27000,
             SupIsActive: 1,
             SupAprovedBy: null,
             SupAprovedDate: null,
@@ -227,11 +228,10 @@ const SupervisorForm = ({ onSuccess, externalFilters }) => {
                     <h6 style={styles.sectionHeader}>Supervisor Information</h6>
                     <div style={styles.formGrid}>
                         <Controller name="joiningAmount" control={control} render={({ field }) => (
-                            <FormInput label="Joining Amount" id="joiningAmount" error={errors.joiningAmount} type="number" readOnly disabled={true} {...field} />
+                            <FormInput label="Joining Amount" id="joiningAmount" error={errors.joiningAmount} type="number" readOnly={true} disabled={true} {...field} />
                         )} />
-                        {/* ✅ Added Wallet Balance to Form */}
                         <Controller name="walletBalance" control={control} render={({ field }) => (
-                            <FormInput label="Wallet Balance" id="walletBalance" error={errors.walletBalance} type="number" readOnly disabled={true} {...field} />
+                            <FormInput label="Wallet Balance" id="walletBalance" error={errors.walletBalance} type="number" readOnly={true} disabled={true} {...field} />
                         )} />
                     </div>
 

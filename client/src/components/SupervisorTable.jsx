@@ -220,7 +220,7 @@ const SupervisorModal = ({ member, mode, onClose, onSuccess }) => {
                         <h6 style={styles.sectionHeader}>Supervisor Information</h6>
                         <div style={styles.formGrid}>
                             <Controller name="joiningAmount" control={control} render={({ field }) => (<FormInput label="Joining Amount *" id="edit_joiningAmount" error={errors.joiningAmount} disabled={true} readOnly {...field} />)} />
-                            <Controller name="walletBalance" control={control} render={({ field }) => (<FormInput label="Wallet Balance *" id="edit_walletBalance" error={errors.walletBalance} disabled={true} readOnly {...field} />)} />
+                            {/* <Controller name="walletBalance" control={control} render={({ field }) => (<FormInput label="Wallet Balance *" id="edit_walletBalance" error={errors.walletBalance} disabled={true} readOnly {...field} />)} /> */}
                         </div>
 
                         <h6 style={styles.sectionHeader}>Personal Details</h6>

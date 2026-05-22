@@ -436,7 +436,7 @@ const DistrictAdminTable = ({ refreshTrigger, externalFilters }) => {
                         <table style={styles.table}>
                             <thead>
                                 <tr>
-                                    {['NGO Name', 'Reg Date', 'Reg No', 'PAN No', 'Darpan ID', 'Email', 'Mobile', 'Block', 'State', 'District', 'Sec Name', 'Sec Email', 'Sec Mobile', 'Sec Aadhar', 'Bank Name', 'Acc No', 'IFSC', 'Docs', 'Status', 'Appr By', 'Appr Date', 'Appr ID', 'Username', 'Password', 'Login Email', 'Actions'].map(h => <th style={styles.th} key={h}>{h}</th>)}
+                                    {['NGO Name', 'Reg Date', 'Reg No', 'PAN No', 'Darpan ID', 'NGO Email', 'NGO Mobile', 'State', 'District', 'Block', 'Reg Addr', 'Work Addr', 'Sec Name', 'Sec Email', 'Sec Mobile', 'Sec Aadhar', 'Acc Holder', 'Bank Name', 'Acc No', 'IFSC', 'Bank Addr', 'Reg Cert', 'PAN Doc', 'Darpan Doc', 'Status', 'Appr By', 'Appr Date', 'Appr ID', 'Username', 'Password', 'Login Email', 'Actions'].map(h => <th style={styles.th} key={h}>{h}</th>)}
                                 </tr>
                             </thead>
                             <tbody>
@@ -449,19 +449,23 @@ const DistrictAdminTable = ({ refreshTrigger, externalFilters }) => {
                                         <td style={styles.td}>{row.DistNGODarpanId}</td>
                                         <td style={styles.td}>{row.DistNGOMailId}</td>
                                         <td style={styles.td}>{row.DistNGOPhoneNo}</td>
-                                        <td style={styles.td}>{row.DistNGOBlockName}</td>
                                         <td style={styles.td}>{row.DistNGOStateName}</td>
                                         <td style={styles.td}>{row.DistNGODistName}</td>
+                                        <td style={styles.td}>{row.DistNGOBlockName}</td>
+                                        <td style={styles.td}>{row.DistNGORegAddress}</td>
+                                        <td style={styles.td}>{row.DistNGOWorkingAddress}</td>
                                         <td style={styles.td}>{row.DistNGOSDPName}</td>
                                         <td style={styles.td}>{row.DistNGOSDPMailId}</td>
                                         <td style={styles.td}>{row.DistNGOSDPPhoneNo}</td>
                                         <td style={styles.td}>{row.DistNGOSDPAadhaarNo}</td>
+                                        <td style={styles.td}>{row.DistNGOBankAcctHolderName}</td>
                                         <td style={styles.td}>{row.DistNGOBankName}</td>
                                         <td style={styles.td}>{row.DistNGOAcctNo}</td>
                                         <td style={styles.td}>{row.DistNGOIFSCode}</td>
-                                        <td style={styles.td}>
-                                            {row.DistNGORecCertificate ? "✅Reg" : "❌Reg"} | {row.DistNGOPanPic ? "✅Pan" : "❌Pan"} | {row.DistNGODarpanPic ? "✅Dar" : "❌Dar"}
-                                        </td>
+                                        <td style={styles.td}>{row.DistNGOBankAdd}</td>
+                                        <td style={styles.td}>{row.DistNGORecCertificate ? "✅" : "❌"}</td>
+                                        <td style={styles.td}>{row.DistNGOPanPic ? "✅" : "❌"}</td>
+                                        <td style={styles.td}>{row.DistNGODarpanPic ? "✅" : "❌"}</td>
                                         <td style={{ ...styles.td, color: Number(row.DistNGOIsActive) === 2 ? 'green' : 'orange' }}>{Number(row.DistNGOIsActive) === 2 ? 'Approved' : 'Pending'}</td>
                                         <td style={styles.td}>{row.ApproverDisplayName || row.DistNGOAprovedBy || '-'}</td>
                                         <td style={styles.td}>{formatDisplayDate(row.DistNGOAprovedDate)}</td>
@@ -477,7 +481,7 @@ const DistrictAdminTable = ({ refreshTrigger, externalFilters }) => {
                                         </td>
                                     </tr>
                                 ))}
-                                {filteredMembers.length === 0 && <tr><td colSpan="26" style={{ textAlign: 'center', padding: '20px' }}>{externalFilters?.filterState && externalFilters?.filterDistrict ? "No members found." : "Please select State and District to view records."}</td></tr>}
+                                {filteredMembers.length === 0 && <tr><td colSpan="32" style={{ textAlign: 'center', padding: '20px' }}>{externalFilters?.filterState && externalFilters?.filterDistrict ? "No members found." : "Please select State and District to view records."}</td></tr>}
                             </tbody>
                         </table>
                     </div>

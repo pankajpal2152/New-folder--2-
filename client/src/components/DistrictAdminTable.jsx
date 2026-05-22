@@ -255,10 +255,11 @@ const DistrictAdminModal = ({ member, mode, onClose, onSuccess }) => {
                             <Controller name="ifsCode" control={control} render={({ field }) => (<FormInput label="IFS Code *" id="e_ifs" error={errors.ifsCode} disabled={isView} {...field} />)} />
                             <Controller name="bankAddress" control={control} render={({ field }) => (<FormInput label="Bank Address *" id="e_bankAdd" error={errors.bankAddress} disabled={isView} {...field} />)} />
                         </div>
+                        <h6 style={styles.sectionHeader}>Documents</h6>
                         <div style={styles.formGrid}>
-                             <div style={styles.inputGroup}><label style={styles.label}>Reg Cert PDF</label>{!isView && <input type="file" accept="application/pdf" onChange={(e) => handlePdfUpload(e, setRegCertPdf)} style={styles.input(false)} />}{regCertPdf ? (<div style={{ display: 'flex', alignItems: 'center', marginTop: '8px' }}><button type="button" onClick={() => handleViewPdf(regCertPdf)} style={{ ...styles.btnOutline, padding: '4px 8px', fontSize: '0.85rem' }}>👁️ View PDF</button>{!isView && <span style={{ ...styles.hintText, color: '#71dd37', marginLeft: '10px', marginBottom: 0 }}>✅ Ready</span>}</div>) : (<p style={styles.hintText}>❌ Missing</p>)}</div>
-                             <div style={styles.inputGroup}><label style={styles.label}>NGO PAN PDF</label>{!isView && <input type="file" accept="application/pdf" onChange={(e) => handlePdfUpload(e, setPanPdf)} style={styles.input(false)} />}{panPdf ? (<div style={{ display: 'flex', alignItems: 'center', marginTop: '8px' }}><button type="button" onClick={() => handleViewPdf(panPdf)} style={{ ...styles.btnOutline, padding: '4px 8px', fontSize: '0.85rem' }}>👁️ View PDF</button>{!isView && <span style={{ ...styles.hintText, color: '#71dd37', marginLeft: '10px', marginBottom: 0 }}>✅ Ready</span>}</div>) : (<p style={styles.hintText}>❌ Missing</p>)}</div>
-                             <div style={styles.inputGroup}><label style={styles.label}>Darpan PDF</label>{!isView && <input type="file" accept="application/pdf" onChange={(e) => handlePdfUpload(e, setDarpanPdf)} style={styles.input(false)} />}{darpanPdf ? (<div style={{ display: 'flex', alignItems: 'center', marginTop: '8px' }}><button type="button" onClick={() => handleViewPdf(darpanPdf)} style={{ ...styles.btnOutline, padding: '4px 8px', fontSize: '0.85rem' }}>👁️ View PDF</button>{!isView && <span style={{ ...styles.hintText, color: '#71dd37', marginLeft: '10px', marginBottom: 0 }}>✅ Ready</span>}</div>) : (<p style={styles.hintText}>❌ Missing</p>)}</div>
+                            <div style={styles.inputGroup}><label style={styles.label}>Reg Cert PDF</label>{!isView && <input type="file" accept="application/pdf" onChange={(e) => handlePdfUpload(e, setRegCertPdf)} style={styles.input(false)} />}{regCertPdf ? (<div style={{ display: 'flex', alignItems: 'center', marginTop: '8px' }}><button type="button" onClick={() => handleViewPdf(regCertPdf)} style={{ ...styles.btnOutline, padding: '4px 8px', fontSize: '0.85rem' }}>👁️ View PDF</button>{!isView && <span style={{ ...styles.hintText, color: '#71dd37', marginLeft: '10px', marginBottom: 0 }}>✅ Ready</span>}</div>) : (<p style={styles.hintText}>❌ Missing</p>)}</div>
+                            <div style={styles.inputGroup}><label style={styles.label}>NGO PAN PDF</label>{!isView && <input type="file" accept="application/pdf" onChange={(e) => handlePdfUpload(e, setPanPdf)} style={styles.input(false)} />}{panPdf ? (<div style={{ display: 'flex', alignItems: 'center', marginTop: '8px' }}><button type="button" onClick={() => handleViewPdf(panPdf)} style={{ ...styles.btnOutline, padding: '4px 8px', fontSize: '0.85rem' }}>👁️ View PDF</button>{!isView && <span style={{ ...styles.hintText, color: '#71dd37', marginLeft: '10px', marginBottom: 0 }}>✅ Ready</span>}</div>) : (<p style={styles.hintText}>❌ Missing</p>)}</div>
+                            <div style={styles.inputGroup}><label style={styles.label}>Darpan PDF</label>{!isView && <input type="file" accept="application/pdf" onChange={(e) => handlePdfUpload(e, setDarpanPdf)} style={styles.input(false)} />}{darpanPdf ? (<div style={{ display: 'flex', alignItems: 'center', marginTop: '8px' }}><button type="button" onClick={() => handleViewPdf(darpanPdf)} style={{ ...styles.btnOutline, padding: '4px 8px', fontSize: '0.85rem' }}>👁️ View PDF</button>{!isView && <span style={{ ...styles.hintText, color: '#71dd37', marginLeft: '10px', marginBottom: 0 }}>✅ Ready</span>}</div>) : (<p style={styles.hintText}>❌ Missing</p>)}</div>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '32px', gap: '10px' }}>
                             <button type="button" style={styles.btnOutline} onClick={onClose}>{isView ? 'Close' : 'Cancel'}</button>
@@ -281,8 +282,7 @@ const DistrictAdminTable = ({ refreshTrigger, externalFilters }) => {
     // Pagination states
     const [currentPage, setCurrentPage] = useState(1);
     const [rowsPerPage, setRowsPerPage] = useState(10);
-    
-    // Modal states
+
     const [viewModal, setViewModal] = useState(false);
     const [editModal, setEditModal] = useState(false);
     const [deleteModal, setDeleteModal] = useState(false);
@@ -313,7 +313,6 @@ const DistrictAdminTable = ({ refreshTrigger, externalFilters }) => {
     useEffect(() => { fetchMembers(); }, [refreshTrigger]);
 
     const filteredMembers = useMemo(() => {
-        // Requirement: Data visible only if filters are selected
         const isFiltersSelected = externalFilters?.filterMotherNgo && externalFilters?.filterState && externalFilters?.filterDistrict;
         if (!isFiltersSelected) return [];
 
@@ -346,11 +345,11 @@ const DistrictAdminTable = ({ refreshTrigger, externalFilters }) => {
 
     // Pagination Calculation
     const totalPages = Math.max(1, Math.ceil(filteredMembers.length / rowsPerPage));
+    useEffect(() => { if (currentPage > totalPages) setCurrentPage(1); }, [filteredMembers.length, totalPages, currentPage]);
+    
     const indexOfLastItem = currentPage * rowsPerPage;
     const indexOfFirstItem = indexOfLastItem - rowsPerPage;
     const currentTableData = filteredMembers.slice(indexOfFirstItem, indexOfLastItem);
-    
-    const handleRowsChange = (e) => { setRowsPerPage(Number(e.target.value)); setCurrentPage(1); };
 
     const openModal = async (type, member) => {
         setSelectedRow({ ...member });
@@ -394,11 +393,6 @@ const DistrictAdminTable = ({ refreshTrigger, externalFilters }) => {
         try {
             toast.loading("Deleting...", { toastId: 'deleteNgo' });
             const payload = { ...selectedRow, DistNGOIsActive: "0" };
-            Object.keys(payload).forEach(key => {
-                if (typeof payload[key] === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(payload[key])) {
-                    payload[key] = payload[key].substring(0, 10);
-                }
-            });
             const res = await fetch(`${API_BASE_URL}/districtadmin/${selectedRow.DistNGORegId}`, {
                 method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
             });
@@ -416,12 +410,6 @@ const DistrictAdminTable = ({ refreshTrigger, externalFilters }) => {
             const utc = d.getTime() + (d.getTimezoneOffset() * 60000);
             const istDate = new Date(utc + (3600000 * 5.5));
             payload.DistNGOAprovedDate = istDate.toISOString().split('T')[0];
-
-            Object.keys(payload).forEach(key => {
-                if (key !== 'DistNGOAprovedDate' && typeof payload[key] === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(payload[key])) {
-                    payload[key] = payload[key].substring(0, 10);
-                }
-            });
 
             const res = await fetch(`${API_BASE_URL}/districtadmin/${selectedRow.DistNGORegId}`, {
                 method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
@@ -443,11 +431,11 @@ const DistrictAdminTable = ({ refreshTrigger, externalFilters }) => {
                     <input type="text" placeholder="🔍 Search..." value={globalSearch} onChange={(e) => { setGlobalSearch(e.target.value); setCurrentPage(1); }} style={{ ...styles.input(false), width: '100%', padding: '8px 12px' }} />
                 </div>
                 {loading ? <p>Loading...</p> : (
-                    <div style={{...styles.tableContainer, overflowX: 'auto'}}>
+                    <div style={styles.tableContainer}>
                         <table style={styles.table}>
                             <thead>
                                 <tr>
-                                    {['NGO Name', 'Reg Date', 'Reg No', 'PAN No', 'Darpan ID', 'Email', 'Mobile', 'Block', 'State', 'District', 'Sec Name', 'Sec Email', 'Sec Mobile', 'Sec Aadhaar', 'Bank Holder', 'Bank Name', 'Account No', 'IFS Code', 'Bank Address', 'Status', 'Actions'].map(h => <th style={styles.th} key={h}>{h}</th>)}
+                                    {['NGO Name', 'Reg Date', 'Reg No', 'PAN No', 'Darpan ID', 'Email', 'Mobile', 'Block', 'State', 'District', 'Secretary Name', 'Secretary Email', 'Secretary Mobile', 'Secretary Aadhar', 'Bank Name', 'Acc No', 'IFSC', 'Status', 'Actions'].map(h => <th style={styles.th} key={h}>{h}</th>)}
                                 </tr>
                             </thead>
                             <tbody>
@@ -467,11 +455,9 @@ const DistrictAdminTable = ({ refreshTrigger, externalFilters }) => {
                                         <td style={styles.td}>{row.DistNGOSDPMailId}</td>
                                         <td style={styles.td}>{row.DistNGOSDPPhoneNo}</td>
                                         <td style={styles.td}>{row.DistNGOSDPAadhaarNo}</td>
-                                        <td style={styles.td}>{row.DistNGOBankAcctHolderName}</td>
                                         <td style={styles.td}>{row.DistNGOBankName}</td>
                                         <td style={styles.td}>{row.DistNGOAcctNo}</td>
                                         <td style={styles.td}>{row.DistNGOIFSCode}</td>
-                                        <td style={styles.td}>{row.DistNGOBankAdd}</td>
                                         <td style={{ ...styles.td, color: Number(row.DistNGOIsActive) === 2 ? 'green' : 'orange' }}>{Number(row.DistNGOIsActive) === 2 ? 'Approved' : 'Pending'}</td>
                                         <td style={styles.td}>
                                             <button onClick={() => openModal('view', row)} style={styles.actionBtn}>👁️</button>
@@ -481,31 +467,32 @@ const DistrictAdminTable = ({ refreshTrigger, externalFilters }) => {
                                         </td>
                                     </tr>
                                 ))}
-                                {filteredMembers.length === 0 && <tr><td colSpan="21" style={{ textAlign: 'center', padding: '20px' }}>{externalFilters?.filterState && externalFilters?.filterDistrict ? "No members found." : "Please select State and District to view records."}</td></tr>}
+                                {filteredMembers.length === 0 && <tr><td colSpan="19" style={{ textAlign: 'center', padding: '20px' }}>{externalFilters?.filterState && externalFilters?.filterDistrict ? "No members found." : "Please select State and District to view records."}</td></tr>}
                             </tbody>
                         </table>
-                        
-                        {/* Pagination Footer */}
-                        <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <div>
-                                <span>Rows per page: </span>
-                                <select value={rowsPerPage} onChange={handleRowsChange}>
-                                    <option value={5}>5</option>
-                                    <option value={10}>10</option>
-                                    <option value={20}>20</option>
-                                </select>
-                            </div>
-                            <div>
-                                <span style={{ marginRight: '16px' }}>Showing {filteredMembers.length === 0 ? 0 : indexOfFirstItem + 1} to {Math.min(indexOfLastItem, filteredMembers.length)} of {filteredMembers.length}</span>
-                                <button disabled={currentPage === 1} onClick={() => setCurrentPage(prev => prev - 1)} style={styles.btnOutline}>Prev</button>
-                                <span style={{ margin: '0 12px' }}>Page {currentPage} of {totalPages}</span>
-                                <button disabled={currentPage === totalPages} onClick={() => setCurrentPage(prev => prev + 1)} style={styles.btnOutline}>Next</button>
-                            </div>
+                    </div>
+                )}
+                
+                {/* Pagination Controls */}
+                {filteredMembers.length > 0 && (
+                    <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                         <div>
+                            <label>Rows: </label>
+                            <select value={rowsPerPage} onChange={(e) => { setRowsPerPage(Number(e.target.value)); setCurrentPage(1); }}>
+                                <option value={5}>5</option>
+                                <option value={10}>10</option>
+                                <option value={20}>20</option>
+                            </select>
+                        </div>
+                        <div style={{ display: 'flex', gap: '10px' }}>
+                            <button disabled={currentPage === 1} onClick={() => setCurrentPage(prev => prev - 1)} style={styles.btnOutline}>Prev</button>
+                            <span>Page {currentPage} of {totalPages}</span>
+                            <button disabled={currentPage === totalPages} onClick={() => setCurrentPage(prev => prev + 1)} style={styles.btnOutline}>Next</button>
                         </div>
                     </div>
                 )}
             </div>
-            
+
             {viewModal && selectedRow && <DistrictAdminModal member={selectedRow} mode="view" onClose={closeModal} onSuccess={closeModal} />}
             {editModal && selectedRow && <DistrictAdminModal member={selectedRow} mode="edit" onClose={closeModal} onSuccess={() => { closeModal(); fetchMembers(); }} />}
             {deleteModal && selectedRow && (

@@ -133,6 +133,31 @@ const AsthaDidiModal = ({ member, mode, onClose, onSuccess }) => {
         ];
         if (!(await validateUniqueFields(checks))) return;
 
+        // Slot Check Validation: Gram Panchayet Logic (Exclude self during Edit)
+        try {
+            toast.loading("Checking GP slot availability...", { toastId: 'slotCheck' });
+            const didiRes = await fetch(`${API_BASE_URL}/asthadidi`);
+            const allDidis = await didiRes.json();
+            toast.dismiss('slotCheck');
+
+            // Find count of didis in the same block & gram panchayet
+            const gpCount = allDidis.filter(d => 
+                d.AsthaDidiRegId !== member.AsthaDidiRegId && // Exclude self from the count
+                d.AsthaDidiBlockName?.trim().toLowerCase() === data.block.trim().toLowerCase() &&
+                d.AsthaDidiGramPanchayet?.trim().toLowerCase() === data.gramPanchayet.trim().toLowerCase() &&
+                String(d.AsthaDidiIsActive) !== '0'
+            ).length;
+
+            if (gpCount >= 3) {
+                toast.error("NO Slots: This Gram Panchayet already has 3 Astha Didis assigned. User need to put another Gram Panchayet name under same block.", { autoClose: 6000 });
+                return;
+            }
+        } catch (err) {
+            toast.dismiss('slotCheck');
+            toast.error("Network error while checking slot availability.");
+            return;
+        }
+
         const stateName = data.state ? data.state.label : "";
         const districtName = data.district ? data.district.label : "";
         const loggedInUser = getSafeUser();
@@ -223,7 +248,7 @@ const AsthaDidiModal = ({ member, mode, onClose, onSuccess }) => {
                             <Controller name="fullName" control={control} render={({ field }) => (<FormInput label="Full Name *" id="edit_fullName" error={errors.fullName} disabled={isView} {...field} />)} />
                             <Controller name="sdwOf" control={control} render={({ field }) => (<FormInput label="S/D/W of" id="edit_sdwOf" error={errors.sdwOf} disabled={isView} {...field} />)} />
                             <Controller name="dob" control={control} render={({ field }) => (<FormInput label="Date of Birth *" id="edit_dob" error={errors.dob} type="date" disabled={isView} {...field} />)} />
-                            <Controller name="guardianContactNo" control={control} render={({ field }) => (<FormInput label="Guardian Contact no" id="edit_guardianContactNo" error={errors.guardianContactNo} disabled={isView} {...field} />)} />
+                            <Controller name="guardianContactNo" control={control} render={({ field }) => (<FormInput label="Guardian Contact no *" id="edit_guardianContactNo" error={errors.guardianContactNo} disabled={isView} {...field} />)} />
                         </div>
 
                         <h6 style={styles.sectionHeader}>Postal Address Information</h6>
@@ -265,11 +290,11 @@ const AsthaDidiModal = ({ member, mode, onClose, onSuccess }) => {
                                 )} />
                             </div>
                             <Controller name="city" control={control} render={({ field }) => (<FormInput label="City" id="edit_city" error={errors.city} disabled={isView} {...field} />)} />
-                            <Controller name="block" control={control} render={({ field }) => (<FormInput label="Block" id="edit_block" error={errors.block} disabled={isView} {...field} />)} />
+                            <Controller name="block" control={control} render={({ field }) => (<FormInput label="Block *" id="edit_block" error={errors.block} disabled={isView} {...field} />)} />
                             <Controller name="postOffice" control={control} render={({ field }) => (<FormInput label="Post Office" id="edit_postOffice" error={errors.postOffice} disabled={isView} {...field} />)} />
                             <Controller name="policeStation" control={control} render={({ field }) => (<FormInput label="Police Station" id="edit_policeStation" error={errors.policeStation} disabled={isView} {...field} />)} />
-                            <Controller name="gramPanchayet" control={control} render={({ field }) => (<FormInput label="Gram Panchayet" id="edit_gramPanchayet" error={errors.gramPanchayet} disabled={isView} {...field} />)} />
-                            <Controller name="village" control={control} render={({ field }) => (<FormInput label="Village" id="edit_village" error={errors.village} disabled={isView} {...field} />)} />
+                            <Controller name="gramPanchayet" control={control} render={({ field }) => (<FormInput label="Gram Panchayet *" id="edit_gramPanchayet" error={errors.gramPanchayet} disabled={isView} {...field} />)} />
+                            <Controller name="village" control={control} render={({ field }) => (<FormInput label="Village *" id="edit_village" error={errors.village} disabled={isView} {...field} />)} />
                             <Controller name="pinCode" control={control} render={({ field }) => (<FormInput label="Pin Code *" id="edit_pinCode" error={errors.pinCode} disabled={isView} {...field} />)} />
                             <Controller name="mobileNo" control={control} render={({ field }) => (<FormInput label="Contact Number *" id="edit_mobileNo" error={errors.mobileNo} disabled={isView} {...field} />)} />
                         </div>

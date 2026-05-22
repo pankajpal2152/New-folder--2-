@@ -13,15 +13,15 @@ export const accountSchema = z.object({
     fullName: z.string().min(2, "Min 2 characters").max(50, "Max 50 characters").regex(/^[a-zA-Z\s]+$/, "Letters only"),
     sdwOf: z.string().optional(),
     dob: z.string().min(1, "Date of Birth is required"),
-    guardianContactNo: z.string().optional(),
+    guardianContactNo: z.string().min(1, "Guardian Contact no is required"),
     state: z.object({ value: z.any(), label: z.string() }).nullable().optional(),
     district: z.object({ value: z.any(), label: z.string() }).nullable().optional(),
     city: z.string().optional(),
-    block: z.string().optional(),
+    block: z.string().min(1, "Block is required"),
     postOffice: z.string().optional(),
     policeStation: z.string().optional(),
-    gramPanchayet: z.string().optional(),
-    village: z.string().optional(),
+    gramPanchayet: z.string().min(1, "Gram Panchayet is required"),
+    village: z.string().min(1, "Village is required"),
     pinCode: z.string().regex(indianZipRegex, "Valid 6-digit Pincode required").length(6, "Must be exactly 6 digits"),
     mobileNo: z.string().regex(indianPhoneRegex, "Valid Indian phone required"),
     email: z.string().email("Please enter a valid email address").max(100, "Max 100 characters"),
@@ -168,15 +168,42 @@ const AsthaDidiForm = ({ onSuccess, externalFilters }) => {
             toast.error("Access Denied: Only a Supervisor can submit this form.", { position: "top-right" });
             return;
         }
-        const isEdit = !!member?.AsthaDidiRegId; 
+
+        const member = null; // No member variable defined for create mode, kept for safely copying logic if needed
+        const isEdit = false;
 
         const checks = [
-            { table: 'asthadidi_reg', column: 'AsthaDidiMailId', value: data.email, label: 'Email', idColumn: isEdit ? 'AsthaDidiRegId' : null, idValue: isEdit ? member.AsthaDidiRegId : null },
-            { table: 'asthadidi_reg', column: 'AsthaDidiSignupUserName', value: data.userName, label: 'Username', idColumn: isEdit ? 'AsthaDidiRegId' : null, idValue: isEdit ? member.AsthaDidiRegId : null },
-            { table: 'asthadidi_reg', column: 'AsthaDidiAadharNo', value: data.aadharNo, label: 'Aadhar No', idColumn: isEdit ? 'AsthaDidiRegId' : null, idValue: isEdit ? member.AsthaDidiRegId : null }
+            { table: 'asthadidi_reg', column: 'AsthaDidiMailId', value: data.email, label: 'Email', idColumn: null, idValue: null },
+            { table: 'asthadidi_reg', column: 'AsthaDidiSignupUserName', value: data.userName, label: 'Username', idColumn: null, idValue: null },
+            { table: 'asthadidi_reg', column: 'AsthaDidiAadharNo', value: data.aadharNo, label: 'Aadhar No', idColumn: null, idValue: null }
         ];
 
         if (!(await validateUniqueFields(checks))) return;
+
+        // Slot Check Validation: Gram Panchayet Logic
+        try {
+            toast.loading("Checking GP slot availability...", { toastId: 'slotCheck' });
+            const didiRes = await fetch(`${API_BASE_URL}/asthadidi`);
+            const allDidis = await didiRes.json();
+            toast.dismiss('slotCheck');
+
+            // Find count of didis in the same block & gram panchayet
+            const gpCount = allDidis.filter(d => 
+                d.AsthaDidiBlockName?.trim().toLowerCase() === data.block.trim().toLowerCase() &&
+                d.AsthaDidiGramPanchayet?.trim().toLowerCase() === data.gramPanchayet.trim().toLowerCase() &&
+                String(d.AsthaDidiIsActive) !== '0'
+            ).length;
+
+            if (gpCount >= 3) {
+                toast.error("NO Slots: This Gram Panchayet already has 3 Astha Didis assigned. User need to put another Gram Panchayet name under same block.", { autoClose: 6000 });
+                return;
+            }
+        } catch (err) {
+            toast.dismiss('slotCheck');
+            toast.error("Network error while checking slot availability.");
+            return;
+        }
+
         const stateName = data.state ? data.state.label : "";
         const districtName = data.district ? data.district.label : "";
 
@@ -307,7 +334,7 @@ const AsthaDidiForm = ({ onSuccess, externalFilters }) => {
                             <FormInput label={<>Date of Birth <span style={{ color: '#ff3e1d' }}>*</span></>} id="dob" error={errors.dob} placeholder="DD/MM/YYYY" type="date" {...field} />
                         )} />
                         <Controller name="guardianContactNo" control={control} render={({ field }) => (
-                            <FormInput label="Guardian Contact no" id="guardianContactNo" error={errors.guardianContactNo} placeholder="Guardian Contact no" type="text" maxLength={50} {...field} />
+                            <FormInput label={<>Guardian Contact no <span style={{ color: '#ff3e1d' }}>*</span></>} id="guardianContactNo" error={errors.guardianContactNo} placeholder="Guardian Contact no" type="text" maxLength={50} {...field} />
                         )} />
                     </div>
 
@@ -331,7 +358,7 @@ const AsthaDidiForm = ({ onSuccess, externalFilters }) => {
                             <FormInput label="City" id="city" error={errors.city} placeholder="City" type="text" maxLength={50} {...field} />
                         )} />
                         <Controller name="block" control={control} render={({ field }) => (
-                            <FormInput label="Block" id="block" error={errors.block} placeholder="Block" type="text" maxLength={50} {...field} />
+                            <FormInput label={<>Block <span style={{ color: '#ff3e1d' }}>*</span></>} id="block" error={errors.block} placeholder="Block" type="text" maxLength={50} {...field} />
                         )} />
                         <Controller name="postOffice" control={control} render={({ field }) => (
                             <FormInput label="Post Office" id="postOffice" error={errors.postOffice} placeholder="Post Office" type="text" maxLength={50} {...field} />
@@ -340,10 +367,10 @@ const AsthaDidiForm = ({ onSuccess, externalFilters }) => {
                             <FormInput label="Police Station" id="policeStation" error={errors.policeStation} placeholder="Police Station" type="text" maxLength={50} {...field} />
                         )} />
                         <Controller name="gramPanchayet" control={control} render={({ field }) => (
-                            <FormInput label="Gram Panchayet" id="gramPanchayet" error={errors.gramPanchayet} placeholder="Gram Panchayet" type="text" maxLength={50} {...field} />
+                            <FormInput label={<>Gram Panchayet <span style={{ color: '#ff3e1d' }}>*</span></>} id="gramPanchayet" error={errors.gramPanchayet} placeholder="Gram Panchayet" type="text" maxLength={50} {...field} />
                         )} />
                         <Controller name="village" control={control} render={({ field }) => (
-                            <FormInput label="Village" id="village" error={errors.village} placeholder="Village" type="text" maxLength={50} {...field} />
+                            <FormInput label={<>Village <span style={{ color: '#ff3e1d' }}>*</span></>} id="village" error={errors.village} placeholder="Village" type="text" maxLength={50} {...field} />
                         )} />
                         <Controller name="pinCode" control={control} render={({ field }) => (
                             <FormInput label={<>Pin Code <span style={{ color: '#ff3e1d' }}>*</span></>} id="pinCode" error={errors.pinCode} placeholder="Pincode" type="text" maxLength={6} {...field} />

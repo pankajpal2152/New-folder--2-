@@ -5,6 +5,7 @@ import * as z from 'zod';
 import Select from 'react-select';
 import { toast } from 'react-toastify';
 import { API_BASE_URL, DUMMY_AVATAR, indianZipRegex, indianPhoneRegex, styles, FormInput } from '../../config/constants';
+// IMPORT FIXED: Using the shared one from utils
 import { getSafeUser, PasswordInput, validateUniqueFields } from '../AccountSharedUtils';
 
 export const asthaMaaSchema = z.object({
@@ -48,8 +49,7 @@ const SupervisorForm = ({ onSuccess, externalFilters }) => {
         resolver: zodResolver(asthaMaaSchema),
         mode: 'onChange',
         defaultValues: {
-            joiningAmount: '5000', 
-            walletBalance: '27000',
+            joiningAmount: '5000', walletBalance: '27000',
             fullName: '', sdwOf: '', dob: '', guardianContactNo: '',
             state: null, district: null, city: '', block: '', postOffice: '', policeStation: '', gramPanchayet: '', village: '', pinCode: '', mobileNo: '', email: '', userName: '', password: '',
             bankName: '', branchName: '', accountNo: '', ifsCode: '', panNo: '', aadharNo: ''
@@ -161,7 +161,7 @@ const SupervisorForm = ({ onSuccess, externalFilters }) => {
             SupPanNo: data.panNo || "",
             SupAadharNo: data.aadharNo,
             SupJoiningAmt: parseInt(data.joiningAmount) || 5000,
-            SupWalletBalance: parseInt(data.walletBalance) || 27000,
+            SupWalletBalance: parseInt(data.walletBalance) || 0,
             SupIsActive: 1,
             SupAprovedBy: null,
             SupAprovedDate: null,
@@ -199,18 +199,21 @@ const SupervisorForm = ({ onSuccess, externalFilters }) => {
                 <h5>Supervisor Registration:-</h5>
             </div>
 
+            {/* 👇 Show error banner if the logged-in user is NOT a District Admin */}
             {!isDistrictAdmin && (
                 <div style={{ padding: '12px 24px', backgroundColor: '#f8d7da', color: '#721c24', borderBottom: '1px solid #f5c6cb' }}>
-                    <strong>Access Denied:</strong> Only a user with the role of <strong>District Administrator</strong> can submit this form.
+                    <strong>Access Denied:</strong> Only a user with the role of <strong>District Administrator</strong> can submit this form. Your current role does not permit this action.
                 </div>
             )}
 
+            {/* Show notice if they ARE a District Admin, but haven't picked a NGO in the filter dropdown yet */}
             {isDistrictAdmin && !filterMotherNgo && (
                 <div style={{ padding: '12px 24px', backgroundColor: '#fff3cd', color: '#856404', borderBottom: '1px solid #ffeeba' }}>
                     <strong>Notice:</strong> Please select a <strong>DISTRICT NGO</strong> from the top filters before filling out this registration form.
                 </div>
             )}
 
+            {/* 👇 Form elements disabled using the combined 'isFormEnabled' check */}
             <div style={{ ...styles.cardBody, opacity: !isFormEnabled ? 0.6 : 1, pointerEvents: !isFormEnabled ? 'none' : 'auto' }}>
                 <div style={styles.profileSection}>
                     <img src={profileImage} alt="Profile Avatar" style={styles.avatar} />
@@ -224,14 +227,12 @@ const SupervisorForm = ({ onSuccess, externalFilters }) => {
                     </div>
                 </div>
 
+                {/* Added autoComplete="off" here */}
                 <form onSubmit={handleSubmit(onSubmitSupervisor, onErrorForm)} autoComplete="off">
                     <h6 style={styles.sectionHeader}>Supervisor Information</h6>
                     <div style={styles.formGrid}>
                         <Controller name="joiningAmount" control={control} render={({ field }) => (
-                            <FormInput label="Joining Amount" id="joiningAmount" error={errors.joiningAmount} type="number" readOnly={true} disabled={true} {...field} />
-                        )} />
-                        <Controller name="walletBalance" control={control} render={({ field }) => (
-                            <FormInput label="Wallet Balance" id="walletBalance" error={errors.walletBalance} type="number" readOnly={true} disabled={true} {...field} />
+                            <FormInput label={<>Joining Amount <span style={{ color: '#ff3e1d' }}>*</span></>} id="joiningAmount" error={errors.joiningAmount} placeholder="Enter Amount" type="number" readOnly disabled={true} {...field} />
                         )} />
                     </div>
 
@@ -298,9 +299,13 @@ const SupervisorForm = ({ onSuccess, externalFilters }) => {
                         <Controller name="userName" control={control} render={({ field }) => (
                             <FormInput label={<>User Name <span style={{ color: '#ff3e1d' }}>*</span></>} id="userName" error={errors.userName} type="text" readOnly disabled={true} {...field} />
                         )} />
+
+                        {/* Added autoComplete="off" here */}
                         <Controller name="email" control={control} render={({ field }) => (
                             <FormInput label={<>Email ID (For Login) <span style={{ color: '#ff3e1d' }}>*</span></>} id="email" error={errors.email} placeholder="Email ID" type="email" maxLength={100} autoComplete="off" {...field} />
                         )} />
+
+                        {/* Added autoComplete="new-password" here */}
                         <Controller name="password" control={control} render={({ field }) => (
                             <PasswordInput label={<>Set Password <span style={{ color: '#ff3e1d' }}>*</span></>} id="password" error={errors.password} autoComplete="new-password" {...field} />
                         )} />
@@ -330,6 +335,7 @@ const SupervisorForm = ({ onSuccess, externalFilters }) => {
 
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '16px', marginTop: '32px' }}>
                         <button type="button" style={styles.btnOutline} onClick={handleCancelForm}>Cancel</button>
+                        {/* 👇 Submit button is disabled if isFormEnabled is false */}
                         <button type="submit" style={{ ...styles.btnPrimary, opacity: !isFormEnabled ? 0.5 : 1 }} disabled={!isFormEnabled}>Submit</button>
                     </div>
                 </form>

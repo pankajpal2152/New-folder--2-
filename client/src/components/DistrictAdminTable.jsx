@@ -257,9 +257,9 @@ const DistrictAdminModal = ({ member, mode, onClose, onSuccess }) => {
                         </div>
                         <h6 style={styles.sectionHeader}>Documents</h6>
                         <div style={styles.formGrid}>
-                            <div style={styles.inputGroup}><label style={styles.label}>Reg Cert PDF</label>{!isView && <input type="file" accept="application/pdf" onChange={(e) => handlePdfUpload(e, setRegCertPdf)} style={styles.input(false)} />}{regCertPdf ? (<div style={{ display: 'flex', alignItems: 'center', marginTop: '8px' }}><button type="button" onClick={() => handleViewPdf(regCertPdf)} style={{ ...styles.btnOutline, padding: '4px 8px', fontSize: '0.85rem' }}>👁️ View PDF</button>{!isView && <span style={{ ...styles.hintText, color: '#71dd37', marginLeft: '10px', marginBottom: 0 }}>✅ Ready</span>}</div>) : (<p style={styles.hintText}>❌ Missing</p>)}</div>
-                            <div style={styles.inputGroup}><label style={styles.label}>NGO PAN PDF</label>{!isView && <input type="file" accept="application/pdf" onChange={(e) => handlePdfUpload(e, setPanPdf)} style={styles.input(false)} />}{panPdf ? (<div style={{ display: 'flex', alignItems: 'center', marginTop: '8px' }}><button type="button" onClick={() => handleViewPdf(panPdf)} style={{ ...styles.btnOutline, padding: '4px 8px', fontSize: '0.85rem' }}>👁️ View PDF</button>{!isView && <span style={{ ...styles.hintText, color: '#71dd37', marginLeft: '10px', marginBottom: 0 }}>✅ Ready</span>}</div>) : (<p style={styles.hintText}>❌ Missing</p>)}</div>
-                            <div style={styles.inputGroup}><label style={styles.label}>Darpan PDF</label>{!isView && <input type="file" accept="application/pdf" onChange={(e) => handlePdfUpload(e, setDarpanPdf)} style={styles.input(false)} />}{darpanPdf ? (<div style={{ display: 'flex', alignItems: 'center', marginTop: '8px' }}><button type="button" onClick={() => handleViewPdf(darpanPdf)} style={{ ...styles.btnOutline, padding: '4px 8px', fontSize: '0.85rem' }}>👁️ View PDF</button>{!isView && <span style={{ ...styles.hintText, color: '#71dd37', marginLeft: '10px', marginBottom: 0 }}>✅ Ready</span>}</div>) : (<p style={styles.hintText}>❌ Missing</p>)}</div>
+                             <div style={styles.inputGroup}><label style={styles.label}>Reg Cert PDF</label>{!isView && <input type="file" accept="application/pdf" onChange={(e) => handlePdfUpload(e, setRegCertPdf)} style={styles.input(false)} />}{regCertPdf ? (<div style={{ display: 'flex', alignItems: 'center', marginTop: '8px' }}><button type="button" onClick={() => handleViewPdf(regCertPdf)} style={{ ...styles.btnOutline, padding: '4px 8px', fontSize: '0.85rem' }}>👁️ View PDF</button>{!isView && <span style={{ ...styles.hintText, color: '#71dd37', marginLeft: '10px', marginBottom: 0 }}>✅ Ready</span>}</div>) : (<p style={styles.hintText}>❌ Missing</p>)}</div>
+                             <div style={styles.inputGroup}><label style={styles.label}>NGO PAN PDF</label>{!isView && <input type="file" accept="application/pdf" onChange={(e) => handlePdfUpload(e, setPanPdf)} style={styles.input(false)} />}{panPdf ? (<div style={{ display: 'flex', alignItems: 'center', marginTop: '8px' }}><button type="button" onClick={() => handleViewPdf(panPdf)} style={{ ...styles.btnOutline, padding: '4px 8px', fontSize: '0.85rem' }}>👁️ View PDF</button>{!isView && <span style={{ ...styles.hintText, color: '#71dd37', marginLeft: '10px', marginBottom: 0 }}>✅ Ready</span>}</div>) : (<p style={styles.hintText}>❌ Missing</p>)}</div>
+                             <div style={styles.inputGroup}><label style={styles.label}>Darpan PDF</label>{!isView && <input type="file" accept="application/pdf" onChange={(e) => handlePdfUpload(e, setDarpanPdf)} style={styles.input(false)} />}{darpanPdf ? (<div style={{ display: 'flex', alignItems: 'center', marginTop: '8px' }}><button type="button" onClick={() => handleViewPdf(darpanPdf)} style={{ ...styles.btnOutline, padding: '4px 8px', fontSize: '0.85rem' }}>👁️ View PDF</button>{!isView && <span style={{ ...styles.hintText, color: '#71dd37', marginLeft: '10px', marginBottom: 0 }}>✅ Ready</span>}</div>) : (<p style={styles.hintText}>❌ Missing</p>)}</div>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '32px', gap: '10px' }}>
                             <button type="button" style={styles.btnOutline} onClick={onClose}>{isView ? 'Close' : 'Cancel'}</button>
@@ -283,6 +283,7 @@ const DistrictAdminTable = ({ refreshTrigger, externalFilters }) => {
     const [currentPage, setCurrentPage] = useState(1);
     const [rowsPerPage, setRowsPerPage] = useState(10);
 
+    // Modal states
     const [viewModal, setViewModal] = useState(false);
     const [editModal, setEditModal] = useState(false);
     const [deleteModal, setDeleteModal] = useState(false);
@@ -313,6 +314,7 @@ const DistrictAdminTable = ({ refreshTrigger, externalFilters }) => {
     useEffect(() => { fetchMembers(); }, [refreshTrigger]);
 
     const filteredMembers = useMemo(() => {
+        // Requirement: Only show data if all three filters are selected
         const isFiltersSelected = externalFilters?.filterMotherNgo && externalFilters?.filterState && externalFilters?.filterDistrict;
         if (!isFiltersSelected) return [];
 
@@ -435,7 +437,7 @@ const DistrictAdminTable = ({ refreshTrigger, externalFilters }) => {
                         <table style={styles.table}>
                             <thead>
                                 <tr>
-                                    {['NGO Name', 'Reg Date', 'Reg No', 'PAN No', 'Darpan ID', 'Email', 'Mobile', 'Block', 'State', 'District', 'Secretary Name', 'Secretary Email', 'Secretary Mobile', 'Secretary Aadhar', 'Bank Name', 'Acc No', 'IFSC', 'Status', 'Actions'].map(h => <th style={styles.th} key={h}>{h}</th>)}
+                                    {['NGO Name', 'Reg Date', 'Reg No', 'PAN No', 'Darpan ID', 'NGO Email', 'NGO Mobile', 'Block', 'State', 'District', 'Secretary Name', 'Secretary Email', 'Secretary Mobile', 'Secretary Aadhar', 'Bank Name', 'Account No', 'IFSC', 'Status', 'Actions'].map(h => <th style={styles.th} key={h}>{h}</th>)}
                                 </tr>
                             </thead>
                             <tbody>

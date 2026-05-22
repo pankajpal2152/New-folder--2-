@@ -13,15 +13,15 @@ export const asthaMaaSchema = z.object({
     fullName: z.string().min(2, "Min 2 characters").max(50, "Max 50 characters").regex(/^[a-zA-Z\s]+$/, "Letters only"),
     sdwOf: z.string().optional(),
     dob: z.string().min(1, "Date of Birth is required"),
-    guardianContactNo: z.string().optional(),
+    guardianContactNo: z.string().min(1, "Guardian Contact no is required"),
     state: z.object({ value: z.any(), label: z.string() }).nullable().optional(),
     district: z.object({ value: z.any(), label: z.string() }).nullable().optional(),
     city: z.string().optional(),
-    block: z.string().optional(),
+    block: z.string().min(1, "Block is required"),
     postOffice: z.string().optional(),
     policeStation: z.string().optional(),
-    gramPanchayet: z.string().optional(),
-    village: z.string().optional(),
+    gramPanchayet: z.string().min(1, "Gram Panchayet is required"),
+    village: z.string().min(1, "Village is required"),
     pinCode: z.string().regex(indianZipRegex, "Valid 6-digit Pincode required").length(6, "Must be exactly 6 digits"),
     mobileNo: z.string().regex(indianPhoneRegex, "Valid Indian phone required"),
     email: z.string().email("Please enter a valid email address").max(100, "Max 100 characters"),
@@ -242,7 +242,7 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
                             <FormInput label={<>Date of Birth <span style={{ color: '#ff3e1d' }}>*</span></>} id="dob" error={errors.dob} placeholder="DD/MM/YYYY" type="date" {...field} />
                         )} />
                         <Controller name="guardianContactNo" control={control} render={({ field }) => (
-                            <FormInput label="Guardian Contact no" id="guardianContactNo" error={errors.guardianContactNo} placeholder="Guardian Contact no" type="text" maxLength={50} {...field} />
+                            <FormInput label={<>Guardian Contact no <span style={{ color: '#ff3e1d' }}>*</span></>} id="guardianContactNo" error={errors.guardianContactNo} placeholder="Guardian Contact no" type="text" maxLength={50} {...field} />
                         )} />
                     </div>
 
@@ -266,7 +266,7 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
                             <FormInput label="City" id="city" error={errors.city} placeholder="City" type="text" maxLength={50} {...field} />
                         )} />
                         <Controller name="block" control={control} render={({ field }) => (
-                            <FormInput label="Block" id="block" error={errors.block} placeholder="Block" type="text" maxLength={50} {...field} />
+                            <FormInput label={<>Block <span style={{ color: '#ff3e1d' }}>*</span></>} id="block" error={errors.block} placeholder="Block" type="text" maxLength={50} {...field} />
                         )} />
                         <Controller name="postOffice" control={control} render={({ field }) => (
                             <FormInput label="Post Office" id="postOffice" error={errors.postOffice} placeholder="Post Office" type="text" maxLength={50} {...field} />
@@ -275,10 +275,10 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
                             <FormInput label="Police Station" id="policeStation" error={errors.policeStation} placeholder="Police Station" type="text" maxLength={50} {...field} />
                         )} />
                         <Controller name="gramPanchayet" control={control} render={({ field }) => (
-                            <FormInput label="Gram Panchayet" id="gramPanchayet" error={errors.gramPanchayet} placeholder="Gram Panchayet" type="text" maxLength={50} {...field} />
+                            <FormInput label={<>Gram Panchayet <span style={{ color: '#ff3e1d' }}>*</span></>} id="gramPanchayet" error={errors.gramPanchayet} placeholder="Gram Panchayet" type="text" maxLength={50} {...field} />
                         )} />
                         <Controller name="village" control={control} render={({ field }) => (
-                            <FormInput label="Village" id="village" error={errors.village} placeholder="Village" type="text" maxLength={50} {...field} />
+                            <FormInput label={<>Village <span style={{ color: '#ff3e1d' }}>*</span></>} id="village" error={errors.village} placeholder="Village" type="text" maxLength={50} {...field} />
                         )} />
                         <Controller name="pinCode" control={control} render={({ field }) => (
                             <FormInput label={<>Pin Code <span style={{ color: '#ff3e1d' }}>*</span></>} id="pinCode" error={errors.pinCode} placeholder="Pincode" type="text" maxLength={6} {...field} />

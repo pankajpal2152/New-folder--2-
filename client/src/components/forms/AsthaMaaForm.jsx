@@ -32,7 +32,8 @@ export const asthaMaaSchema = z.object({
     accountNo: z.string().optional(),
     ifsCode: z.string().optional(),
     panNo: z.string().optional(),
-    aadharNo: z.string().length(12, "Must be exactly 12 digits").regex(/^\d+$/, "Numbers only")
+    // FIXED: Made Aadhar optional. It only validates length if a value is provided.
+    aadharNo: z.string().optional().nullable().refine(val => !val || val.trim() === "" || (val.trim().length === 12 && /^\d+$/.test(val.trim())), "Must be exactly 12 digits")
 });
 
 const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
@@ -119,9 +120,14 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
 
         const checks = [
             { table: 'asthama_reg', column: 'AsthaMaMailId', value: data.email, label: 'Email' },
-            { table: 'asthama_reg', column: 'AsthaMaSignupUserName', value: data.userName, label: 'Username' },
-            { table: 'asthama_reg', column: 'AsthaMaAadharNo', value: data.aadharNo, label: 'Aadhar No' }
+            { table: 'asthama_reg', column: 'AsthaMaSignupUserName', value: data.userName, label: 'Username' }
         ];
+
+        // FIXED: Only check for duplicate Aadhar if the user actually typed one in
+        if (data.aadharNo && data.aadharNo.trim() !== "") {
+            checks.push({ table: 'asthama_reg', column: 'AsthaMaAadharNo', value: data.aadharNo, label: 'Aadhar No' });
+        }
+
         if (!(await validateUniqueFields(checks))) return;
 
         const stateName = data.state ? data.state.label : "";

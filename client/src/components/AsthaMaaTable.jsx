@@ -94,9 +94,14 @@ const AsthaMaaModal = ({ member, mode, onClose, onSuccess }) => {
     const onSubmit = async (data) => {
         const checks = [
             { table: 'asthama_reg', column: 'AsthaMaMailId', value: data.email, idColumn: 'AsthaMaRegId', idValue: member.AsthaMaRegId, label: 'Email ID' },
-            { table: 'asthama_reg', column: 'AsthaMaSignupUserName', value: data.userName, idColumn: 'AsthaMaRegId', idValue: member.AsthaMaRegId, label: 'Username' },
-            { table: 'asthama_reg', column: 'AsthaMaAadharNo', value: data.aadharNo, idColumn: 'AsthaMaRegId', idValue: member.AsthaMaRegId, label: 'Aadhar No' }
+            { table: 'asthama_reg', column: 'AsthaMaSignupUserName', value: data.userName, idColumn: 'AsthaMaRegId', idValue: member.AsthaMaRegId, label: 'Username' }
         ];
+
+        // FIXED: Only check for duplicate Aadhar if the user actually typed one in
+        if (data.aadharNo && data.aadharNo.trim() !== "") {
+            checks.push({ table: 'asthama_reg', column: 'AsthaMaAadharNo', value: data.aadharNo, idColumn: 'AsthaMaRegId', idValue: member.AsthaMaRegId, label: 'Aadhar No' });
+        }
+
         if (!(await validateUniqueFields(checks))) return;
 
         const stateName = data.state ? data.state.label : "";
@@ -237,7 +242,8 @@ const AsthaMaaModal = ({ member, mode, onClose, onSuccess }) => {
                             <Controller name="accountNo" control={control} render={({ field }) => (<FormInput label="Account No" id="edit_accountNo" error={errors.accountNo} disabled readOnly {...field} />)} />
                             <Controller name="ifsCode" control={control} render={({ field }) => (<FormInput label="IFS Code" id="edit_ifsCode" error={errors.ifsCode} disabled readOnly {...field} />)} />
                             <Controller name="panNo" control={control} render={({ field }) => (<FormInput label="PAN No" id="edit_panNo" error={errors.panNo} disabled readOnly {...field} />)} />
-                            <Controller name="aadharNo" control={control} render={({ field }) => (<FormInput label="Aadhar No *" id="edit_aadharNo" error={errors.aadharNo} disabled readOnly {...field} />)} />
+                            {/* FIXED: Removed the '*' from label since it is now optional */}
+                            <Controller name="aadharNo" control={control} render={({ field }) => (<FormInput label="Aadhar No" id="edit_aadharNo" error={errors.aadharNo} disabled readOnly {...field} />)} />
                         </div>
 
                         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '32px', gap: '10px' }}>

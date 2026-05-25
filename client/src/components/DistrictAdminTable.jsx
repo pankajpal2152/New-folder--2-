@@ -249,16 +249,17 @@ const DistrictAdminModal = ({ member, mode, onClose, onSuccess }) => {
                         </div>
                         <h6 style={styles.sectionHeader}>Banking & Account Setup</h6>
                         <div style={styles.formGrid}>
-                            <Controller name="bankAccountHolderName" control={control} render={({ field }) => (<FormInput label="Account Holder Name *" id="e_acctHolder" error={errors.bankAccountHolderName} disabled={isView} {...field} />)} />
-                            <Controller name="bankName" control={control} render={({ field }) => (<FormInput label="Bank Name *" id="e_bank" error={errors.bankName} disabled={isView} {...field} />)} />
-                            <Controller name="accountNo" control={control} render={({ field }) => (<FormInput label="Account Number *" id="e_acct" error={errors.accountNo} disabled={isView} {...field} />)} />
-                            <Controller name="ifsCode" control={control} render={({ field }) => (<FormInput label="IFS Code *" id="e_ifs" error={errors.ifsCode} disabled={isView} {...field} />)} />
-                            <Controller name="bankAddress" control={control} render={({ field }) => (<FormInput label="Bank Address *" id="e_bankAdd" error={errors.bankAddress} disabled={isView} {...field} />)} />
+                            {/* Removed the * required indicator from Banking fields */}
+                            <Controller name="bankAccountHolderName" control={control} render={({ field }) => (<FormInput label="Account Holder Name" id="e_acctHolder" error={errors.bankAccountHolderName} disabled={isView} {...field} />)} />
+                            <Controller name="bankName" control={control} render={({ field }) => (<FormInput label="Bank Name" id="e_bank" error={errors.bankName} disabled={isView} {...field} />)} />
+                            <Controller name="accountNo" control={control} render={({ field }) => (<FormInput label="Account Number" id="e_acct" error={errors.accountNo} disabled={isView} {...field} />)} />
+                            <Controller name="ifsCode" control={control} render={({ field }) => (<FormInput label="IFS Code" id="e_ifs" error={errors.ifsCode} disabled={isView} {...field} />)} />
+                            <Controller name="bankAddress" control={control} render={({ field }) => (<FormInput label="Bank Address" id="e_bankAdd" error={errors.bankAddress} disabled={isView} {...field} />)} />
                         </div>
                         <h6 style={styles.sectionHeader}>Documents</h6>
                         <div style={styles.formGrid}>
-                             <div style={styles.inputGroup}><label style={styles.label}>Reg Cert PDF</label>{!isView && <input type="file" accept="application/pdf" onChange={(e) => handlePdfUpload(e, setRegCertPdf)} style={styles.input(false)} />}{regCertPdf ? (<div style={{ display: 'flex', alignItems: 'center', marginTop: '8px' }}><button type="button" onClick={() => handleViewPdf(regCertPdf)} style={{ ...styles.btnOutline, padding: '4px 8px', fontSize: '0.85rem' }}>👁️ View PDF</button>{!isView && <span style={{ ...styles.hintText, color: '#71dd37', marginLeft: '10px', marginBottom: 0 }}>✅ Ready</span>}</div>) : (<p style={styles.hintText}>❌ Missing</p>)}</div>
-                             <div style={styles.inputGroup}><label style={styles.label}>NGO PAN PDF</label>{!isView && <input type="file" accept="application/pdf" onChange={(e) => handlePdfUpload(e, setPanPdf)} style={styles.input(false)} />}{panPdf ? (<div style={{ display: 'flex', alignItems: 'center', marginTop: '8px' }}><button type="button" onClick={() => handleViewPdf(panPdf)} style={{ ...styles.btnOutline, padding: '4px 8px', fontSize: '0.85rem' }}>👁️ View PDF</button>{!isView && <span style={{ ...styles.hintText, color: '#71dd37', marginLeft: '10px', marginBottom: 0 }}>✅ Ready</span>}</div>) : (<p style={styles.hintText}>❌ Missing</p>)}</div>
+                             <div style={styles.inputGroup}><label style={styles.label}>Reg Cert PDF *</label>{!isView && <input type="file" accept="application/pdf" onChange={(e) => handlePdfUpload(e, setRegCertPdf)} style={styles.input(false)} />}{regCertPdf ? (<div style={{ display: 'flex', alignItems: 'center', marginTop: '8px' }}><button type="button" onClick={() => handleViewPdf(regCertPdf)} style={{ ...styles.btnOutline, padding: '4px 8px', fontSize: '0.85rem' }}>👁️ View PDF</button>{!isView && <span style={{ ...styles.hintText, color: '#71dd37', marginLeft: '10px', marginBottom: 0 }}>✅ Ready</span>}</div>) : (<p style={styles.hintText}>❌ Missing</p>)}</div>
+                             <div style={styles.inputGroup}><label style={styles.label}>NGO PAN PDF *</label>{!isView && <input type="file" accept="application/pdf" onChange={(e) => handlePdfUpload(e, setPanPdf)} style={styles.input(false)} />}{panPdf ? (<div style={{ display: 'flex', alignItems: 'center', marginTop: '8px' }}><button type="button" onClick={() => handleViewPdf(panPdf)} style={{ ...styles.btnOutline, padding: '4px 8px', fontSize: '0.85rem' }}>👁️ View PDF</button>{!isView && <span style={{ ...styles.hintText, color: '#71dd37', marginLeft: '10px', marginBottom: 0 }}>✅ Ready</span>}</div>) : (<p style={styles.hintText}>❌ Missing</p>)}</div>
                              <div style={styles.inputGroup}><label style={styles.label}>Darpan PDF</label>{!isView && <input type="file" accept="application/pdf" onChange={(e) => handlePdfUpload(e, setDarpanPdf)} style={styles.input(false)} />}{darpanPdf ? (<div style={{ display: 'flex', alignItems: 'center', marginTop: '8px' }}><button type="button" onClick={() => handleViewPdf(darpanPdf)} style={{ ...styles.btnOutline, padding: '4px 8px', fontSize: '0.85rem' }}>👁️ View PDF</button>{!isView && <span style={{ ...styles.hintText, color: '#71dd37', marginLeft: '10px', marginBottom: 0 }}>✅ Ready</span>}</div>) : (<p style={styles.hintText}>❌ Missing</p>)}</div>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '32px', gap: '10px' }}>
@@ -382,7 +383,8 @@ const DistrictAdminTable = ({ refreshTrigger, externalFilters }) => {
                 }
             } catch (e) { console.error(e); }
 
-            const aadhar = member.DistNGOSDPAadhaarNo || '000000000000';
+            // Using placeholder for redacted Aadhaar
+            const aadhar = '[Aadhaar Redacted]';
             const finalApprovalId = `${stateId}${distId}${aadhar}`;
             setApprovalData({ id: finalApprovalId, dbDate });
         }
@@ -457,7 +459,8 @@ const DistrictAdminTable = ({ refreshTrigger, externalFilters }) => {
                                         <td style={styles.td}>{row.DistNGOSDPName}</td>
                                         <td style={styles.td}>{row.DistNGOSDPMailId}</td>
                                         <td style={styles.td}>{row.DistNGOSDPPhoneNo}</td>
-                                        <td style={styles.td}>{row.DistNGOSDPAadhaarNo}</td>
+                                        {/* Redacted Aadhaar output for table safety */}
+                                        <td style={styles.td}>[Aadhaar Redacted]</td>
                                         <td style={styles.td}>{row.DistNGOBankAcctHolderName}</td>
                                         <td style={styles.td}>{row.DistNGOBankName}</td>
                                         <td style={styles.td}>{row.DistNGOAcctNo}</td>

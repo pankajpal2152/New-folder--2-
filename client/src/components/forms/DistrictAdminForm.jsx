@@ -26,11 +26,12 @@ export const ngoSchema = z.object({
     secretaryMobile: z.string().regex(indianPhoneRegex, "Valid phone required"),
     secretaryAadhar: z.string().length(12, "Must be exactly 12 digits").regex(/^\d+$/, "Numbers only"),
 
-    bankAccountHolderName: z.string().min(1, "Account Holder Name is required"),
-    bankName: z.string().min(1, "Bank Name is required"),
-    accountNo: z.string().min(1, "Account Number is required"),
-    ifsCode: z.string().min(1, "IFS Code is required"),
-    bankAddress: z.string().min(1, "Bank Address is required"),
+    // Made Banking fields optional
+    bankAccountHolderName: z.string().optional().or(z.literal('')),
+    bankName: z.string().optional().or(z.literal('')),
+    accountNo: z.string().optional().or(z.literal('')),
+    ifsCode: z.string().optional().or(z.literal('')),
+    bankAddress: z.string().optional().or(z.literal('')),
 
     userName: z.string().min(1, "User Name is required"),
     ngoEmail: z.string().email("Valid login email required"),
@@ -133,8 +134,9 @@ const DistrictAdminForm = ({ onSuccess, defaultState, defaultDistrict }) => {
     };
 
     const onSubmitDistrictAdmin = async (data) => {
-        if (!regCertPdf || !panPdf || !darpanPdf) {
-            toast.error("Required: Please upload all three mandatory documents (Reg Cert, PAN, and Darpan PDF) before submitting.", { position: "top-right" });
+        // Made Darpan PDF optional here
+        if (!regCertPdf || !panPdf) {
+            toast.error("Required: Please upload the mandatory documents (Reg Cert and PAN) before submitting.", { position: "top-right" });
             return;
         }
         const checks = [
@@ -317,20 +319,21 @@ const DistrictAdminForm = ({ onSuccess, defaultState, defaultDistrict }) => {
 
                     <h6 style={styles.sectionHeader}>Banking & Account Setup</h6>
                     <div style={styles.formGrid}>
+                        {/* Removed the * required indicator from Banking fields */}
                         <Controller name="bankAccountHolderName" control={control} render={({ field }) => (
-                            <FormInput label={<>Account Holder Name <span style={{ color: '#ff3e1d' }}>*</span></>} id="bankAccountHolderName" error={errors.bankAccountHolderName} type="text" {...field} />
+                            <FormInput label="Account Holder Name" id="bankAccountHolderName" error={errors.bankAccountHolderName} type="text" {...field} />
                         )} />
                         <Controller name="bankName" control={control} render={({ field }) => (
-                            <FormInput label={<>Bank Name <span style={{ color: '#ff3e1d' }}>*</span></>} id="bankName" error={errors.bankName} type="text" {...field} />
+                            <FormInput label="Bank Name" id="bankName" error={errors.bankName} type="text" {...field} />
                         )} />
                         <Controller name="accountNo" control={control} render={({ field }) => (
-                            <FormInput label={<>Account Number <span style={{ color: '#ff3e1d' }}>*</span></>} id="accountNo" error={errors.accountNo} type="text" {...field} />
+                            <FormInput label="Account Number" id="accountNo" error={errors.accountNo} type="text" {...field} />
                         )} />
                         <Controller name="ifsCode" control={control} render={({ field }) => (
-                            <FormInput label={<>IFS Code <span style={{ color: '#ff3e1d' }}>*</span></>} id="ifsCode" error={errors.ifsCode} type="text" {...field} />
+                            <FormInput label="IFS Code" id="ifsCode" error={errors.ifsCode} type="text" {...field} />
                         )} />
                         <Controller name="bankAddress" control={control} render={({ field }) => (
-                            <FormInput label={<>Bank Address <span style={{ color: '#ff3e1d' }}>*</span></>} id="bankAddress" error={errors.bankAddress} type="text" {...field} />
+                            <FormInput label="Bank Address" id="bankAddress" error={errors.bankAddress} type="text" {...field} />
                         )} />
                     </div>
 
@@ -357,7 +360,8 @@ const DistrictAdminForm = ({ onSuccess, defaultState, defaultDistrict }) => {
                             )}
                         </div>
                         <div style={styles.inputGroup}>
-                            <label style={styles.label}>Darpan PDF <span style={{ color: '#ff3e1d' }}>*</span></label>
+                            {/* Removed the * required indicator from Darpan PDF */}
+                            <label style={styles.label}>Darpan PDF</label>
                             <input type="file" accept="application/pdf" onChange={(e) => handlePdfUpload(e, setDarpanPdf)} style={styles.input(false)} />
                             {darpanPdf && (
                                 <div style={{ display: 'flex', alignItems: 'center', marginTop: '8px' }}>

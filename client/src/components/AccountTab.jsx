@@ -363,8 +363,7 @@ const AccountTab = () => {
     "District Administrator",
   ].includes(adminActiveView);
   const isSupervisorVisible =
-    ["Astha Maa", "Astha Didi"].includes(adminActiveView) &&
-    appUserRole !== "Supervisor";
+    ["Astha Maa", "Astha Didi"].includes(adminActiveView);
   const isAsthaDidiVisible = ["Astha Maa"].includes(adminActiveView);
 
   return (
@@ -391,7 +390,7 @@ const AccountTab = () => {
           <Select
             options={adminOptions}
             value={adminOptions.find((o) => o.value === adminActiveView)}
-            onChange={(s) => setAdminActiveView(s.value)}
+            onChange={(s) => { setAdminActiveView(s.value); handleReset(0); }}
             styles={{
               ...styles.selectStyles(false),
               menuPortal: (base) => ({ ...base, zIndex: 99999 }),

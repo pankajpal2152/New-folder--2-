@@ -99,6 +99,7 @@ import AccountSettings from './pages/AccountSettings';
 import Login from './pages/Login';
 import RoleManagement from './pages/RoleManagement';
 import AccessControl from './pages/AccessControl';
+import ProductDistribution from './pages/ProductDistribution';
 
 const App = () => {
   // FIX: Initialize state by checking localStorage directly. 

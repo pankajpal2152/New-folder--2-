@@ -356,6 +356,7 @@ const MembersTable = ({ refreshTrigger, externalFilters }) => {
     useEffect(() => { fetchMembers(); }, [refreshTrigger]);
 
     const filteredMembers = useMemo(() => {
+        // Admin Filters: Must be fully qualified
         if (userRole === 'State Super Administrator' || userRole === 'District Administrator') {
             if (!externalFilters?.filterMotherNgo || !externalFilters?.filterState || !externalFilters?.filterDistrict || !externalFilters?.filterSupervisor) {
                 return [];
@@ -398,8 +399,8 @@ const MembersTable = ({ refreshTrigger, externalFilters }) => {
             if (userRole === 'Supervisor') {
                 matchesSupervisor = String(member.SupRegId) === String(userProfileId);
             } else if (externalFilters?.filterSupervisor) {
-                matchesSupervisor = String(member.AsthaDidiCreatedByAuthRegId) === String(externalFilters.filterSupervisor.userSignUpId) ||
-                                    String(member.SupRegId) === String(externalFilters.filterSupervisor.value);
+                // Admin sees Didis assigned to the selected supervisor
+                matchesSupervisor = String(member.SupRegId) === String(externalFilters.filterSupervisor.value);
             }
 
             return matchesSearch && matchesState && matchesDistrict && matchesMotherNgo && matchesSupervisor;

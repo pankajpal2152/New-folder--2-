@@ -45,4 +45,9 @@ router.put('/supervisor/:id', formController.updateSupervisor);
 router.delete('/supervisor/:id', formController.deleteSupervisor);
 
 router.post('/check-duplicate', formController.checkDuplicate);
+
+
+router.get('/stock', formController.getProductStock);
+router.post('/distribute', formController.distributeProduct);
+
 module.exports = router;

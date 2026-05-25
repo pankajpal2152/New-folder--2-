@@ -130,6 +130,9 @@ const Sidebar = () => {
                             </li>
                         )}
                     </NavLink>
+                    <NavLink to="/product-distribution" style={styles.link}>
+    <li className="menu-item">📦 Product Distribution</li>
+</NavLink>
                 </div>
 
 

@@ -155,6 +155,7 @@ const App = () => {
                       path="/"
                       element={<Navigate to="/account-settings/account" replace />}
                     />
+                    <Route path="/product-distribution" element={<ProductDistribution />} />
                     <Route path="/layouts" element={<Maintenance pageName="Layouts" />} />
                     <Route path="/account-settings/account" element={<AccountSettings />} />
                     <Route path="/settings/role-management" element={<RoleManagement />} />

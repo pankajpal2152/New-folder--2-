@@ -349,3 +349,31 @@ exports.checkDuplicate = (req, res) => {
         res.json({ exists: results.length > 0 });
     });
 };
+
+
+
+// Add these exports to your existing formController.js
+
+exports.getProductStock = (req, res) => {
+    db.query('SELECT * FROM stock_management', (err, results) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(results);
+    });
+};
+
+exports.distributeProduct = (req, res) => {
+    const { SenderId, ReceiverId, ReceiverRole, ProductName, DistributedQty, Remarks } = req.body;
+    
+    // 1. Record the transaction
+    const insertQuery = `INSERT INTO product_distribution (SenderId, ReceiverId, ReceiverRole, ProductName, DistributedQty, Remarks, ProductDate) VALUES (?,?,?,?,?,?,NOW())`;
+    
+    db.query(insertQuery, [SenderId, ReceiverId, ReceiverRole, ProductName, DistributedQty, Remarks], (err) => {
+        if (err) return res.status(500).json({ error: err.message });
+
+        // 2. Reduce stock from inventory
+        db.query('UPDATE stock_management SET AvailableQty = AvailableQty - ? WHERE ProductName = ?', [DistributedQty, ProductName], (err) => {
+            if (err) return res.status(500).json({ error: 'Stock update failed' });
+            res.json({ message: 'Product distributed successfully' });
+        });
+    });
+};

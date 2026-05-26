@@ -10,50 +10,59 @@ const ProductDistribution = () => {
     });
     
     const [accountHeads, setAccountHeads] = useState([]);
-    const [receivers, setReceivers] = useState([]);
+    const [accountsTable, setAccountsTable] = useState([]); // This stores the raw accounts table
+    const [filteredAccounts, setFilteredAccounts] = useState([]); // Accounts filtered by selected AcctHead
+    
     const [stock, setStock] = useState([]);
     const [history, setHistory] = useState([]);
     
     const user = JSON.parse(localStorage.getItem('loggedInUser'));
 
     useEffect(() => {
-        fetchAccountHeads();
-        fetchStock();
-        fetchReceivers();
-        fetchHistory();
+        fetchInitialData();
     }, []);
 
-    const fetchAccountHeads = async () => {
+    const fetchInitialData = async () => {
         try {
-            const res = await axios.get(`${API_BASE_URL}/accthead`);
-            setAccountHeads(res.data);
-        } catch (err) { console.error("Error fetching account heads", err); }
+            // Fetch everything concurrently to speed up load time
+            const [headsRes, acctTableRes, stockRes, histRes] = await Promise.all([
+                axios.get(`${API_BASE_URL}/accthead`),
+                axios.get(`${API_BASE_URL}/accounts-mapping`), // Fetch raw accounts table
+                axios.get(`${API_BASE_URL}/stock`),
+                axios.get(`${API_BASE_URL}/distribution-history`, { params: { senderId: user.UserSignUpId } })
+            ]);
+
+            setAccountHeads(headsRes.data);
+            setAccountsTable(acctTableRes.data);
+            setStock(stockRes.data);
+            setHistory(histRes.data);
+
+            // ✅ CRITICAL LOGIC: If State Super Admin, auto-select "DN"
+            if (user.UserSignUpRole === 'State Super Administrator') {
+                const dnHead = headsRes.data.find(h => h.AcctHead === 'DN');
+                if (dnHead) {
+                    setFormData(prev => ({ ...prev, AcctHeadId: dnHead.AcctHead }));
+                    // Pre-filter accounts for DN immediately
+                    const dnAccounts = acctTableRes.data.filter(acc => acctTableRes.data.AcctHead === 'DN' || acc.AcctHead === 'DN');
+                    setFilteredAccounts(dnAccounts);
+                }
+            }
+        } catch (err) { 
+            console.error("Error loading initial data", err); 
+        }
     };
 
-    const fetchStock = async () => {
-        try {
-            const res = await axios.get(`${API_BASE_URL}/stock`);
-            setStock(res.data);
-        } catch (err) { console.error(err); }
-    };
-
-    const fetchReceivers = async () => {
-        try {
-            const res = await axios.get(`${API_BASE_URL}/juniors-for-distribution`, {
-                params: { role: user.UserSignUpRole, profileId: user.ProfileRegId || user.UserAtuorizedRegId }
-            });
-            setReceivers(res.data);
-        } catch (err) { console.error("Error fetching juniors:", err); }
-    };
-
-    const fetchHistory = async () => {
-        try {
-            const res = await axios.get(`${API_BASE_URL}/distribution-history`, {
-                params: { senderId: user.UserSignUpId }
-            });
-            setHistory(res.data);
-        } catch (err) { console.error(err); }
-    };
+    // Trigger this whenever AcctHeadId changes to dynamically filter the second dropdown
+    useEffect(() => {
+        if (formData.AcctHeadId) {
+            const relatedAccounts = accountsTable.filter(acc => acc.AcctHead === formData.AcctHeadId);
+            setFilteredAccounts(relatedAccounts);
+            // Reset selected Receiver if the head changes
+            setFormData(prev => ({ ...prev, ReceiverId: '' }));
+        } else {
+            setFilteredAccounts([]);
+        }
+    }, [formData.AcctHeadId, accountsTable]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -66,26 +75,37 @@ const ProductDistribution = () => {
             await axios.post(`${API_BASE_URL}/distribute`, {
                 ...formData,
                 SenderId: user.UserSignUpId,
-                ReceiverRole: accountHeads.find(a => String(a.AcctHeadId) === String(formData.AcctHeadId))?.AcctHead || 'Junior'
+                ReceiverRole: formData.AcctHeadId // Saving 'DN', 'SV', etc.
             });
             toast.success("Transaction Entry Saved Successfully!");
-            setFormData({ AcctHeadId: '', ReceiverId: '', ProductName: '', DistributedQty: '', Remarks: 'By Transfer', Date: new Date().toISOString().split('T')[0] });
-            fetchHistory(); 
-            fetchStock();   
+            
+            // Keep AcctHeadId sticky based on role, clear the rest
+            const defaultHead = user.UserSignUpRole === 'State Super Administrator' ? 'DN' : formData.AcctHeadId;
+            setFormData({ AcctHeadId: defaultHead, ReceiverId: '', ProductName: '', DistributedQty: '', Remarks: 'By Transfer', Date: new Date().toISOString().split('T')[0] });
+            
+            // Refresh history and stock silently
+            const [histRes, stockRes] = await Promise.all([
+                axios.get(`${API_BASE_URL}/distribution-history`, { params: { senderId: user.UserSignUpId } }),
+                axios.get(`${API_BASE_URL}/stock`)
+            ]);
+            setHistory(histRes.data);
+            setStock(stockRes.data);
+
         } catch (err) {
             toast.error("Transaction Entry Failed.");
         }
     };
 
     const handleCancel = () => {
-        setFormData({ AcctHeadId: '', ReceiverId: '', ProductName: '', DistributedQty: '', Remarks: 'By Transfer', Date: new Date().toISOString().split('T')[0] });
+        const defaultHead = user.UserSignUpRole === 'State Super Administrator' ? 'DN' : '';
+        setFormData({ AcctHeadId: defaultHead, ReceiverId: '', ProductName: '', DistributedQty: '', Remarks: 'By Transfer', Date: new Date().toISOString().split('T')[0] });
     };
 
-    const selectedAcctHeadName = accountHeads.find(a => String(a.AcctHeadId) === String(formData.AcctHeadId))?.AcctHeadName || '';
-    const selectedReceiverName = receivers.find(r => String(r.id) === String(formData.ReceiverId))?.name || '';
+    const selectedAcctHeadName = accountHeads.find(a => String(a.AcctHead) === String(formData.AcctHeadId))?.AcctHeadName || '';
+    const selectedReceiverName = filteredAccounts.find(r => String(r.AcctNo) === String(formData.ReceiverId))?.AcctName || '';
     const selectedProductStock = stock.find(s => s.ProductName === formData.ProductName)?.AvailableQty || '0.00';
 
-    // Strict Enterprise ERP Visual Styles (Based exactly on reference image)
+    // Strict Enterprise ERP Visual Styles
     const styles = {
         container: { backgroundColor: '#a9c4db', padding: '10px', minHeight: '100vh', fontFamily: 'Arial, sans-serif' },
         wrapper: { backgroundColor: '#f0f4f8', border: '3px solid #1E6bb8', display: 'flex', flexDirection: 'row' },
@@ -118,9 +138,14 @@ const ProductDistribution = () => {
                         <div style={styles.sectionBanner}>Account Information</div>
                         <div className="d-flex align-items-center mt-1 px-1 gap-2">
                             <label style={{...styles.label, width: '90px'}}>Account Head</label>
-                            <select style={{...styles.input, width: '120px'}} value={formData.AcctHeadId} onChange={(e) => setFormData({...formData, AcctHeadId: e.target.value})}>
+                            <select 
+                                style={{...styles.input, width: '120px'}} 
+                                value={formData.AcctHeadId} 
+                                onChange={(e) => setFormData({...formData, AcctHeadId: e.target.value})}
+                                disabled={user.UserSignUpRole === 'State Super Administrator'} // Lock it if State Admin
+                            >
                                 <option value=""></option>
-                                {accountHeads.map(a => <option key={a.AcctHeadId} value={a.AcctHeadId}>{a.AcctHead}</option>)}
+                                {accountHeads.map(a => <option key={a.AcctHeadId} value={a.AcctHead}>{a.AcctHead}</option>)}
                             </select>
                             <span style={{...styles.redText, width: '150px'}}>{selectedAcctHeadName}</span>
                             
@@ -141,10 +166,9 @@ const ProductDistribution = () => {
                         
                         <div className="d-flex align-items-center mt-2 px-1 gap-2 mb-2">
                             <label style={{...styles.label, width: '90px'}}>Acct.Number</label>
-                            {/* ✅ FIXED: Increased width and added Account Name {r.name} to the dropdown options */}
                             <select style={{...styles.input, width: '250px'}} value={formData.ReceiverId} onChange={(e) => setFormData({...formData, ReceiverId: e.target.value})}>
                                 <option value=""></option>
-                                {receivers.map(r => <option key={r.id} value={r.id}>{r.id} - {r.name}</option>)}
+                                {filteredAccounts.map(r => <option key={r.AcctNo} value={r.AcctNo}>{r.AcctNo} - {r.AcctName}</option>)}
                             </select>
                             <span style={{...styles.redText, width: '150px', marginLeft: '10px'}}>{selectedReceiverName}</span>
                             <span style={{...styles.label, marginLeft: '30px'}}>S/B Acct No</span>

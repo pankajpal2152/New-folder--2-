@@ -347,11 +347,23 @@ exports.checkDuplicate = (req, res) => {
 // NEW: PRODUCT DISTRIBUTION MODULE
 // ==========================================
 
-// ✅ Fetches the Master Account Heads (e.g. SN, DN, SV, AD) from the 'accthead' table
 exports.getAccountHeads = (req, res) => {
     db.query("SELECT * FROM accthead WHERE IsActive = 'T' OR IsActive = '1' OR IsActive = 1", (err, results) => {
         if (err) {
             console.error("Account Head fetch error:", err.message);
+            return res.json([]); 
+        }
+        res.json(results);
+    });
+};
+
+// ✅ NEW: Fetches mapped accounts directly from the `accounts` table based on the logged-in user.
+// NOTE: Since the backend doesn't currently filter `accounts` based on the user's hierarchy,
+// this fetches ALL accounts. The frontend will filter them dynamically based on AcctHead.
+exports.getAccountsMapping = (req, res) => {
+    db.query("SELECT * FROM accounts", (err, results) => {
+        if (err) {
+            console.error("Accounts mapping fetch error:", err.message);
             return res.json([]); 
         }
         res.json(results);

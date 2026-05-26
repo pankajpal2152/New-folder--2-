@@ -3,7 +3,6 @@ import axios from 'axios';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { API_BASE_URL } from '../config/constants';
-import 'bootstrap/dist/css/bootstrap.min.css';
 
 const ProductDistribution = () => {
     const [formData, setFormData] = useState({ 
@@ -28,7 +27,6 @@ const ProductDistribution = () => {
         } catch (err) { console.error(err); }
     };
 
-    // ✅ FIXED: Now calls the dedicated backend route to fetch strict junior entities!
     const fetchReceivers = async () => {
         try {
             const res = await axios.get(`${API_BASE_URL}/juniors-for-distribution`, {

@@ -344,35 +344,26 @@ exports.checkDuplicate = (req, res) => {
 };
 
 // ==========================================
-// NEW: PRODUCT DISTRIBUTION MODULE
+// PRODUCT DISTRIBUTION MODULE
 // ==========================================
 
 exports.getAccountHeads = (req, res) => {
     db.query("SELECT * FROM accthead WHERE IsActive = 'T' OR IsActive = '1' OR IsActive = 1", (err, results) => {
-        if (err) {
-            console.error("Account Head fetch error:", err.message);
-            return res.json([]);
-        }
+        if (err) return res.json([]);
         res.json(results);
     });
 };
 
 exports.getAccountsMapping = (req, res) => {
     db.query("SELECT * FROM accounts", (err, results) => {
-        if (err) {
-            console.error("Accounts mapping fetch error:", err.message);
-            return res.json([]);
-        }
+        if (err) return res.json([]);
         res.json(results);
     });
 };
 
 exports.getProductStock = (req, res) => {
     db.query('SELECT * FROM stock_management', (err, results) => {
-        if (err) {
-            console.error("Stock fetch error:", err.message);
-            return res.json([]);
-        }
+        if (err) return res.json([]);
         res.json(results);
     });
 };
@@ -398,22 +389,15 @@ exports.getJuniorsForDistribution = (req, res) => {
     }
 
     db.query(query, params, (err, results) => {
-        if (err) {
-            console.error("❌ DB Error fetching juniors:", err);
-            return res.status(500).json({ error: err.message });
-        }
+        if (err) return res.status(500).json({ error: err.message });
         res.json(results);
     });
 };
 
-// ✅ NEW: Fetches supervisors filtered by specific District NGO ID
 exports.getSupervisorsByDist = (req, res) => {
     const { distId } = req.params;
-    db.query('SELECT SupRegId AS id, SupName AS name FROM suvervisor_reg WHERE DistNGORegId = ? AND (SupIsActive != 0 OR SupIsActive IS NULL)', [distId], (err, results) => {
-        if (err) {
-            console.error("❌ Error fetching supervisors:", err);
-            return res.status(500).json({ error: err.message });
-        }
+    db.query('SELECT SupRegId AS id, SupName AS name, "SV" as Head FROM suvervisor_reg WHERE DistNGORegId = ? AND (SupIsActive != 0 OR SupIsActive IS NULL)', [distId], (err, results) => {
+        if (err) return res.status(500).json({ error: err.message });
         res.json(results);
     });
 };

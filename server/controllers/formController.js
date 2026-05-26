@@ -396,7 +396,8 @@ exports.getJuniorsForDistribution = (req, res) => {
 
 exports.getSupervisorsByDist = (req, res) => {
     const { distId } = req.params;
-    db.query('SELECT SupRegId AS id, SupName AS name, "SV" as Head FROM suvervisor_reg WHERE DistNGORegId = ? AND (SupIsActive != 0 OR SupIsActive IS NULL)', [distId], (err, results) => {
+    // FIXED: Use single quotes for the SQL string literal
+    db.query("SELECT SupRegId AS id, SupName AS name, 'SV' as Head FROM suvervisor_reg WHERE DistNGORegId = ? AND (SupIsActive != 0 OR SupIsActive IS NULL)", [distId], (err, results) => {
         if (err) return res.status(500).json({ error: err.message });
         res.json(results);
     });

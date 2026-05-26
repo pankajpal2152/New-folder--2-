@@ -347,6 +347,17 @@ exports.checkDuplicate = (req, res) => {
 // NEW: PRODUCT DISTRIBUTION MODULE
 // ==========================================
 
+// ✅ Fetches the Master Account Heads (e.g. SN, DN, SV, AD) from the 'accthead' table
+exports.getAccountHeads = (req, res) => {
+    db.query("SELECT * FROM accthead WHERE IsActive = 'T' OR IsActive = '1' OR IsActive = 1", (err, results) => {
+        if (err) {
+            console.error("Account Head fetch error:", err.message);
+            return res.json([]); 
+        }
+        res.json(results);
+    });
+};
+
 exports.getProductStock = (req, res) => {
     db.query('SELECT * FROM stock_management', (err, results) => {
         if (err) {
@@ -357,14 +368,12 @@ exports.getProductStock = (req, res) => {
     });
 };
 
-// ✅ FIXED: Strictly fetches based on User Role and ensures IsActive is not 0
 exports.getJuniorsForDistribution = (req, res) => {
     const { role, profileId } = req.query;
     let query = '';
     let params = [];
 
     if (role === 'State Super Administrator') {
-        // Only fetch available District NGOs (DistNGOIsActive != 0 or NULL)
         query = `SELECT DistNGORegId AS id, DistNGOName AS name FROM dist_ngo_reg WHERE DistNGOIsActive != 0 OR DistNGOIsActive IS NULL`;
     } else if (role === 'District Administrator') {
         query = `SELECT SupRegId AS id, SupName AS name FROM suvervisor_reg WHERE DistNGORegId = ? AND (SupIsActive != 0 OR SupIsActive IS NULL)`;

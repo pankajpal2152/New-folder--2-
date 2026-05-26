@@ -46,7 +46,8 @@ router.delete('/supervisor/:id', formController.deleteSupervisor);
 
 router.post('/check-duplicate', formController.checkDuplicate);
 
-// --- NEW: PRODUCT DISTRIBUTION ROUTES ---
+// --- PRODUCT DISTRIBUTION & ACCOUNT HEAD ROUTES ---
+router.get('/accthead', formController.getAccountHeads);
 router.get('/stock', formController.getProductStock);
 router.get('/juniors-for-distribution', formController.getJuniorsForDistribution);
 router.get('/distribution-history', formController.getDistributionHistory);

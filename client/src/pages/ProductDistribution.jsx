@@ -6,8 +6,10 @@ import { API_BASE_URL } from '../config/constants';
 
 const ProductDistribution = () => {
     const [formData, setFormData] = useState({ 
-        ReceiverId: '', ProductName: '', DistributedQty: '', Remarks: 'Stock Transfer', Date: new Date().toISOString().split('T')[0] 
+        AcctHeadId: '', ReceiverId: '', ProductName: '', DistributedQty: '', Remarks: 'By Transfer', Date: new Date().toISOString().split('T')[0] 
     });
+    
+    const [accountHeads, setAccountHeads] = useState([]);
     const [receivers, setReceivers] = useState([]);
     const [stock, setStock] = useState([]);
     const [history, setHistory] = useState([]);
@@ -15,10 +17,18 @@ const ProductDistribution = () => {
     const user = JSON.parse(localStorage.getItem('loggedInUser'));
 
     useEffect(() => {
+        fetchAccountHeads();
         fetchStock();
         fetchReceivers();
         fetchHistory();
     }, []);
+
+    const fetchAccountHeads = async () => {
+        try {
+            const res = await axios.get(`${API_BASE_URL}/accthead`);
+            setAccountHeads(res.data);
+        } catch (err) { console.error("Error fetching account heads", err); }
+    };
 
     const fetchStock = async () => {
         try {
@@ -47,8 +57,8 @@ const ProductDistribution = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!formData.ReceiverId || !formData.ProductName || !formData.DistributedQty) {
-            toast.warning("Please fill in all required fields.");
+        if (!formData.ReceiverId || !formData.ProductName || !formData.DistributedQty || !formData.AcctHeadId) {
+            toast.warning("Please fill in Account Head, Number, Product, and Amount.");
             return;
         }
 
@@ -56,149 +66,190 @@ const ProductDistribution = () => {
             await axios.post(`${API_BASE_URL}/distribute`, {
                 ...formData,
                 SenderId: user.UserSignUpId,
-                ReceiverRole: 'Junior'
+                ReceiverRole: accountHeads.find(a => String(a.AcctHeadId) === String(formData.AcctHeadId))?.AcctHead || 'Junior'
             });
-            toast.success("Product distributed successfully!");
-            setFormData({ ReceiverId: '', ProductName: '', DistributedQty: '', Remarks: 'Stock Transfer', Date: new Date().toISOString().split('T')[0] });
+            toast.success("Transaction Entry Saved Successfully!");
+            setFormData({ AcctHeadId: '', ReceiverId: '', ProductName: '', DistributedQty: '', Remarks: 'By Transfer', Date: new Date().toISOString().split('T')[0] });
             fetchHistory(); 
             fetchStock();   
         } catch (err) {
-            toast.error("Distribution transaction failed.");
+            toast.error("Transaction Entry Failed.");
         }
     };
 
     const handleCancel = () => {
-        setFormData({ ReceiverId: '', ProductName: '', DistributedQty: '', Remarks: 'Stock Transfer', Date: new Date().toISOString().split('T')[0] });
+        setFormData({ AcctHeadId: '', ReceiverId: '', ProductName: '', DistributedQty: '', Remarks: 'By Transfer', Date: new Date().toISOString().split('T')[0] });
     };
 
-    // Calculate currently selected product's available stock
-    const selectedProductStock = stock.find(s => s.ProductName === formData.ProductName)?.AvailableQty || '0.00';
+    const selectedAcctHeadName = accountHeads.find(a => String(a.AcctHeadId) === String(formData.AcctHeadId))?.AcctHeadName || '';
     const selectedReceiverName = receivers.find(r => String(r.id) === String(formData.ReceiverId))?.name || '';
+    const selectedProductStock = stock.find(s => s.ProductName === formData.ProductName)?.AvailableQty || '0.00';
 
-    // Enterprise UI Styles matching the Client's Reference Image
+    // Strict Enterprise ERP Visual Styles (Based exactly on reference image)
     const styles = {
-        container: { backgroundColor: '#e9e9e9', padding: '10px', minHeight: '100vh', fontFamily: 'Arial, sans-serif' },
-        wrapper: { backgroundColor: '#f0f4f8', border: '2px solid #a1acb8', padding: '4px' },
-        header: { backgroundColor: '#1E6bb8', color: '#fff', padding: '6px', textAlign: 'center', fontWeight: 'bold', fontSize: '16px', border: '1px solid #144f8a' },
-        sectionBanner: { backgroundColor: '#1E6bb8', color: '#fff', padding: '4px 10px', fontSize: '13px', fontWeight: 'bold', marginTop: '4px', border: '1px solid #144f8a' },
-        label: { color: '#005bb5', fontSize: '12px', fontWeight: 'bold', textAlign: 'right', paddingRight: '8px', margin: 0, alignSelf: 'center' },
-        input: { height: '24px', fontSize: '12px', padding: '2px 6px', borderRadius: '0', border: '1px solid #a1acb8', width: '100%' },
-        inputHighlight: { backgroundColor: '#fff', color: '#d93025', fontWeight: 'bold', border: 'none', outline: 'none', height: '24px', fontSize: '12px', padding: '2px 6px', width: '100%' },
-        button: { height: '26px', fontSize: '12px', fontWeight: 'bold', padding: '0 20px', borderRadius: '2px', border: '1px solid #a1acb8', backgroundColor: '#e9ecef', color: '#333', cursor: 'pointer' }
+        container: { backgroundColor: '#a9c4db', padding: '10px', minHeight: '100vh', fontFamily: 'Arial, sans-serif' },
+        wrapper: { backgroundColor: '#f0f4f8', border: '3px solid #1E6bb8', display: 'flex', flexDirection: 'row' },
+        leftPanel: { flex: 1, padding: '4px' },
+        rightPanel: { width: '130px', backgroundColor: '#1E6bb8', padding: '10px 8px', display: 'flex', flexDirection: 'column', gap: '8px', borderLeft: '3px solid #fff' },
+        header: { backgroundColor: '#1E6bb8', color: '#fff', padding: '4px', textAlign: 'center', fontWeight: 'bold', fontSize: '15px' },
+        sectionBanner: { backgroundColor: '#1E6bb8', color: '#fff', padding: '2px 8px', fontSize: '12px', fontWeight: 'bold', marginTop: '6px' },
+        label: { color: '#005bb5', fontSize: '11px', fontWeight: 'bold', margin: 0, alignSelf: 'center', whiteSpace: 'nowrap' },
+        input: { height: '22px', fontSize: '12px', padding: '0 4px', borderRadius: '0', border: '1px solid #a1acb8', width: '100%', outline: 'none' },
+        inputSmall: { height: '22px', fontSize: '12px', padding: '0 4px', borderRadius: '0', border: '1px solid #a1acb8', width: '60px', outline: 'none', textAlign: 'center' },
+        redText: { color: '#d93025', fontWeight: 'bold', fontSize: '11px', textTransform: 'uppercase', whiteSpace: 'nowrap' },
+        redBlock: { backgroundColor: '#d93025', color: '#fff', padding: '2px 8px', fontSize: '11px', fontWeight: 'bold', display: 'inline-block' },
+        sideButton: { backgroundColor: '#fff', color: '#005bb5', border: '1px solid #005bb5', padding: '4px', fontSize: '11px', fontWeight: 'bold', textAlign: 'center', cursor: 'pointer', borderRadius: '2px' },
+        actionBtn: { height: '22px', fontSize: '11px', fontWeight: 'bold', padding: '0 15px', borderRadius: '2px', border: '1px solid #a1acb8', cursor: 'pointer' }
     };
 
     return (
         <div style={styles.container}>
-            <ToastContainer autoClose={3000} />
+            <ToastContainer autoClose={3000} position="top-center" />
             
             <div style={styles.wrapper}>
-                <div style={styles.header}>Product Distribution Entry</div>
+                
+                {/* LEFT DATA ENTRY PANEL */}
+                <div style={styles.leftPanel}>
+                    <div style={styles.header}>Product Distribution Transaction Entry</div>
 
-                <form onSubmit={handleSubmit} style={{ backgroundColor: '#f0f4f8', padding: '4px' }}>
-                    
-                    {/* --- SECTION 1: ACCOUNT INFORMATION --- */}
-                    <div style={styles.sectionBanner}>Account Information</div>
-                    <div className="row g-2 mt-1 mb-2 px-2">
-                        <div className="col-md-2 d-flex"><label style={styles.label} className="w-100">Account Head</label></div>
-                        <div className="col-md-2">
-                            <select style={styles.input} value={formData.ReceiverId} onChange={(e) => setFormData({...formData, ReceiverId: e.target.value})}>
-                                <option value="">-- Select Junior --</option>
-                                {receivers.map(r => <option key={r.id} value={r.id}>{r.id} - {r.name}</option>)}
+                    <form onSubmit={handleSubmit}>
+                        
+                        {/* --- ACCOUNT INFORMATION --- */}
+                        <div style={styles.sectionBanner}>Account Information</div>
+                        <div className="d-flex align-items-center mt-1 px-1 gap-2">
+                            <label style={{...styles.label, width: '90px'}}>Account Head</label>
+                            <select style={{...styles.input, width: '120px'}} value={formData.AcctHeadId} onChange={(e) => setFormData({...formData, AcctHeadId: e.target.value})}>
+                                <option value=""></option>
+                                {accountHeads.map(a => <option key={a.AcctHeadId} value={a.AcctHeadId}>{a.AcctHead}</option>)}
                             </select>
+                            <span style={{...styles.redText, width: '150px'}}>{selectedAcctHeadName}</span>
+                            
+                            <label style={styles.label}>Mast.Acct.No</label>
+                            <input type="text" readOnly style={styles.inputSmall} value={formData.ReceiverId} />
+                            <input type="text" readOnly style={{...styles.inputSmall, width: '30px'}} value="0" />
+                            
+                            <label style={styles.label}>Mem.Reg.No</label>
+                            <span style={styles.redText}>MRegNo</span>
+                            
+                            <label style={styles.label}>L/F No</label>
+                            <label style={styles.label}>Vouc.No</label>
+                            <span style={{...styles.redBlock, width: '30px', textAlign: 'center'}}>9</span>
+                            
+                            <label style={styles.label}>Entry Date</label>
+                            <input type="date" style={{...styles.input, width: '110px'}} value={formData.Date} onChange={(e) => setFormData({...formData, Date: e.target.value})} />
                         </div>
-                        <div className="col-md-4 d-flex align-items-center">
-                            <span style={{ color: '#d93025', fontWeight: 'bold', fontSize: '12px', textTransform: 'uppercase', marginLeft: '10px' }}>
-                                {selectedReceiverName || 'NO ACCOUNT SELECTED'}
-                            </span>
+                        
+                        <div className="d-flex align-items-center mt-2 px-1 gap-2 mb-2">
+                            <label style={{...styles.label, width: '90px'}}>Acct.Number</label>
+                            <select style={{...styles.input, width: '120px'}} value={formData.ReceiverId} onChange={(e) => setFormData({...formData, ReceiverId: e.target.value})}>
+                                <option value=""></option>
+                                {receivers.map(r => <option key={r.id} value={r.id}>{r.id}</option>)}
+                            </select>
+                            <span style={{...styles.redText, width: '150px'}}>{selectedReceiverName}</span>
+                            <span style={{...styles.label, marginLeft: '100px'}}>S/B Acct No</span>
+                            <span style={styles.redText}>SBAcctNo</span>
                         </div>
-                        <div className="col-md-2 d-flex"><label style={styles.label} className="w-100">Entry Date</label></div>
-                        <div className="col-md-2">
-                            <input type="date" style={styles.input} value={formData.Date} onChange={(e) => setFormData({...formData, Date: e.target.value})} />
-                        </div>
-                    </div>
 
-                    {/* --- SECTION 2: STOCK INFORMATION --- */}
-                    <div style={styles.sectionBanner}>Stock Information / Inventory</div>
-                    <div className="row g-2 mt-1 mb-2 px-2">
-                        <div className="col-md-2 d-flex"><label style={styles.label} className="w-100">Product Name</label></div>
-                        <div className="col-md-2">
-                            <select style={styles.input} value={formData.ProductName} onChange={(e) => setFormData({...formData, ProductName: e.target.value})}>
-                                <option value="">-- Select Product --</option>
+                        {/* --- STOCK / PRODUCT INFORMATION --- */}
+                        <div style={styles.sectionBanner}>Stock / Product Information</div>
+                        <div className="d-flex align-items-center mt-1 px-1 gap-2 mb-2">
+                            <label style={{...styles.label, width: '90px'}}>Select Product</label>
+                            <select style={{...styles.input, width: '200px'}} value={formData.ProductName} onChange={(e) => setFormData({...formData, ProductName: e.target.value})}>
+                                <option value=""></option>
                                 {stock.map(s => <option key={s.StockId} value={s.ProductName}>{s.ProductName}</option>)}
                             </select>
+                            
+                            <label style={{...styles.label, marginLeft: '20px'}}>Total Balance</label>
+                            <span style={styles.redText}>{selectedProductStock}</span>
+                            
+                            <label style={{...styles.label, marginLeft: '20px'}}>Minimum Bal. 0</label>
+                            
+                            <label style={{...styles.label, marginLeft: '20px'}}>NetBalance</label>
+                            <span style={styles.redText}>{selectedProductStock}</span>
+                            
+                            <label style={{...styles.label, marginLeft: '20px'}}>Withdrawable Amount</label>
+                            <span style={styles.redText}>{selectedProductStock}</span>
                         </div>
-                        <div className="col-md-2 d-flex"><label style={styles.label} className="w-100">Available Balance</label></div>
-                        <div className="col-md-2">
-                            <input type="text" readOnly style={styles.inputHighlight} value={selectedProductStock} />
-                        </div>
-                        <div className="col-md-2 d-flex"><label style={styles.label} className="w-100">Withdrawable Qty</label></div>
-                        <div className="col-md-2">
-                            <input type="text" readOnly style={{...styles.inputHighlight, color: '#005bb5'}} value={selectedProductStock} />
-                        </div>
-                    </div>
 
-                    {/* --- SECTION 3: TRANSACTION DETAILS --- */}
-                    <div style={styles.sectionBanner}>Transaction Details</div>
-                    <div className="row g-2 mt-1 mb-3 px-2 align-items-center">
-                        <div className="col-md-2 d-flex"><label style={styles.label} className="w-100">Tran. Quantity</label></div>
-                        <div className="col-md-2">
-                            <input 
-                                type="number" 
-                                style={{...styles.input, border: '1px solid #d93025'}} 
-                                value={formData.DistributedQty} 
-                                onChange={(e) => setFormData({...formData, DistributedQty: e.target.value})} 
-                            />
-                        </div>
-                        <div className="col-md-1 d-flex"><label style={styles.label} className="w-100">Remarks</label></div>
-                        <div className="col-md-5">
-                            <input 
-                                type="text" 
-                                style={styles.input} 
-                                value={formData.Remarks} 
-                                onChange={(e) => setFormData({...formData, Remarks: e.target.value})} 
-                            />
-                        </div>
-                        <div className="col-md-2 d-flex justify-content-end gap-2">
-                            <button type="submit" style={styles.button}>Save</button>
-                            <button type="button" style={styles.button} onClick={handleCancel}>Cancel</button>
-                        </div>
-                    </div>
+                        {/* --- TRANSACTION DETAILS --- */}
+                        <div style={styles.sectionBanner}>Transaction Detailsls</div>
+                        <div className="d-flex align-items-center mt-1 px-1 gap-2">
+                            <label style={{...styles.label, width: '90px'}}>Tran. Type</label>
+                            <input type="text" readOnly style={{...styles.input, width: '150px'}} value="STOCK TRANSFER" />
+                            
+                            <div style={{border: '1px solid #a1acb8', padding: '0 8px', display: 'flex', alignItems: 'center', height: '22px', gap: '10px'}}>
+                                <label style={{fontSize: '11px', margin: 0}}><input type="radio" checked readOnly style={{marginRight: '4px'}}/>Debit</label>
+                                <label style={{fontSize: '11px', margin: 0}}><input type="radio" disabled style={{marginRight: '4px'}}/>Credit</label>
+                            </div>
 
-                </form>
+                            <label style={{...styles.label, marginLeft: '20px'}}>Voucher Type</label>
+                            <input type="text" readOnly style={{...styles.input, width: '150px'}} value="CASH / TRANSFER" />
 
-                {/* --- SECTION 4: DATA TABLE --- */}
-                <div style={{ ...styles.sectionBanner, marginTop: '10px' }}>Multiple Entries List</div>
-                <div style={{ backgroundColor: '#fff', border: '1px solid #a1acb8', height: '300px', overflowY: 'auto' }}>
-                    <table className="table table-sm table-bordered mb-0" style={{ fontSize: '12px' }}>
-                        <thead style={{ backgroundColor: '#f5f5f9', position: 'sticky', top: 0, zIndex: 1 }}>
-                            <tr>
-                                <th style={{ color: '#005bb5', borderBottom: '2px solid #a1acb8' }}>Account Head</th>
-                                <th style={{ color: '#005bb5', borderBottom: '2px solid #a1acb8' }}>Acct Number</th>
-                                <th style={{ color: '#005bb5', borderBottom: '2px solid #a1acb8' }}>Product Name</th>
-                                <th style={{ color: '#005bb5', borderBottom: '2px solid #a1acb8' }}>Tran Type</th>
-                                <th style={{ color: '#005bb5', borderBottom: '2px solid #a1acb8' }}>Amount / Qty</th>
-                                <th style={{ color: '#005bb5', borderBottom: '2px solid #a1acb8' }}>Remarks</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {history.length === 0 ? (
-                                <tr>
-                                    <td colSpan="6" className="text-center py-4 text-muted">No transaction entries found.</td>
-                                </tr>
-                            ) : (
-                                history.map(row => (
-                                    <tr key={row.DistId}>
-                                        <td className="text-muted">{row.ReceiverRole}</td>
-                                        <td className="fw-bold">{row.ReceiverId}</td>
-                                        <td>{row.ProductName}</td>
-                                        <td className="text-muted">Debit</td>
-                                        <td className="fw-bold text-danger text-end pe-3">{row.DistributedQty}.00</td>
-                                        <td className="text-muted">{row.Remarks}</td>
+                            <div className="ms-auto d-flex gap-2 pe-2">
+                                <button type="submit" style={styles.actionBtn}>Save</button>
+                            </div>
+                        </div>
+
+                        <div className="d-flex align-items-center mt-2 px-1 gap-2 mb-2">
+                            <label style={{...styles.label, width: '90px'}}>Tran.Amount</label>
+                            <input type="number" style={{...styles.input, width: '150px', border: '1px solid #d93025'}} value={formData.DistributedQty} onChange={(e) => setFormData({...formData, DistributedQty: e.target.value})} />
+                            
+                            <span style={styles.redBlock}>Note Denomination</span>
+
+                            <label style={{...styles.label, marginLeft: '20px'}}>Remarks</label>
+                            <input type="text" style={{...styles.input, flex: 1}} value={formData.Remarks} onChange={(e) => setFormData({...formData, Remarks: e.target.value})} />
+
+                            <div className="ms-auto d-flex gap-2 pe-2">
+                                <button type="button" style={styles.actionBtn} onClick={handleCancel}>Cancel</button>
+                            </div>
+                        </div>
+
+                        {/* --- MULTIPLE ENTRIES LIST --- */}
+                        <div style={styles.sectionBanner}>Multiple Entries List</div>
+                        <div style={{ backgroundColor: '#fff', border: '1px solid #a1acb8', height: '280px', overflowY: 'auto', marginTop: '2px' }}>
+                            <table className="table table-sm mb-0" style={{ fontSize: '11px', borderCollapse: 'collapse' }}>
+                                <thead style={{ backgroundColor: '#f0f4f8', position: 'sticky', top: 0, color: '#005bb5' }}>
+                                    <tr>
+                                        <th style={{border: '1px solid #ccc', padding: '2px 4px'}}>Acct. Head</th>
+                                        <th style={{border: '1px solid #ccc', padding: '2px 4px'}}>Acct. Number</th>
+                                        <th style={{border: '1px solid #ccc', padding: '2px 4px'}}>Product Name</th>
+                                        <th style={{border: '1px solid #ccc', padding: '2px 4px'}}>Date</th>
+                                        <th style={{border: '1px solid #ccc', padding: '2px 4px', textAlign: 'right'}}>Sent Qty</th>
+                                        <th style={{border: '1px solid #ccc', padding: '2px 4px'}}>Remarks</th>
                                     </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
+                                </thead>
+                                <tbody>
+                                    {history.length === 0 ? (
+                                        <tr><td colSpan="6" className="text-center py-4 text-muted">No transactions found.</td></tr>
+                                    ) : (
+                                        history.map(row => (
+                                            <tr key={row.DistId}>
+                                                <td style={{border: '1px solid #ccc', padding: '2px 4px', color: '#d93025'}}>{row.ReceiverRole}</td>
+                                                <td style={{border: '1px solid #ccc', padding: '2px 4px', fontWeight: 'bold'}}>{row.ReceiverId}</td>
+                                                <td style={{border: '1px solid #ccc', padding: '2px 4px'}}>{row.ProductName}</td>
+                                                <td style={{border: '1px solid #ccc', padding: '2px 4px'}}>{String(row.ProductDate).substring(0, 10)}</td>
+                                                <td style={{border: '1px solid #ccc', padding: '2px 4px', textAlign: 'right', fontWeight: 'bold', color: '#d93025'}}>{row.DistributedQty}.00</td>
+                                                <td style={{border: '1px solid #ccc', padding: '2px 4px'}}>{row.Remarks}</td>
+                                            </tr>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </form>
+                </div>
+
+                {/* RIGHT FUNCTION BUTTONS PANEL */}
+                <div style={styles.rightPanel}>
+                    <div style={styles.sideButton}>Day Book(F1)</div>
+                    <div style={styles.sideButton}>Cash Book(F2)</div>
+                    <div style={styles.sideButton}>CashBook Dtl (F3)</div>
+                    <div style={styles.sideButton}>Ledger(F4)</div>
+                    <div style={styles.sideButton}>Per. Ledger(F5)</div>
+                    <div style={styles.sideButton}>Int Ledger(F6)</div>
+                    <div style={styles.sideButton}>Per. Int Ledger(F7)</div>
+                    <div style={styles.sideButton}>Sign.Verify(F8)</div>
+                    <div style={styles.sideButton}>Help(F9)</div>
                 </div>
 
             </div>

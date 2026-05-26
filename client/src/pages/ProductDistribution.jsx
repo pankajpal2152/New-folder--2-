@@ -86,13 +86,13 @@ const ProductDistribution = () => {
                         {/* Row 1: Receiver and Date */}
                         <div className="row mb-3">
                             <div className="col-md-4">
-                                <label className="fw-bold text-muted small text-uppercase">Select Receiver (Junior) *</label>
+                                <label className="fw-bold text-muted small text-uppercase">Select Receiver Account Head *</label>
                                 <select 
                                     className="form-select form-select-sm" 
                                     value={formData.ReceiverId}
                                     onChange={(e) => setFormData({...formData, ReceiverId: e.target.value})}
                                 >
-                                    <option value="">-- Select Junior Account --</option>
+                                    <option value="">-- Select Receiver Account Head --</option>
                                     {receivers.map(r => (
                                         <option key={r.id} value={r.id}>{r.name}</option>
                                     ))}

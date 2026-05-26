@@ -575,7 +575,7 @@ const SupervisorTable = ({ refreshTrigger, externalFilters }) => {
                                         {renderTh('PAN No', 'SupPanNo')}
                                         {renderTh('Aadhar No', 'SupAadharNo')}
                                         {renderTh('Joining Amt', 'SupJoiningAmt')}
-                                        {/* {renderTh('Wallet Bal', 'SupWalletBalance')} */}
+                                        {renderTh('Wallet Bal', 'SupWalletBalance')}
                                         {renderTh('Status', 'SupIsActive')}
                                         {renderTh('Approved By', 'ApproverDisplayName')}
                                         {renderTh('Approval Date', 'SupAprovedDate')}

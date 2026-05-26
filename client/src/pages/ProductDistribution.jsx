@@ -141,12 +141,13 @@ const ProductDistribution = () => {
                         
                         <div className="d-flex align-items-center mt-2 px-1 gap-2 mb-2">
                             <label style={{...styles.label, width: '90px'}}>Acct.Number</label>
-                            <select style={{...styles.input, width: '120px'}} value={formData.ReceiverId} onChange={(e) => setFormData({...formData, ReceiverId: e.target.value})}>
+                            {/* ✅ FIXED: Increased width and added Account Name {r.name} to the dropdown options */}
+                            <select style={{...styles.input, width: '250px'}} value={formData.ReceiverId} onChange={(e) => setFormData({...formData, ReceiverId: e.target.value})}>
                                 <option value=""></option>
-                                {receivers.map(r => <option key={r.id} value={r.id}>{r.id}</option>)}
+                                {receivers.map(r => <option key={r.id} value={r.id}>{r.id} - {r.name}</option>)}
                             </select>
-                            <span style={{...styles.redText, width: '150px'}}>{selectedReceiverName}</span>
-                            <span style={{...styles.label, marginLeft: '100px'}}>S/B Acct No</span>
+                            <span style={{...styles.redText, width: '150px', marginLeft: '10px'}}>{selectedReceiverName}</span>
+                            <span style={{...styles.label, marginLeft: '30px'}}>S/B Acct No</span>
                             <span style={styles.redText}>SBAcctNo</span>
                         </div>
 

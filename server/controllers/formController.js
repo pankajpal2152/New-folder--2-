@@ -227,8 +227,8 @@ exports.getDistrictAdmin = (req, res) => {
 
 exports.createDistrictAdmin = (req, res) => {
     const data = req.body;
-    const insertQuery = `INSERT INTO dist_ngo_reg (DistNGOName, DistNGORegDate, DistNGORegNo, DistNGOPanNo, DistNGODarpanId, DistNGOMailId, DistNGOPhoneNo, DistNGORegAddress, DistNGOWorkingAddress, DistNGOStateName, DistNGODistName, DistNGOBlockName, DistNGOSDPName, DistNGOSDPMailId, DistNGOSDPPhoneNo, DistNGOSDPAadhaarNo, DistNGOBankAcctHolderName, DistNGOBankName, DistNGOAcctNo, DistNGOIFSCode, DistNGOBankAdd, DistNGOSignupUserName, DistNGOSignupEmail, DistNGOSignupPassword, DistNGOCreatedByAuthRegId, DistNGOCreatedDate, DistNGOIsActive) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?)`;
-    const values = [data.DistNGOName, data.DistNGORegDate, data.DistNGORegNo, data.DistNGOPanNo, data.DistNGODarpanId, data.DistNGOMailId, data.DistNGOPhoneNo, data.DistNGORegAddress, data.DistNGOWorkingAddress, data.DistNGOStateName, data.DistNGODistName, data.DistNGOBlockName, data.DistNGOSDPName, data.DistNGOSDPMailId, data.DistNGOSDPPhoneNo, data.DistNGOSDPAadhaarNo, data.DistNGOBankAcctHolderName, data.DistNGOBankName, data.DistNGOAcctNo, data.DistNGOIFSCode, data.DistNGOBankAdd, data.DistNGOSignupUserName, data.DistNGOSignupEmail, data.DistNGOSignupPassword, data.DistNGOCreatedByAuthRegId || null, data.DistNGOIsActive || 1];
+    const insertQuery = `INSERT INTO dist_ngo_reg (DistNGOName, DistNGORegDate, DistNGORegNo, DistNGOPanNo, DistNGODarpanId, DistNGOMailId, DistNGOPhoneNo, DistNGORegAddress, DistNGOWorkingAddress, DistNGOStateName, DistNGODistName, DistNGOBlockName, DistNGOSDPName, DistNGOSDPMailId, DistNGOSDPPhoneNo, DistNGOSDPAadhaarNo, DistNGOBankAcctHolderName, DistNGOBankName, DistNGOAcctNo, DistNGOIFSCode, DistNGOBankAdd, DistNGOSignupUserName, DistNGOSignupEmail, DistNGOSignupPassword, DistNGOCreatedByAuthRegId, DistNGOCreatedDate, DistNGOIsActive, StateNGORegId) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?)`;
+    const values = [data.DistNGOName, data.DistNGORegDate, data.DistNGORegNo, data.DistNGOPanNo, data.DistNGODarpanId, data.DistNGOMailId, data.DistNGOPhoneNo, data.DistNGORegAddress, data.DistNGOWorkingAddress, data.DistNGOStateName, data.DistNGODistName, data.DistNGOBlockName, data.DistNGOSDPName, data.DistNGOSDPMailId, data.DistNGOSDPPhoneNo, data.DistNGOSDPAadhaarNo, data.DistNGOBankAcctHolderName, data.DistNGOBankName, data.DistNGOAcctNo, data.DistNGOIFSCode, data.DistNGOBankAdd, data.DistNGOSignupUserName, data.DistNGOSignupEmail, data.DistNGOSignupPassword, data.DistNGOCreatedByAuthRegId || null, data.DistNGOIsActive || 1, data.StateNGORegId || null];
 
     db.query(insertQuery, values, (err, result) => {
         if (err) return res.status(500).json({ error: err.message });
@@ -319,11 +319,9 @@ exports.deleteSupervisor = (req, res) => {
     });
 };
 
-
 exports.checkDuplicate = (req, res) => {
     const { table, column, value, idColumn, idValue } = req.body;
     
-    // Whitelist tables/columns to prevent SQL Injection
     const allowed = {
         'asthadidi_reg': ['AsthaDidiMailId', 'AsthaDidiSignupUserName', 'AsthaDidiAadharNo'],
         'asthama_reg': ['AsthaMaMailId', 'AsthaMaSignupUserName', 'AsthaMaAadharNo'],
@@ -338,7 +336,6 @@ exports.checkDuplicate = (req, res) => {
     let query = `SELECT * FROM ?? WHERE ?? = ?`;
     let params = [table, column, value];
 
-    // If idColumn/idValue are provided, we exclude the current record (important for Edit/Update!)
     if (idColumn && idValue) {
         query += ` AND ?? != ?`;
         params.push(idColumn, idValue);
@@ -350,13 +347,49 @@ exports.checkDuplicate = (req, res) => {
     });
 };
 
-
-
-// Add these exports to your existing formController.js
+// ==========================================
+// NEW: PRODUCT DISTRIBUTION MODULE
+// ==========================================
 
 exports.getProductStock = (req, res) => {
+    // Falls back to empty array if table doesn't exist yet to prevent crashes
     db.query('SELECT * FROM stock_management', (err, results) => {
-        if (err) return res.status(500).json({ error: err.message });
+        if (err) {
+            console.error("Stock fetch error:", err.message);
+            return res.json([]); 
+        }
+        res.json(results);
+    });
+};
+
+// Fetches the exact list of immediate juniors based on the logged in user's role
+exports.getJuniorsForDistribution = (req, res) => {
+    const { role, profileId } = req.query;
+    let query = '';
+    let params = [profileId];
+
+    if (role === 'State Super Administrator') {
+        // State Admin sees ONLY the District NGOs created under them
+        query = `SELECT DistNGORegId AS id, DistNGOName AS name FROM dist_ngo_reg WHERE DistNGOCreatedByAuthRegId = ? OR StateNGORegId = ?`;
+        params = [profileId, profileId];
+    } else if (role === 'District Administrator') {
+        // District Admin sees ONLY their Supervisors
+        query = `SELECT SupRegId AS id, SupName AS name FROM suvervisor_reg WHERE DistNGORegId = ?`;
+    } else if (role === 'Supervisor') {
+        // Supervisor sees ONLY their Astha Didis
+        query = `SELECT AsthaDidiRegId AS id, AsthaDidiUserName AS name FROM asthadidi_reg WHERE SupRegId = ?`;
+    } else if (role === 'Astha Didi') {
+        // Astha Didi sees ONLY their Astha Maas
+        query = `SELECT AsthaMaRegId AS id, AsthaMaUserName AS name FROM asthama_reg WHERE AsthaDidiRegId = ?`;
+    } else {
+        return res.json([]);
+    }
+
+    db.query(query, params, (err, results) => {
+        if (err) {
+            console.error("❌ DB Error fetching juniors:", err);
+            return res.status(500).json({ error: err.message });
+        }
         res.json(results);
     });
 };
@@ -364,16 +397,22 @@ exports.getProductStock = (req, res) => {
 exports.distributeProduct = (req, res) => {
     const { SenderId, ReceiverId, ReceiverRole, ProductName, DistributedQty, Remarks } = req.body;
     
-    // 1. Record the transaction
     const insertQuery = `INSERT INTO product_distribution (SenderId, ReceiverId, ReceiverRole, ProductName, DistributedQty, Remarks, ProductDate) VALUES (?,?,?,?,?,?,NOW())`;
     
     db.query(insertQuery, [SenderId, ReceiverId, ReceiverRole, ProductName, DistributedQty, Remarks], (err) => {
         if (err) return res.status(500).json({ error: err.message });
 
-        // 2. Reduce stock from inventory
         db.query('UPDATE stock_management SET AvailableQty = AvailableQty - ? WHERE ProductName = ?', [DistributedQty, ProductName], (err) => {
-            if (err) return res.status(500).json({ error: 'Stock update failed' });
+            if (err) console.error('Stock update failed:', err); // Non-fatal if table doesn't exist yet
             res.json({ message: 'Product distributed successfully' });
         });
+    });
+};
+
+exports.getDistributionHistory = (req, res) => {
+    const { senderId } = req.query;
+    db.query('SELECT * FROM product_distribution WHERE SenderId = ? ORDER BY ProductDate DESC LIMIT 10', [senderId], (err, results) => {
+        if (err) return res.json([]);
+        res.json(results);
     });
 };

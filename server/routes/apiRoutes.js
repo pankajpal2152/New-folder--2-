@@ -12,33 +12,28 @@ router.post('/userinfo', authController.createUserRole);
 router.put('/userinfo/:id', authController.updateUserRole);
 router.delete('/userinfo/:id', authController.deleteUserRole);
 
-// --- GENERAL DROPDOWN ROUTES (Used in Forms) ---
+// --- GENERAL DROPDOWN ROUTES ---
 router.get('/states', formController.getStates);
 router.get('/districts/:stateId', formController.getDistricts);
-
-// --- STRICT FILTER DROPDOWN ROUTES (Used for External Table Filters) ---
 router.get('/filter/states', formController.getFilterStates);
 router.get('/filter/districts/:stateId', formController.getFilterDistricts);
 
-// --- ASTHA DIDI ROUTES ---
+// --- REGISTRATION ROUTES ---
 router.get('/asthadidi', formController.getAsthaDidi);
 router.post('/asthadidi', formController.createAsthaDidi);
 router.put('/asthadidi/:id', formController.updateAsthaDidi);
 router.delete('/asthadidi/:id', formController.deleteAsthaDidi);
 
-// --- ASTHA MAA ROUTES ---
 router.get('/asthamaa', formController.getAsthaMaa);
 router.post('/asthamaa', formController.createAsthaMaa);
 router.put('/asthamaa/:id', formController.updateAsthaMaa);
 router.delete('/asthamaa/:id', formController.deleteAsthaMaa);
 
-// --- DISTRICT ADMIN ROUTES ---
 router.get('/districtadmin', formController.getDistrictAdmin);
 router.post('/districtadmin', formController.createDistrictAdmin);
 router.put('/districtadmin/:id', formController.updateDistrictAdmin);
 router.delete('/districtadmin/:id', formController.deleteDistrictAdmin);
 
-// --- SUPERVISOR ROUTES ---
 router.get('/supervisor', formController.getSupervisor);
 router.post('/supervisor', formController.createSupervisor);
 router.put('/supervisor/:id', formController.updateSupervisor);
@@ -46,16 +41,13 @@ router.delete('/supervisor/:id', formController.deleteSupervisor);
 
 router.post('/check-duplicate', formController.checkDuplicate);
 
-// --- PRODUCT DISTRIBUTION & ACCOUNT HEAD ROUTES ---
+// --- PRODUCT DISTRIBUTION ROUTES ---
 router.get('/accthead', formController.getAccountHeads);
 router.get('/accounts-mapping', formController.getAccountsMapping);
 router.get('/stock', formController.getProductStock);
 router.get('/juniors-for-distribution', formController.getJuniorsForDistribution);
-// ✅ ADDED ROUTE
 router.get('/supervisors-by-dist/:distId', formController.getSupervisorsByDist);
 router.get('/distribution-history', formController.getDistributionHistory);
 router.post('/distribute', formController.distributeProduct);
 
-
-router.get('/supervisors-by-dist/:distId', formController.getSupervisorsByDist);
 module.exports = router;

@@ -156,9 +156,10 @@ const ProductDistribution = () => {
     filteredAccounts.find(
       (r) => String(r.AcctNo) === String(formData.ReceiverId),
     )?.AcctName || "";
-  const selectedSupervisor = supervisors.find(
-    (s) => String(s.id) === String(formData.SupervisorId),
-  );
+  const selectedSupervisorHead = formData.SupervisorId ? "SV" : ""; // Dynamic display for Supervisor head
+  const selectedSupervisorName =
+    supervisors.find((s) => String(s.id) === String(formData.SupervisorId))
+      ?.name || "";
   const selectedProductStock =
     stock.find((s) => s.ProductName === formData.ProductName)?.AvailableQty ||
     "0.00";
@@ -269,12 +270,16 @@ const ProductDistribution = () => {
   return (
     <div style={styles.container}>
       <ToastContainer autoClose={3000} position="top-center" />
+
       <div style={styles.wrapper}>
+        {/* LEFT DATA ENTRY PANEL */}
         <div style={styles.leftPanel}>
           <div style={styles.header}>
             Product Distribution Transaction Entry
           </div>
+
           <form onSubmit={handleSubmit}>
+            {/* --- ACCOUNT INFORMATION --- */}
             <div style={styles.sectionBanner}>Account Information</div>
             <div className="d-flex align-items-center mt-1 px-1 gap-2">
               <label style={{ ...styles.label, width: "90px" }}>
@@ -298,6 +303,7 @@ const ProductDistribution = () => {
               <span style={{ ...styles.redText, width: "150px" }}>
                 {selectedAcctHeadName}
               </span>
+
               <label style={styles.label}>Mast.Acct.No</label>
               <input
                 type="text"
@@ -311,6 +317,7 @@ const ProductDistribution = () => {
                 style={{ ...styles.inputSmall, width: "30px" }}
                 value="0"
               />
+
               <label style={styles.label}>Entry Date</label>
               <input
                 type="date"
@@ -351,7 +358,7 @@ const ProductDistribution = () => {
               </span>
             </div>
 
-            {/* ✅ Supervisor Selection Row */}
+            {/* ✅ Supervisor Row */}
             <div className="d-flex align-items-center mt-2 px-1 gap-2 mb-2">
               <label style={{ ...styles.label, width: "90px" }}>
                 Supervisor
@@ -373,15 +380,15 @@ const ProductDistribution = () => {
               <span
                 style={{ ...styles.redText, width: "50px", marginLeft: "10px" }}
               >
-                SV
+                {selectedSupervisorHead}
               </span>
               <span style={{ ...styles.redText }}>
-                {selectedSupervisor?.name || ""}
+                {selectedSupervisorName}
               </span>
             </div>
 
+            {/* --- STOCK / PRODUCT INFORMATION --- */}
             <div style={styles.sectionBanner}>Stock / Product Information</div>
-            {/* ... Rest of JSX ... */}
             <div className="d-flex align-items-center mt-1 px-1 gap-2 mb-2">
               <label style={{ ...styles.label, width: "90px" }}>
                 Select Product
@@ -405,6 +412,8 @@ const ProductDistribution = () => {
               </label>
               <span style={styles.redText}>{selectedProductStock}</span>
             </div>
+
+            {/* --- TRANSACTION DETAILS --- */}
             <div style={styles.sectionBanner}>Transaction Details</div>
             <div className="d-flex align-items-center mt-1 px-1 gap-2">
               <label style={{ ...styles.label, width: "90px" }}>
@@ -422,6 +431,7 @@ const ProductDistribution = () => {
                   setFormData({ ...formData, DistributedQty: e.target.value })
                 }
               />
+
               <label style={{ ...styles.label, marginLeft: "20px" }}>
                 Remarks
               </label>
@@ -433,6 +443,7 @@ const ProductDistribution = () => {
                   setFormData({ ...formData, Remarks: e.target.value })
                 }
               />
+
               <div className="ms-auto d-flex gap-2 pe-2">
                 <button type="submit" style={styles.actionBtn}>
                   Save
@@ -485,15 +496,19 @@ const ProductDistribution = () => {
                     <th
                       style={{ border: "1px solid #ccc", padding: "2px 4px" }}
                     >
-                      Supervisor
-                    </th>
-                    <th
-                      style={{ border: "1px solid #ccc", padding: "2px 4px" }}
-                    >
                       Product Name
                     </th>
                     <th
                       style={{ border: "1px solid #ccc", padding: "2px 4px" }}
+                    >
+                      Date
+                    </th>
+                    <th
+                      style={{
+                        border: "1px solid #ccc",
+                        padding: "2px 4px",
+                        textAlign: "right",
+                      }}
                     >
                       Sent Qty
                     </th>
@@ -503,7 +518,11 @@ const ProductDistribution = () => {
                   {history.map((row) => (
                     <tr key={row.DistId}>
                       <td
-                        style={{ border: "1px solid #ccc", padding: "2px 4px" }}
+                        style={{
+                          border: "1px solid #ccc",
+                          padding: "2px 4px",
+                          color: "#d93025",
+                        }}
                       >
                         {row.ReceiverRole}
                       </td>
@@ -515,17 +534,23 @@ const ProductDistribution = () => {
                       <td
                         style={{ border: "1px solid #ccc", padding: "2px 4px" }}
                       >
-                        {row.SupervisorId || "N/A"}
-                      </td>
-                      <td
-                        style={{ border: "1px solid #ccc", padding: "2px 4px" }}
-                      >
                         {row.ProductName}
                       </td>
                       <td
                         style={{ border: "1px solid #ccc", padding: "2px 4px" }}
                       >
-                        {row.DistributedQty}
+                        {String(row.ProductDate).substring(0, 10)}
+                      </td>
+                      <td
+                        style={{
+                          border: "1px solid #ccc",
+                          padding: "2px 4px",
+                          textAlign: "right",
+                          fontWeight: "bold",
+                          color: "#d93025",
+                        }}
+                      >
+                        {row.DistributedQty}.00
                       </td>
                     </tr>
                   ))}
@@ -535,10 +560,22 @@ const ProductDistribution = () => {
           </form>
         </div>
         {/* <div style={styles.rightPanel}>
-                    {['Day Book(F1)', 'Cash Book(F2)', 'CashBook Dtl (F3)', 'Ledger(F4)', 'Per. Ledger(F5)', 'Int Ledger(F6)', 'Per. Int Ledger(F7)', 'Sign.Verify(F8)', 'Help(F9)'].map(btn => (
-                        <div key={btn} style={styles.sideButton}>{btn}</div>
-                    ))}
-                </div> */}
+          {[
+            "Day Book(F1)",
+            "Cash Book(F2)",
+            "CashBook Dtl (F3)",
+            "Ledger(F4)",
+            "Per. Ledger(F5)",
+            "Int Ledger(F6)",
+            "Per. Int Ledger(F7)",
+            "Sign.Verify(F8)",
+            "Help(F9)",
+          ].map((btn) => (
+            <div key={btn} style={styles.sideButton}>
+              {btn}
+            </div>
+          ))}
+        </div> */}
       </div>
     </div>
   );

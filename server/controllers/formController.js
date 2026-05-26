@@ -317,7 +317,7 @@ exports.deleteSupervisor = (req, res) => {
 
 exports.checkDuplicate = (req, res) => {
     const { table, column, value, idColumn, idValue } = req.body;
-
+    
     const allowed = {
         'asthadidi_reg': ['AsthaDidiMailId', 'AsthaDidiSignupUserName', 'AsthaDidiAadharNo'],
         'asthama_reg': ['AsthaMaMailId', 'AsthaMaSignupUserName', 'AsthaMaAadharNo'],
@@ -344,26 +344,26 @@ exports.checkDuplicate = (req, res) => {
 };
 
 // ==========================================
-// PRODUCT DISTRIBUTION MODULE
+// NEW: PRODUCT DISTRIBUTION MODULE
 // ==========================================
 
 exports.getAccountHeads = (req, res) => {
     db.query("SELECT * FROM accthead WHERE IsActive = 'T' OR IsActive = '1' OR IsActive = 1", (err, results) => {
-        if (err) return res.json([]);
+        if (err) return res.json([]); 
         res.json(results);
     });
 };
 
 exports.getAccountsMapping = (req, res) => {
     db.query("SELECT * FROM accounts", (err, results) => {
-        if (err) return res.json([]);
+        if (err) return res.json([]); 
         res.json(results);
     });
 };
 
 exports.getProductStock = (req, res) => {
     db.query('SELECT * FROM stock_management', (err, results) => {
-        if (err) return res.json([]);
+        if (err) return res.json([]); 
         res.json(results);
     });
 };
@@ -404,14 +404,14 @@ exports.getSupervisorsByDist = (req, res) => {
 
 exports.distributeProduct = (req, res) => {
     const { SenderId, ReceiverId, ReceiverRole, ProductName, DistributedQty, Remarks, SupervisorId } = req.body;
-
+    
     const insertQuery = `INSERT INTO product_distribution (SenderId, ReceiverId, ReceiverRole, ProductName, DistributedQty, Remarks, ProductDate, SupervisorId) VALUES (?,?,?,?,?,?,NOW(),?)`;
-
+    
     db.query(insertQuery, [SenderId, ReceiverId, ReceiverRole, ProductName, DistributedQty, Remarks, SupervisorId || null], (err) => {
         if (err) return res.status(500).json({ error: err.message });
 
         db.query('UPDATE stock_management SET AvailableQty = AvailableQty - ? WHERE ProductName = ?', [DistributedQty, ProductName], (err) => {
-            if (err) console.error('Stock update failed:', err);
+            if (err) console.error('Stock update failed:', err); 
             res.json({ message: 'Product distributed successfully' });
         });
     });

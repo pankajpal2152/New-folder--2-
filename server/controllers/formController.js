@@ -110,10 +110,7 @@ exports.createAsthaDidi = (req, res) => {
             if (err) return res.status(500).json({ error: err.message });
             const newId = result.insertId;
 
-            // Save File to folder and get name
             const fileName = saveBase64File(data.AsthaDidiProfileImage, 'AsthaDidi', newId, 'Profile');
-
-            // Update DB with File Name instead of Binary
             db.query('UPDATE `asthadidi_reg` SET AsthaDidiProfileImage=? WHERE AsthaDidiRegId=?', [fileName, newId], () => { });
 
             if (data.AsthaDidiSignupUserName && data.AsthaDidiSignupPassword && data.AsthaDidiSignupEmail) {
@@ -128,7 +125,6 @@ exports.createAsthaDidi = (req, res) => {
 exports.updateAsthaDidi = (req, res) => {
     const { id } = req.params;
     const data = req.body;
-
     const fileName = saveBase64File(data.AsthaDidiProfileImage, 'AsthaDidi', id, 'Profile');
 
     const updateQuery = `UPDATE \`asthadidi_reg\` SET 
@@ -352,7 +348,6 @@ exports.checkDuplicate = (req, res) => {
 // ==========================================
 
 exports.getProductStock = (req, res) => {
-    // Falls back to empty array if table doesn't exist yet to prevent crashes
     db.query('SELECT * FROM stock_management', (err, results) => {
         if (err) {
             console.error("Stock fetch error:", err.message);
@@ -362,25 +357,24 @@ exports.getProductStock = (req, res) => {
     });
 };
 
-// Fetches the exact list of immediate juniors based on the logged in user's role
+// ✅ FIXED: Strictly fetches based on User Role and ensures IsActive is not 0
 exports.getJuniorsForDistribution = (req, res) => {
     const { role, profileId } = req.query;
     let query = '';
-    let params = [profileId];
+    let params = [];
 
     if (role === 'State Super Administrator') {
-        // State Admin sees ONLY the District NGOs created under them
-        query = `SELECT DistNGORegId AS id, DistNGOName AS name FROM dist_ngo_reg WHERE DistNGOCreatedByAuthRegId = ? OR StateNGORegId = ?`;
-        params = [profileId, profileId];
+        // Only fetch available District NGOs (DistNGOIsActive != 0 or NULL)
+        query = `SELECT DistNGORegId AS id, DistNGOName AS name FROM dist_ngo_reg WHERE DistNGOIsActive != 0 OR DistNGOIsActive IS NULL`;
     } else if (role === 'District Administrator') {
-        // District Admin sees ONLY their Supervisors
-        query = `SELECT SupRegId AS id, SupName AS name FROM suvervisor_reg WHERE DistNGORegId = ?`;
+        query = `SELECT SupRegId AS id, SupName AS name FROM suvervisor_reg WHERE DistNGORegId = ? AND (SupIsActive != 0 OR SupIsActive IS NULL)`;
+        params = [profileId];
     } else if (role === 'Supervisor') {
-        // Supervisor sees ONLY their Astha Didis
-        query = `SELECT AsthaDidiRegId AS id, AsthaDidiUserName AS name FROM asthadidi_reg WHERE SupRegId = ?`;
+        query = `SELECT AsthaDidiRegId AS id, AsthaDidiUserName AS name FROM asthadidi_reg WHERE SupRegId = ? AND (AsthaDidiIsActive != 0 OR AsthaDidiIsActive IS NULL)`;
+        params = [profileId];
     } else if (role === 'Astha Didi') {
-        // Astha Didi sees ONLY their Astha Maas
-        query = `SELECT AsthaMaRegId AS id, AsthaMaUserName AS name FROM asthama_reg WHERE AsthaDidiRegId = ?`;
+        query = `SELECT AsthaMaRegId AS id, AsthaMaUserName AS name FROM asthama_reg WHERE AsthaDidiRegId = ? AND (AsthaMaIsActive != 0 OR AsthaMaIsActive IS NULL)`;
+        params = [profileId];
     } else {
         return res.json([]);
     }
@@ -403,7 +397,7 @@ exports.distributeProduct = (req, res) => {
         if (err) return res.status(500).json({ error: err.message });
 
         db.query('UPDATE stock_management SET AvailableQty = AvailableQty - ? WHERE ProductName = ?', [DistributedQty, ProductName], (err) => {
-            if (err) console.error('Stock update failed:', err); // Non-fatal if table doesn't exist yet
+            if (err) console.error('Stock update failed:', err); 
             res.json({ message: 'Product distributed successfully' });
         });
     });

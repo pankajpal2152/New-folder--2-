@@ -28,9 +28,9 @@ const ProductDistribution = () => {
         } catch (err) { console.error(err); }
     };
 
+    // ✅ FIXED: Now calls the dedicated backend route to fetch strict junior entities!
     const fetchReceivers = async () => {
         try {
-            // Securely fetches ONLY the juniors under this specific logged-in user
             const res = await axios.get(`${API_BASE_URL}/juniors-for-distribution`, {
                 params: { role: user.UserSignUpRole, profileId: user.ProfileRegId || user.UserAtuorizedRegId }
             });
@@ -78,7 +78,6 @@ const ProductDistribution = () => {
                 </div>
 
                 <div className="card-body p-4">
-                    {/* Professional Sub-Header matching your UI preference */}
                     <div className="col-md-12 mb-4">
                         <p className="fw-bold p-2 text-white" style={{ backgroundColor: '#0E87CC', borderRadius: '4px', fontSize: '0.95rem' }}>
                             1. Product Transfer Information

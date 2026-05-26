@@ -48,11 +48,14 @@ router.post('/check-duplicate', formController.checkDuplicate);
 
 // --- PRODUCT DISTRIBUTION & ACCOUNT HEAD ROUTES ---
 router.get('/accthead', formController.getAccountHeads);
-// ✅ ADDED: This missing route fixes the 404 error for the Accounts mapping!
 router.get('/accounts-mapping', formController.getAccountsMapping);
 router.get('/stock', formController.getProductStock);
 router.get('/juniors-for-distribution', formController.getJuniorsForDistribution);
+// ✅ ADDED ROUTE
+router.get('/supervisors-by-dist/:distId', formController.getSupervisorsByDist);
 router.get('/distribution-history', formController.getDistributionHistory);
 router.post('/distribute', formController.distributeProduct);
 
+
+router.get('/supervisors-by-dist/:distId', formController.getSupervisorsByDist);
 module.exports = router;

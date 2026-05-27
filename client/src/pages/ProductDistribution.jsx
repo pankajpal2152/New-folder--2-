@@ -306,7 +306,7 @@ const ProductDistribution = () => {
                 {selectedAcctHeadName}
               </span>
 
-              <label style={styles.label}>Mast.Acct.No</label>
+              {/* <label style={styles.label}>Mast.Acct.No</label>
               <input
                 type="text"
                 readOnly
@@ -318,7 +318,7 @@ const ProductDistribution = () => {
                 readOnly
                 style={{ ...styles.inputSmall, width: "30px" }}
                 value="0"
-              />
+              /> */}
 
               <label style={styles.label}>Entry Date</label>
               <input

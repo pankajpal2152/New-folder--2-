@@ -825,7 +825,7 @@ exports.getAccountsMapping = (req, res) => {
   });
 };
 
-// --- ADDED THIS FUNCTION TO FETCH ACTIVE PRODUCTS ---
+// --- UPDATED DYNAMIC CALCULATION BASED ON TRANSACTIONS ---
 exports.getActiveProducts = (req, res) => {
   db.query(
     "SELECT * FROM product WHERE IsActive = 'T' OR IsActive = '1' OR IsActive = 1",
@@ -837,8 +837,19 @@ exports.getActiveProducts = (req, res) => {
 };
 
 exports.getProductStock = (req, res) => {
-  db.query("SELECT * FROM stock_management", (err, results) => {
-    if (err) return res.json([]);
+  const query = `
+    SELECT p.ProName AS ProductName, 
+           SUM(COALESCE(t.Deposit, 0)) - SUM(COALESCE(t.Withdraw, 0)) AS AvailableQty
+    FROM product p
+    LEFT JOIN transaction t ON p.ProId = t.ProId
+    WHERE p.IsActive = 'T' OR p.IsActive = '1'
+    GROUP BY p.ProId, p.ProName
+  `;
+  db.query(query, (err, results) => {
+    if (err) {
+      console.error("❌ getProductStock Error:", err);
+      return res.json([]);
+    }
     res.json(results);
   });
 };
@@ -908,14 +919,13 @@ exports.distributeProduct = (req, res) => {
     (err) => {
       if (err) return res.status(500).json({ error: err.message });
 
+      // Assuming transaction record matches the product distribution
       db.query(
-        "UPDATE stock_management SET AvailableQty = AvailableQty - ? WHERE ProductName = ?",
-        [DistributedQty, ProductName],
-        (err) => {
-          if (err) console.error("Stock update failed:", err);
-          res.json({ message: "Product distributed successfully" });
-        },
+        "INSERT INTO transaction (TrnDate, AcctNo, AcctHead, ProId, Withdraw, DrCr, TrnType) VALUES (NOW(), ?, ?, (SELECT ProId FROM product WHERE ProName = ?), ?, 'Dr', 'TRANSFER')",
+        [ReceiverId, ReceiverRole, ProductName, DistributedQty],
+        () => {},
       );
+      res.json({ message: "Product distributed successfully" });
     },
   );
 };

@@ -113,6 +113,8 @@ const ProductDistribution = () => {
         ReceiverRole: formData.AcctHeadId,
       });
       toast.success("Transaction Entry Saved Successfully!");
+
+      // Reset logic
       const defaultHead = isStateAdmin ? "DN" : formData.AcctHeadId;
       setFormData({
         AcctHeadId: defaultHead,
@@ -241,6 +243,7 @@ const ProductDistribution = () => {
   return (
     <div style={styles.container}>
       <ToastContainer autoClose={3000} position="top-center" />
+
       <div style={styles.wrapper}>
         <div style={styles.leftPanel}>
           <div style={styles.header}>
@@ -268,7 +271,7 @@ const ProductDistribution = () => {
                 {user?.role || user?.UserSignUpRole}
               </span>
               <div className="ms-auto d-flex align-items-center gap-2 pe-2">
-                <label style={{ ...styles.label, width: "auto" }}>
+                <label style={{ ...styles.label, paddingLeft: 0 }}>
                   Entry Date
                 </label>
                 <input
@@ -364,9 +367,7 @@ const ProductDistribution = () => {
                 ))}
               </select>
               <span style={styles.redText}>{formData.ProductName}</span>
-              <label
-                style={{ ...styles.label, width: "auto", marginLeft: "20px" }}
-              >
+              <label style={{ ...styles.label, marginLeft: "20px" }}>
                 Total Available
               </label>
               <span style={styles.redText}>{selectedProductStock}</span>
@@ -387,9 +388,7 @@ const ProductDistribution = () => {
                   setFormData({ ...formData, DistributedQty: e.target.value })
                 }
               />
-              <label
-                style={{ ...styles.label, width: "auto", marginLeft: "20px" }}
-              >
+              <label style={{ ...styles.label, marginLeft: "20px" }}>
                 Remarks
               </label>
               <input

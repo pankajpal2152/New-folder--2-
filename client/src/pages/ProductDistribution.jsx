@@ -19,7 +19,7 @@ const ProductDistribution = () => {
   const [accountsTable, setAccountsTable] = useState([]);
   const [filteredAccounts, setFilteredAccounts] = useState([]);
   const [supervisors, setSupervisors] = useState([]);
-  const [products, setProducts] = useState([]); // ADDED PRODUCT STATE
+  const [products, setProducts] = useState([]);
   const [stock, setStock] = useState([]);
   const [history, setHistory] = useState([]);
 
@@ -34,7 +34,6 @@ const ProductDistribution = () => {
 
   const fetchInitialData = async () => {
     try {
-      // ADDED /products ENDPOINT CALL
       const [headsRes, acctTableRes, stockRes, histRes, productsRes] =
         await Promise.all([
           axios.get(`${API_BASE_URL}/accthead`),
@@ -154,12 +153,10 @@ const ProductDistribution = () => {
   const selectedAcctHeadName =
     accountHeads.find((a) => String(a.AcctHead) === String(formData.AcctHeadId))
       ?.AcctHeadName || "";
-
   const selectedReceiverName =
     filteredAccounts.find(
       (r) => String(r.AcctNo) === String(formData.ReceiverId),
     )?.AcctName || "";
-
   const selectedSupervisorHead = formData.SupervisorId
     ? supervisors.find((s) => String(s.id) === String(formData.SupervisorId))
         ?.Head
@@ -167,7 +164,6 @@ const ProductDistribution = () => {
   const selectedSupervisorName =
     supervisors.find((s) => String(s.id) === String(formData.SupervisorId))
       ?.name || "";
-
   const selectedProductStock =
     stock.find((s) => s.ProductName === formData.ProductName)?.AvailableQty ||
     "0.00";
@@ -211,6 +207,7 @@ const ProductDistribution = () => {
       whiteSpace: "nowrap",
       textAlign: "left",
       paddingLeft: "10px",
+      width: "190px",
     },
     input: {
       height: "24px",
@@ -244,21 +241,16 @@ const ProductDistribution = () => {
   return (
     <div style={styles.container}>
       <ToastContainer autoClose={3000} position="top-center" />
-
       <div style={styles.wrapper}>
         <div style={styles.leftPanel}>
           <div style={styles.header}>
             Product Distribution Transaction Entry
           </div>
-
           <form onSubmit={handleSubmit}>
             <div style={styles.sectionBanner}>Account Information</div>
 
-            {/* Transfer From (Sender) Row */}
             <div className="d-flex align-items-center mt-2 px-1 gap-2 mb-2">
-              <label style={{ ...styles.label, width: "190px" }}>
-                Transfer From (Sender)
-              </label>
+              <label style={styles.label}>Transfer From (Sender)</label>
               <select
                 style={{
                   ...styles.input,
@@ -275,10 +267,8 @@ const ProductDistribution = () => {
               <span style={styles.redText}>
                 {user?.role || user?.UserSignUpRole}
               </span>
-
-              {/* Entry Date pushed to right using ms-auto */}
               <div className="ms-auto d-flex align-items-center gap-2 pe-2">
-                <label style={{ ...styles.label, paddingLeft: 0 }}>
+                <label style={{ ...styles.label, width: "auto" }}>
                   Entry Date
                 </label>
                 <input
@@ -292,11 +282,8 @@ const ProductDistribution = () => {
               </div>
             </div>
 
-            {/* Receiver Role Row */}
             <div className="d-flex align-items-center mt-2 px-1 gap-2 mb-2">
-              <label style={{ ...styles.label, width: "190px" }}>
-                Transfer To (Receiver Role)
-              </label>
+              <label style={styles.label}>Transfer To (Receiver Role)</label>
               <select
                 style={{ ...styles.input, width: "450px" }}
                 value={formData.AcctHeadId}
@@ -315,11 +302,8 @@ const ProductDistribution = () => {
               <span style={styles.redText}>{selectedAcctHeadName}</span>
             </div>
 
-            {/* Receiver Name Row */}
             <div className="d-flex align-items-center mt-2 px-1 gap-2 mb-2">
-              <label style={{ ...styles.label, width: "190px" }}>
-                Transfer To (Receiver Name)
-              </label>
+              <label style={styles.label}>Transfer To (Receiver Name)</label>
               <select
                 style={{ ...styles.input, width: "450px" }}
                 value={formData.ReceiverId}
@@ -337,12 +321,9 @@ const ProductDistribution = () => {
               <span style={styles.redText}>{selectedReceiverName}</span>
             </div>
 
-            {/* Supervisor Row - Hidden for State Super Admin */}
             {!isStateAdmin && (
               <div className="d-flex align-items-center mt-2 px-1 gap-2 mb-2">
-                <label style={{ ...styles.label, width: "190px" }}>
-                  Transfer To (Supervisor)
-                </label>
+                <label style={styles.label}>Transfer To (Supervisor)</label>
                 <select
                   style={{ ...styles.input, width: "450px" }}
                   value={formData.SupervisorId}
@@ -366,12 +347,8 @@ const ProductDistribution = () => {
             )}
 
             <div style={styles.sectionBanner}>Stock / Product Information</div>
-
-            {/* Product Selection Row mapped from `product` table via state */}
             <div className="d-flex align-items-center mt-2 px-1 gap-2 mb-2">
-              <label style={{ ...styles.label, width: "190px" }}>
-                Select Product
-              </label>
+              <label style={styles.label}>Select Product</label>
               <select
                 style={{ ...styles.input, width: "450px" }}
                 value={formData.ProductName}
@@ -387,20 +364,17 @@ const ProductDistribution = () => {
                 ))}
               </select>
               <span style={styles.redText}>{formData.ProductName}</span>
-
-              <label style={{ ...styles.label, marginLeft: "20px" }}>
-                Total Available Products
+              <label
+                style={{ ...styles.label, width: "auto", marginLeft: "20px" }}
+              >
+                Total Available
               </label>
-              <span style={{ ...styles.redText }}>{selectedProductStock}</span>
+              <span style={styles.redText}>{selectedProductStock}</span>
             </div>
 
             <div style={styles.sectionBanner}>Transaction Details</div>
-
-            {/* Transaction Amounts and Remarks Row */}
             <div className="d-flex align-items-center mt-2 px-1 gap-2 mb-2">
-              <label style={{ ...styles.label, width: "190px" }}>
-                Tran. Amount
-              </label>
+              <label style={styles.label}>Tran. Amount</label>
               <input
                 type="number"
                 style={{
@@ -413,8 +387,9 @@ const ProductDistribution = () => {
                   setFormData({ ...formData, DistributedQty: e.target.value })
                 }
               />
-
-              <label style={{ ...styles.label, marginLeft: "20px" }}>
+              <label
+                style={{ ...styles.label, width: "auto", marginLeft: "20px" }}
+              >
                 Remarks
               </label>
               <input
@@ -425,7 +400,6 @@ const ProductDistribution = () => {
                   setFormData({ ...formData, Remarks: e.target.value })
                 }
               />
-
               <div className="ms-auto d-flex gap-2 pe-2">
                 <button type="submit" style={styles.actionBtn}>
                   Save

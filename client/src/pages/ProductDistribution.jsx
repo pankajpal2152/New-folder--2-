@@ -13,6 +13,7 @@ const ProductDistribution = () => {
     DistributedQty: "",
     Remarks: "By Transfer",
     Date: new Date().toISOString().split("T")[0],
+    SenderId: "", // Added to track if changed manually
   });
 
   const [accountHeads, setAccountHeads] = useState([]);
@@ -29,6 +30,8 @@ const ProductDistribution = () => {
     user.role === "State Super Administrator";
 
   useEffect(() => {
+    // Initialize SenderId with logged in user
+    setFormData((prev) => ({ ...prev, SenderId: user.UserSignUpId || "" }));
     fetchInitialData();
   }, []);
 
@@ -109,10 +112,11 @@ const ProductDistribution = () => {
     try {
       await axios.post(`${API_BASE_URL}/distribute`, {
         ...formData,
-        SenderId: user.UserSignUpId,
+        SenderId: formData.SenderId, // Using form value instead of static user state
         ReceiverRole: formData.AcctHeadId,
       });
       toast.success("Transaction Entry Saved Successfully!");
+
       const defaultHead = isStateAdmin ? "DN" : formData.AcctHeadId;
       setFormData({
         AcctHeadId: defaultHead,
@@ -122,6 +126,7 @@ const ProductDistribution = () => {
         DistributedQty: "",
         Remarks: "By Transfer",
         Date: new Date().toISOString().split("T")[0],
+        SenderId: user.UserSignUpId || "",
       });
 
       const [histRes, stockRes] = await Promise.all([
@@ -147,6 +152,7 @@ const ProductDistribution = () => {
       DistributedQty: "",
       Remarks: "By Transfer",
       Date: new Date().toISOString().split("T")[0],
+      SenderId: user.UserSignUpId || "",
     });
   };
 
@@ -251,26 +257,19 @@ const ProductDistribution = () => {
 
             <div className="d-flex align-items-center mt-2 px-1 gap-2 mb-2">
               <label style={styles.label}>Transfer From (Sender)</label>
-              <select
-                style={{
-                  ...styles.input,
-                  width: "450px",
-                  backgroundColor: "#e9ecef",
-                }}
-                value={user?.UserSignUpId || ""}
-                disabled
-              >
-                <option value={user?.UserSignUpId || ""}>
-                  {user?.role || user?.UserSignUpRole} - {user?.username}
-                </option>
-              </select>
+              {/* Changed from hardcoded user to an input/select for flexibility as requested */}
+              <input
+                type="text"
+                style={{ ...styles.input, width: "450px" }}
+                value={formData.SenderId}
+                onChange={(e) =>
+                  setFormData({ ...formData, SenderId: e.target.value })
+                }
+              />
               <span style={styles.redText}>
                 {user?.role || user?.UserSignUpRole}
               </span>
               <div className="ms-auto d-flex align-items-center gap-2 pe-2">
-                {/* <label style={{ ...styles.label, paddingLeft: 0 }}>
-                  Entry Date
-                </label> */}
                 <input
                   type="date"
                   style={{ ...styles.input, width: "130px" }}
@@ -290,7 +289,6 @@ const ProductDistribution = () => {
                 onChange={(e) =>
                   setFormData({ ...formData, AcctHeadId: e.target.value })
                 }
-                disabled={isStateAdmin}
               >
                 <option value="">-- Select Receiver Role --</option>
                 {accountHeads.map((a) => (
@@ -321,30 +319,28 @@ const ProductDistribution = () => {
               <span style={styles.redText}>{selectedReceiverName}</span>
             </div>
 
-            {!isStateAdmin && (
-              <div className="d-flex align-items-center mt-2 px-1 gap-2 mb-2">
-                <label style={styles.label}>Transfer To (Supervisor)</label>
-                <select
-                  style={{ ...styles.input, width: "450px" }}
-                  value={formData.SupervisorId}
-                  onChange={(e) =>
-                    setFormData({ ...formData, SupervisorId: e.target.value })
-                  }
-                >
-                  <option value="">-- Select Supervisor (Optional) --</option>
-                  {supervisors.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.id} - {s.name}
-                    </option>
-                  ))}
-                </select>
-                <span style={styles.redText}>
-                  {selectedSupervisorHead
-                    ? `${selectedSupervisorHead} - ${selectedSupervisorName}`
-                    : ""}
-                </span>
-              </div>
-            )}
+            <div className="d-flex align-items-center mt-2 px-1 gap-2 mb-2">
+              <label style={styles.label}>Transfer To (Supervisor)</label>
+              <select
+                style={{ ...styles.input, width: "450px" }}
+                value={formData.SupervisorId}
+                onChange={(e) =>
+                  setFormData({ ...formData, SupervisorId: e.target.value })
+                }
+              >
+                <option value="">-- Select Supervisor (Optional) --</option>
+                {supervisors.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.id} - {s.name}
+                  </option>
+                ))}
+              </select>
+              <span style={styles.redText}>
+                {selectedSupervisorHead
+                  ? `${selectedSupervisorHead} - ${selectedSupervisorName}`
+                  : ""}
+              </span>
+            </div>
 
             <div style={styles.sectionBanner}>Stock / Product Information</div>
             <div className="d-flex align-items-center mt-2 px-1 gap-2 mb-2">

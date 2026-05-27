@@ -268,9 +268,9 @@ const ProductDistribution = () => {
                 {user?.role || user?.UserSignUpRole}
               </span>
               <div className="ms-auto d-flex align-items-center gap-2 pe-2">
-                <label style={{ ...styles.label, paddingLeft: 0 }}>
+                {/* <label style={{ ...styles.label, paddingLeft: 0 }}>
                   Entry Date
-                </label>
+                </label> */}
                 <input
                   type="date"
                   style={{ ...styles.input, width: "130px" }}

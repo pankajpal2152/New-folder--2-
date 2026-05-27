@@ -249,7 +249,6 @@ const DistrictAdminModal = ({ member, mode, onClose, onSuccess }) => {
                         </div>
                         <h6 style={styles.sectionHeader}>Banking & Account Setup</h6>
                         <div style={styles.formGrid}>
-                            {/* Removed the * required indicator from Banking fields */}
                             <Controller name="bankAccountHolderName" control={control} render={({ field }) => (<FormInput label="Account Holder Name" id="e_acctHolder" error={errors.bankAccountHolderName} disabled={isView} {...field} />)} />
                             <Controller name="bankName" control={control} render={({ field }) => (<FormInput label="Bank Name" id="e_bank" error={errors.bankName} disabled={isView} {...field} />)} />
                             <Controller name="accountNo" control={control} render={({ field }) => (<FormInput label="Account Number" id="e_acct" error={errors.accountNo} disabled={isView} {...field} />)} />
@@ -383,8 +382,8 @@ const DistrictAdminTable = ({ refreshTrigger, externalFilters }) => {
                 }
             } catch (e) { console.error(e); }
 
-            // Using placeholder for redacted Aadhaar
-            const aadhar = '[Aadhaar Redacted]';
+            // Dynamic mapping to fetch exact database variable for Aadhaar
+            const aadhar = member.DistNGOSDPAadhaarNo || '000000000000';
             const finalApprovalId = `${stateId}${distId}${aadhar}`;
             setApprovalData({ id: finalApprovalId, dbDate });
         }
@@ -459,8 +458,8 @@ const DistrictAdminTable = ({ refreshTrigger, externalFilters }) => {
                                         <td style={styles.td}>{row.DistNGOSDPName}</td>
                                         <td style={styles.td}>{row.DistNGOSDPMailId}</td>
                                         <td style={styles.td}>{row.DistNGOSDPPhoneNo}</td>
-                                        {/* Redacted Aadhaar output for table safety */}
-                                        <td style={styles.td}>[Aadhaar Redacted]</td>
+                                        {/* Dynamic DB Mapping added here to unhide the info */}
+                                        <td style={styles.td}>{row.DistNGOSDPAadhaarNo}</td>
                                         <td style={styles.td}>{row.DistNGOBankAcctHolderName}</td>
                                         <td style={styles.td}>{row.DistNGOBankName}</td>
                                         <td style={styles.td}>{row.DistNGOAcctNo}</td>
@@ -521,13 +520,31 @@ const DistrictAdminTable = ({ refreshTrigger, externalFilters }) => {
                     </div>
                 </div>
             )}
+            {/* Enhanced Approval Modal UI */}
             {approveModal && selectedRow && (
                 <div style={styles.modalOverlay}>
-                    <div style={{ ...styles.modalContent, maxWidth: '450px' }}>
-                        <h4>Approve</h4>
-                        <p>ID: {approvalData.id}</p>
-                        <button onClick={closeModal} style={styles.btnOutline}>Cancel</button>
-                        <button onClick={confirmApprove} style={styles.btnSuccess}>Confirm</button>
+                    <div style={{ ...styles.modalContent, maxWidth: '500px' }}>
+                        <h4 style={{ marginBottom: '16px', borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
+                            Approve District Admin
+                        </h4>
+                        <div style={{ marginBottom: '20px', fontSize: '14px', lineHeight: '1.6' }}>
+                            <p style={{ margin: '6px 0' }}><strong>Approving Authority:</strong> {userRole} (ID: {userId})</p>
+                            <p style={{ margin: '6px 0' }}><strong>Approving NGO:</strong> {selectedRow.DistNGOName}</p>
+                            <p style={{ margin: '6px 0' }}>
+                                <strong>State:</strong> {selectedRow.DistNGOStateName || 'N/A'} | <strong>District:</strong> {selectedRow.DistNGODistName || 'N/A'}
+                            </p>
+                            <p style={{ margin: '6px 0' }}><strong>Secretary Aadhaar:</strong> {selectedRow.DistNGOSDPAadhaarNo || 'N/A'}</p>
+                            
+                            <div style={{ marginTop: '16px', padding: '12px', backgroundColor: '#f8f9fa', borderRadius: '6px', border: '1px dashed #ccc' }}>
+                                <p style={{ margin: 0, fontWeight: 'bold' }}>Generated Approval ID:</p>
+                                <p style={{ margin: 0, color: '#007bff', fontWeight: 'bold', fontSize: '16px' }}>{approvalData.id}</p>
+                            </div>
+                        </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                            <button onClick={closeModal} style={styles.btnOutline}>Cancel</button>
+                            <button onClick={confirmApprove} style={styles.btnSuccess}>Confirm Approval</button>
+                        </div>
                     </div>
                 </div>
             )}

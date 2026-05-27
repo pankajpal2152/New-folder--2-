@@ -838,7 +838,14 @@ exports.getActiveProducts = (req, res) => {
 exports.getProductStock = (req, res) => {
   // DYNAMIC STOCK CALCULATION BASED ON TRANSACTIONS
   const query = `
-    SELECT SUM(Deposit) -SUM(Withdraw) AS Total_Amount FROM transaction WHERE AcctHead='dN' AND AcctNo=1
+
+    SELECT p.ProName AS ProductName, 
+           SUM(t.Deposit) - SUM(t.Withdraw) AS AvailableQty
+    FROM product p
+    LEFT JOIN transaction t ON p.ProId = t.ProId
+    where t.AcctHead='sn' and t.AcctNo=1
+    GROUP BY p.ProId, p.ProName
+    
   `;
   db.query(query, (err, results) => {
     if (err) {

@@ -113,8 +113,6 @@ const ProductDistribution = () => {
         ReceiverRole: formData.AcctHeadId,
       });
       toast.success("Transaction Entry Saved Successfully!");
-
-      // Reset logic
       const defaultHead = isStateAdmin ? "DN" : formData.AcctHeadId;
       setFormData({
         AcctHeadId: defaultHead,
@@ -243,7 +241,6 @@ const ProductDistribution = () => {
   return (
     <div style={styles.container}>
       <ToastContainer autoClose={3000} position="top-center" />
-
       <div style={styles.wrapper}>
         <div style={styles.leftPanel}>
           <div style={styles.header}>

@@ -825,7 +825,6 @@ exports.getAccountsMapping = (req, res) => {
   });
 };
 
-// --- UPDATED DYNAMIC CALCULATION BASED ON TRANSACTIONS ---
 exports.getActiveProducts = (req, res) => {
   db.query(
     "SELECT * FROM product WHERE IsActive = 'T' OR IsActive = '1' OR IsActive = 1",
@@ -837,6 +836,7 @@ exports.getActiveProducts = (req, res) => {
 };
 
 exports.getProductStock = (req, res) => {
+  // DYNAMIC STOCK CALCULATION BASED ON TRANSACTIONS
   const query = `
     SELECT p.ProName AS ProductName, 
            SUM(COALESCE(t.Deposit, 0)) - SUM(COALESCE(t.Withdraw, 0)) AS AvailableQty
@@ -919,7 +919,7 @@ exports.distributeProduct = (req, res) => {
     (err) => {
       if (err) return res.status(500).json({ error: err.message });
 
-      // Assuming transaction record matches the product distribution
+      // Insert into transaction log
       db.query(
         "INSERT INTO transaction (TrnDate, AcctNo, AcctHead, ProId, Withdraw, DrCr, TrnType) VALUES (NOW(), ?, ?, (SELECT ProId FROM product WHERE ProName = ?), ?, 'Dr', 'TRANSFER')",
         [ReceiverId, ReceiverRole, ProductName, DistributedQty],

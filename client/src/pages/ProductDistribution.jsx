@@ -23,7 +23,9 @@ const ProductDistribution = () => {
   const [history, setHistory] = useState([]);
 
   const user = JSON.parse(localStorage.getItem("loggedInUser")) || {};
-  const isStateAdmin = user.UserSignUpRole === "State Super Administrator";
+  const isStateAdmin =
+    user.UserSignUpRole === "State Super Administrator" ||
+    user.role === "State Super Administrator";
 
   useEffect(() => {
     fetchInitialData();
@@ -45,7 +47,7 @@ const ProductDistribution = () => {
       setStock(stockRes.data);
       setHistory(histRes.data);
 
-      if (user.UserSignUpRole === "State Super Administrator") {
+      if (isStateAdmin) {
         const dnHead = headsRes.data.find((h) => h.AcctHead === "DN");
         if (dnHead) {
           setFormData((prev) => ({ ...prev, AcctHeadId: dnHead.AcctHead }));
@@ -107,10 +109,7 @@ const ProductDistribution = () => {
         ReceiverRole: formData.AcctHeadId,
       });
       toast.success("Transaction Entry Saved Successfully!");
-      const defaultHead =
-        user.UserSignUpRole === "State Super Administrator"
-          ? "DN"
-          : formData.AcctHeadId;
+      const defaultHead = isStateAdmin ? "DN" : formData.AcctHeadId;
       setFormData({
         AcctHeadId: defaultHead,
         ReceiverId: "",
@@ -135,8 +134,7 @@ const ProductDistribution = () => {
   };
 
   const handleCancel = () => {
-    const defaultHead =
-      user.UserSignUpRole === "State Super Administrator" ? "DN" : "";
+    const defaultHead = isStateAdmin ? "DN" : "";
     setFormData({
       AcctHeadId: defaultHead,
       ReceiverId: "",
@@ -207,6 +205,7 @@ const ProductDistribution = () => {
       alignSelf: "center",
       whiteSpace: "nowrap",
       textAlign: "left",
+      paddingLeft: "10px",
     },
     input: {
       height: "24px",
@@ -224,6 +223,7 @@ const ProductDistribution = () => {
       textTransform: "uppercase",
       whiteSpace: "nowrap",
       alignSelf: "center",
+      marginLeft: "10px",
     },
     actionBtn: {
       height: "24px",
@@ -267,13 +267,15 @@ const ProductDistribution = () => {
                   {user?.role || user?.UserSignUpRole} - {user?.username}
                 </option>
               </select>
-              <span style={{ ...styles.redText, marginLeft: "5px" }}>
+              <span style={styles.redText}>
                 {user?.role || user?.UserSignUpRole}
               </span>
 
-              {/* Entry Date on extreme right */}
+              {/* Entry Date pushed to right using ms-auto */}
               <div className="ms-auto d-flex align-items-center gap-2 pe-2">
-                <label style={styles.label}>Entry Date</label>
+                <label style={{ ...styles.label, paddingLeft: 0 }}>
+                  Entry Date
+                </label>
                 <input
                   type="date"
                   style={{ ...styles.input, width: "130px" }}
@@ -305,9 +307,7 @@ const ProductDistribution = () => {
                   </option>
                 ))}
               </select>
-              <span style={{ ...styles.redText, marginLeft: "5px" }}>
-                {selectedAcctHeadName}
-              </span>
+              <span style={styles.redText}>{selectedAcctHeadName}</span>
             </div>
 
             {/* Receiver Name Row */}
@@ -329,12 +329,10 @@ const ProductDistribution = () => {
                   </option>
                 ))}
               </select>
-              <span style={{ ...styles.redText, marginLeft: "5px" }}>
-                {selectedReceiverName}
-              </span>
+              <span style={styles.redText}>{selectedReceiverName}</span>
             </div>
 
-            {/* Supervisor Row - Conditionally Hidden for State Super Admin */}
+            {/* Supervisor Row - Hidden for State Super Admin */}
             {!isStateAdmin && (
               <div className="d-flex align-items-center mt-2 px-1 gap-2 mb-2">
                 <label style={{ ...styles.label, width: "190px" }}>
@@ -354,7 +352,7 @@ const ProductDistribution = () => {
                     </option>
                   ))}
                 </select>
-                <span style={{ ...styles.redText, marginLeft: "5px" }}>
+                <span style={styles.redText}>
                   {selectedSupervisorHead
                     ? `${selectedSupervisorHead} - ${selectedSupervisorName}`
                     : ""}
@@ -383,16 +381,12 @@ const ProductDistribution = () => {
                   </option>
                 ))}
               </select>
-              <span style={{ ...styles.redText, marginLeft: "5px" }}>
-                {formData.ProductName}
-              </span>
+              <span style={styles.redText}>{formData.ProductName}</span>
 
               <label style={{ ...styles.label, marginLeft: "20px" }}>
-                Total Balance
+                Total Available Products
               </label>
-              <span style={{ ...styles.redText, marginLeft: "5px" }}>
-                {selectedProductStock}
-              </span>
+              <span style={{ ...styles.redText }}>{selectedProductStock}</span>
             </div>
 
             <div style={styles.sectionBanner}>Transaction Details</div>

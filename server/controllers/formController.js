@@ -810,7 +810,7 @@ exports.checkDuplicate = (req, res) => {
 
 exports.getAccountHeads = (req, res) => {
   db.query(
-    "SELECT * FROM accthead WHERE IsActive = 'T' OR IsActive = '1' OR IsActive = 1",
+    "SELECT accthead, AcctHeadName FROM accthead WHERE IsActive = 'T' ",
     (err, results) => {
       if (err) return res.json([]);
       res.json(results);

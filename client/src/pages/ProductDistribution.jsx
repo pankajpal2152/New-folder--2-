@@ -23,6 +23,7 @@ const ProductDistribution = () => {
   const [history, setHistory] = useState([]);
 
   const user = JSON.parse(localStorage.getItem("loggedInUser")) || {};
+  const isStateAdmin = user.UserSignUpRole === "State Super Administrator";
 
   useEffect(() => {
     fetchInitialData();
@@ -147,7 +148,15 @@ const ProductDistribution = () => {
     });
   };
 
-  // Dynamic Head code only if selected
+  const selectedAcctHeadName =
+    accountHeads.find((a) => String(a.AcctHead) === String(formData.AcctHeadId))
+      ?.AcctHeadName || "";
+
+  const selectedReceiverName =
+    filteredAccounts.find(
+      (r) => String(r.AcctNo) === String(formData.ReceiverId),
+    )?.AcctName || "";
+
   const selectedSupervisorHead = formData.SupervisorId
     ? supervisors.find((s) => String(s.id) === String(formData.SupervisorId))
         ?.Head
@@ -197,6 +206,7 @@ const ProductDistribution = () => {
       margin: 0,
       alignSelf: "center",
       whiteSpace: "nowrap",
+      textAlign: "left",
     },
     input: {
       height: "24px",
@@ -213,6 +223,7 @@ const ProductDistribution = () => {
       fontSize: "11px",
       textTransform: "uppercase",
       whiteSpace: "nowrap",
+      alignSelf: "center",
     },
     actionBtn: {
       height: "24px",
@@ -238,16 +249,9 @@ const ProductDistribution = () => {
           <form onSubmit={handleSubmit}>
             <div style={styles.sectionBanner}>Account Information</div>
 
-            {/* Sender / Transfer From Row with Entry Date Pushed to Extreme Right */}
+            {/* Transfer From (Sender) Row */}
             <div className="d-flex align-items-center mt-2 px-1 gap-2 mb-2">
-              <label
-                style={{
-                  ...styles.label,
-                  width: "190px",
-                  textAlign: "right",
-                  paddingRight: "10px",
-                }}
-              >
+              <label style={{ ...styles.label, width: "190px" }}>
                 Transfer From (Sender)
               </label>
               <select
@@ -263,8 +267,11 @@ const ProductDistribution = () => {
                   {user?.role || user?.UserSignUpRole} - {user?.username}
                 </option>
               </select>
+              <span style={{ ...styles.redText, marginLeft: "5px" }}>
+                {user?.role || user?.UserSignUpRole}
+              </span>
 
-              {/* Entry Date pushed to right using ms-auto */}
+              {/* Entry Date on extreme right */}
               <div className="ms-auto d-flex align-items-center gap-2 pe-2">
                 <label style={styles.label}>Entry Date</label>
                 <input
@@ -280,14 +287,7 @@ const ProductDistribution = () => {
 
             {/* Receiver Role Row */}
             <div className="d-flex align-items-center mt-2 px-1 gap-2 mb-2">
-              <label
-                style={{
-                  ...styles.label,
-                  width: "190px",
-                  textAlign: "right",
-                  paddingRight: "10px",
-                }}
-              >
+              <label style={{ ...styles.label, width: "190px" }}>
                 Transfer To (Receiver Role)
               </label>
               <select
@@ -296,7 +296,7 @@ const ProductDistribution = () => {
                 onChange={(e) =>
                   setFormData({ ...formData, AcctHeadId: e.target.value })
                 }
-                disabled={user.UserSignUpRole === "State Super Administrator"}
+                disabled={isStateAdmin}
               >
                 <option value="">-- Select Receiver Role --</option>
                 {accountHeads.map((a) => (
@@ -305,18 +305,14 @@ const ProductDistribution = () => {
                   </option>
                 ))}
               </select>
+              <span style={{ ...styles.redText, marginLeft: "5px" }}>
+                {selectedAcctHeadName}
+              </span>
             </div>
 
             {/* Receiver Name Row */}
             <div className="d-flex align-items-center mt-2 px-1 gap-2 mb-2">
-              <label
-                style={{
-                  ...styles.label,
-                  width: "190px",
-                  textAlign: "right",
-                  paddingRight: "10px",
-                }}
-              >
+              <label style={{ ...styles.label, width: "190px" }}>
                 Transfer To (Receiver Name)
               </label>
               <select
@@ -333,54 +329,44 @@ const ProductDistribution = () => {
                   </option>
                 ))}
               </select>
-            </div>
-
-            {/* Supervisor Row */}
-            <div className="d-flex align-items-center mt-2 px-1 gap-2 mb-2">
-              <label
-                style={{
-                  ...styles.label,
-                  width: "190px",
-                  textAlign: "right",
-                  paddingRight: "10px",
-                }}
-              >
-                Transfer To (Supervisor)
-              </label>
-              <select
-                style={{ ...styles.input, width: "450px" }}
-                value={formData.SupervisorId}
-                onChange={(e) =>
-                  setFormData({ ...formData, SupervisorId: e.target.value })
-                }
-              >
-                <option value="">-- Select Supervisor (Optional) --</option>
-                {supervisors.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.id} - {s.name}
-                  </option>
-                ))}
-              </select>
-              {/* Dynamic Text Display */}
-              <span style={{ ...styles.redText, marginLeft: "10px" }}>
-                {selectedSupervisorHead
-                  ? `${selectedSupervisorHead} - ${selectedSupervisorName}`
-                  : ""}
+              <span style={{ ...styles.redText, marginLeft: "5px" }}>
+                {selectedReceiverName}
               </span>
             </div>
+
+            {/* Supervisor Row - Conditionally Hidden for State Super Admin */}
+            {!isStateAdmin && (
+              <div className="d-flex align-items-center mt-2 px-1 gap-2 mb-2">
+                <label style={{ ...styles.label, width: "190px" }}>
+                  Transfer To (Supervisor)
+                </label>
+                <select
+                  style={{ ...styles.input, width: "450px" }}
+                  value={formData.SupervisorId}
+                  onChange={(e) =>
+                    setFormData({ ...formData, SupervisorId: e.target.value })
+                  }
+                >
+                  <option value="">-- Select Supervisor (Optional) --</option>
+                  {supervisors.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.id} - {s.name}
+                    </option>
+                  ))}
+                </select>
+                <span style={{ ...styles.redText, marginLeft: "5px" }}>
+                  {selectedSupervisorHead
+                    ? `${selectedSupervisorHead} - ${selectedSupervisorName}`
+                    : ""}
+                </span>
+              </div>
+            )}
 
             <div style={styles.sectionBanner}>Stock / Product Information</div>
 
             {/* Product Selection Row */}
             <div className="d-flex align-items-center mt-2 px-1 gap-2 mb-2">
-              <label
-                style={{
-                  ...styles.label,
-                  width: "190px",
-                  textAlign: "right",
-                  paddingRight: "10px",
-                }}
-              >
+              <label style={{ ...styles.label, width: "190px" }}>
                 Select Product
               </label>
               <select
@@ -397,24 +383,23 @@ const ProductDistribution = () => {
                   </option>
                 ))}
               </select>
+              <span style={{ ...styles.redText, marginLeft: "5px" }}>
+                {formData.ProductName}
+              </span>
+
               <label style={{ ...styles.label, marginLeft: "20px" }}>
                 Total Balance
               </label>
-              <span style={styles.redText}>{selectedProductStock}</span>
+              <span style={{ ...styles.redText, marginLeft: "5px" }}>
+                {selectedProductStock}
+              </span>
             </div>
 
             <div style={styles.sectionBanner}>Transaction Details</div>
 
             {/* Transaction Amounts and Remarks Row */}
             <div className="d-flex align-items-center mt-2 px-1 gap-2 mb-2">
-              <label
-                style={{
-                  ...styles.label,
-                  width: "190px",
-                  textAlign: "right",
-                  paddingRight: "10px",
-                }}
-              >
+              <label style={{ ...styles.label, width: "190px" }}>
                 Tran. Amount
               </label>
               <input
@@ -541,7 +526,7 @@ const ProductDistribution = () => {
                       <td
                         style={{ border: "1px solid #ccc", padding: "2px 4px" }}
                       >
-                        {row.SupervisorId}
+                        {row.SupervisorId || "-"}
                       </td>
                       <td
                         style={{ border: "1px solid #ccc", padding: "2px 4px" }}

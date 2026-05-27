@@ -22,7 +22,7 @@ const ProductDistribution = () => {
   const [stock, setStock] = useState([]);
   const [history, setHistory] = useState([]);
 
-  const user = JSON.parse(localStorage.getItem("loggedInUser"));
+  const user = JSON.parse(localStorage.getItem("loggedInUser")) || {};
 
   useEffect(() => {
     fetchInitialData();
@@ -147,14 +147,6 @@ const ProductDistribution = () => {
     });
   };
 
-  const selectedAcctHeadName =
-    accountHeads.find((a) => String(a.AcctHead) === String(formData.AcctHeadId))
-      ?.AcctHeadName || "";
-  const selectedReceiverName =
-    filteredAccounts.find(
-      (r) => String(r.AcctNo) === String(formData.ReceiverId),
-    )?.AcctName || "";
-
   // Dynamic Head code only if selected
   const selectedSupervisorHead = formData.SupervisorId
     ? supervisors.find((s) => String(s.id) === String(formData.SupervisorId))
@@ -182,15 +174,6 @@ const ProductDistribution = () => {
       flexDirection: "row",
     },
     leftPanel: { flex: 1, padding: "4px" },
-    rightPanel: {
-      width: "130px",
-      backgroundColor: "#1E6bb8",
-      padding: "10px 8px",
-      display: "flex",
-      flexDirection: "column",
-      gap: "8px",
-      borderLeft: "3px solid #fff",
-    },
     header: {
       backgroundColor: "#1E6bb8",
       color: "#fff",
@@ -216,23 +199,13 @@ const ProductDistribution = () => {
       whiteSpace: "nowrap",
     },
     input: {
-      height: "22px",
+      height: "24px",
       fontSize: "12px",
-      padding: "0 4px",
-      borderRadius: "0",
+      padding: "0 6px",
+      borderRadius: "2px",
       border: "1px solid #a1acb8",
       width: "100%",
       outline: "none",
-    },
-    inputSmall: {
-      height: "22px",
-      fontSize: "12px",
-      padding: "0 4px",
-      borderRadius: "0",
-      border: "1px solid #a1acb8",
-      width: "60px",
-      outline: "none",
-      textAlign: "center",
     },
     redText: {
       color: "#d93025",
@@ -241,27 +214,8 @@ const ProductDistribution = () => {
       textTransform: "uppercase",
       whiteSpace: "nowrap",
     },
-    redBlock: {
-      backgroundColor: "#d93025",
-      color: "#fff",
-      padding: "2px 8px",
-      fontSize: "11px",
-      fontWeight: "bold",
-      display: "inline-block",
-    },
-    sideButton: {
-      backgroundColor: "#fff",
-      color: "#005bb5",
-      border: "1px solid #005bb5",
-      padding: "4px",
-      fontSize: "11px",
-      fontWeight: "bold",
-      textAlign: "center",
-      cursor: "pointer",
-      borderRadius: "2px",
-    },
     actionBtn: {
-      height: "22px",
+      height: "24px",
       fontSize: "11px",
       fontWeight: "bold",
       padding: "0 15px",
@@ -283,96 +237,124 @@ const ProductDistribution = () => {
 
           <form onSubmit={handleSubmit}>
             <div style={styles.sectionBanner}>Account Information</div>
-            <div className="d-flex align-items-center mt-1 px-1 gap-2">
-              <label style={{ ...styles.label, width: "90px" }}>
-                Account Head
+
+            {/* Sender / Transfer From Row with Entry Date Pushed to Extreme Right */}
+            <div className="d-flex align-items-center mt-2 px-1 gap-2 mb-2">
+              <label
+                style={{
+                  ...styles.label,
+                  width: "190px",
+                  textAlign: "right",
+                  paddingRight: "10px",
+                }}
+              >
+                Transfer From (Sender)
               </label>
               <select
-                style={{ ...styles.input, width: "120px" }}
+                style={{
+                  ...styles.input,
+                  width: "450px",
+                  backgroundColor: "#e9ecef",
+                }}
+                value={user?.UserSignUpId || ""}
+                disabled
+              >
+                <option value={user?.UserSignUpId || ""}>
+                  {user?.role || user?.UserSignUpRole} - {user?.username}
+                </option>
+              </select>
+
+              {/* Entry Date pushed to right using ms-auto */}
+              <div className="ms-auto d-flex align-items-center gap-2 pe-2">
+                <label style={styles.label}>Entry Date</label>
+                <input
+                  type="date"
+                  style={{ ...styles.input, width: "130px" }}
+                  value={formData.Date}
+                  onChange={(e) =>
+                    setFormData({ ...formData, Date: e.target.value })
+                  }
+                />
+              </div>
+            </div>
+
+            {/* Receiver Role Row */}
+            <div className="d-flex align-items-center mt-2 px-1 gap-2 mb-2">
+              <label
+                style={{
+                  ...styles.label,
+                  width: "190px",
+                  textAlign: "right",
+                  paddingRight: "10px",
+                }}
+              >
+                Transfer To (Receiver Role)
+              </label>
+              <select
+                style={{ ...styles.input, width: "450px" }}
                 value={formData.AcctHeadId}
                 onChange={(e) =>
                   setFormData({ ...formData, AcctHeadId: e.target.value })
                 }
                 disabled={user.UserSignUpRole === "State Super Administrator"}
               >
-                <option value=""></option>
+                <option value="">-- Select Receiver Role --</option>
                 {accountHeads.map((a) => (
                   <option key={a.AcctHeadId} value={a.AcctHead}>
-                    {a.AcctHead}
+                    {a.AcctHead} - {a.AcctHeadName || a.AcctHead}
                   </option>
                 ))}
               </select>
-              <span style={{ ...styles.redText, width: "150px" }}>
-                {selectedAcctHeadName}
-              </span>
-
-              {/* <label style={styles.label}>Mast.Acct.No</label>
-              <input
-                type="text"
-                readOnly
-                style={styles.inputSmall}
-                value={formData.ReceiverId}
-              />
-              <input
-                type="text"
-                readOnly
-                style={{ ...styles.inputSmall, width: "30px" }}
-                value="0"
-              /> */}
-
-              <label style={styles.label}>Entry Date</label>
-              <input
-                type="date"
-                style={{ ...styles.input, width: "110px" }}
-                value={formData.Date}
-                onChange={(e) =>
-                  setFormData({ ...formData, Date: e.target.value })
-                }
-              />
             </div>
 
+            {/* Receiver Name Row */}
             <div className="d-flex align-items-center mt-2 px-1 gap-2 mb-2">
-              <label style={{ ...styles.label, width: "90px" }}>
-                Acct.Number
+              <label
+                style={{
+                  ...styles.label,
+                  width: "190px",
+                  textAlign: "right",
+                  paddingRight: "10px",
+                }}
+              >
+                Transfer To (Receiver Name)
               </label>
               <select
-                style={{ ...styles.input, width: "250px" }}
+                style={{ ...styles.input, width: "450px" }}
                 value={formData.ReceiverId}
                 onChange={(e) =>
                   setFormData({ ...formData, ReceiverId: e.target.value })
                 }
               >
-                <option value=""></option>
+                <option value="">-- Select Receiver --</option>
                 {filteredAccounts.map((r) => (
                   <option key={r.AcctNo} value={r.AcctNo}>
                     {r.AcctNo} - {r.AcctName}
                   </option>
                 ))}
               </select>
-              <span
-                style={{
-                  ...styles.redText,
-                  width: "150px",
-                  marginLeft: "10px",
-                }}
-              >
-                {selectedReceiverName}
-              </span>
             </div>
 
-            {/* ✅ Supervisor Selection Row */}
+            {/* Supervisor Row */}
             <div className="d-flex align-items-center mt-2 px-1 gap-2 mb-2">
-              <label style={{ ...styles.label, width: "90px" }}>
-                Supervisor
+              <label
+                style={{
+                  ...styles.label,
+                  width: "190px",
+                  textAlign: "right",
+                  paddingRight: "10px",
+                }}
+              >
+                Transfer To (Supervisor)
               </label>
               <select
-                style={{ ...styles.input, width: "250px" }}
+                style={{ ...styles.input, width: "450px" }}
                 value={formData.SupervisorId}
                 onChange={(e) =>
                   setFormData({ ...formData, SupervisorId: e.target.value })
                 }
               >
-                <option value="">-- Select Supervisor --</option>
+                <option value="">-- Select Supervisor (Optional) --</option>
                 {supervisors.map((s) => (
                   <option key={s.id} value={s.id}>
                     {s.id} - {s.name}
@@ -380,29 +362,35 @@ const ProductDistribution = () => {
                 ))}
               </select>
               {/* Dynamic Text Display */}
-              <span
-                style={{ ...styles.redText, width: "50px", marginLeft: "10px" }}
-              >
-                {selectedSupervisorHead}
-              </span>
-              <span style={{ ...styles.redText }}>
-                {selectedSupervisorName}
+              <span style={{ ...styles.redText, marginLeft: "10px" }}>
+                {selectedSupervisorHead
+                  ? `${selectedSupervisorHead} - ${selectedSupervisorName}`
+                  : ""}
               </span>
             </div>
 
             <div style={styles.sectionBanner}>Stock / Product Information</div>
-            <div className="d-flex align-items-center mt-1 px-1 gap-2 mb-2">
-              <label style={{ ...styles.label, width: "90px" }}>
+
+            {/* Product Selection Row */}
+            <div className="d-flex align-items-center mt-2 px-1 gap-2 mb-2">
+              <label
+                style={{
+                  ...styles.label,
+                  width: "190px",
+                  textAlign: "right",
+                  paddingRight: "10px",
+                }}
+              >
                 Select Product
               </label>
               <select
-                style={{ ...styles.input, width: "200px" }}
+                style={{ ...styles.input, width: "450px" }}
                 value={formData.ProductName}
                 onChange={(e) =>
                   setFormData({ ...formData, ProductName: e.target.value })
                 }
               >
-                <option value=""></option>
+                <option value="">-- Select Product --</option>
                 {stock.map((s) => (
                   <option key={s.StockId} value={s.ProductName}>
                     {s.ProductName}
@@ -416,8 +404,17 @@ const ProductDistribution = () => {
             </div>
 
             <div style={styles.sectionBanner}>Transaction Details</div>
-            <div className="d-flex align-items-center mt-1 px-1 gap-2">
-              <label style={{ ...styles.label, width: "90px" }}>
+
+            {/* Transaction Amounts and Remarks Row */}
+            <div className="d-flex align-items-center mt-2 px-1 gap-2 mb-2">
+              <label
+                style={{
+                  ...styles.label,
+                  width: "190px",
+                  textAlign: "right",
+                  paddingRight: "10px",
+                }}
+              >
                 Tran. Amount
               </label>
               <input
@@ -574,23 +571,6 @@ const ProductDistribution = () => {
             </div>
           </form>
         </div>
-        {/* <div style={styles.rightPanel}>
-          {[
-            "Day Book(F1)",
-            "Cash Book(F2)",
-            "CashBook Dtl (F3)",
-            "Ledger(F4)",
-            "Per. Ledger(F5)",
-            "Int Ledger(F6)",
-            "Per. Int Ledger(F7)",
-            "Sign.Verify(F8)",
-            "Help(F9)",
-          ].map((btn) => (
-            <div key={btn} style={styles.sideButton}>
-              {btn}
-            </div>
-          ))}
-        </div> */}
       </div>
     </div>
   );

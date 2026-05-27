@@ -19,6 +19,7 @@ const ProductDistribution = () => {
   const [accountsTable, setAccountsTable] = useState([]);
   const [filteredAccounts, setFilteredAccounts] = useState([]);
   const [supervisors, setSupervisors] = useState([]);
+  const [products, setProducts] = useState([]); // ADDED PRODUCT STATE
   const [stock, setStock] = useState([]);
   const [history, setHistory] = useState([]);
 
@@ -33,19 +34,23 @@ const ProductDistribution = () => {
 
   const fetchInitialData = async () => {
     try {
-      const [headsRes, acctTableRes, stockRes, histRes] = await Promise.all([
-        axios.get(`${API_BASE_URL}/accthead`),
-        axios.get(`${API_BASE_URL}/accounts-mapping`),
-        axios.get(`${API_BASE_URL}/stock`),
-        axios.get(`${API_BASE_URL}/distribution-history`, {
-          params: { senderId: user.UserSignUpId },
-        }),
-      ]);
+      // ADDED /products ENDPOINT CALL
+      const [headsRes, acctTableRes, stockRes, histRes, productsRes] =
+        await Promise.all([
+          axios.get(`${API_BASE_URL}/accthead`),
+          axios.get(`${API_BASE_URL}/accounts-mapping`),
+          axios.get(`${API_BASE_URL}/stock`),
+          axios.get(`${API_BASE_URL}/distribution-history`, {
+            params: { senderId: user.UserSignUpId },
+          }),
+          axios.get(`${API_BASE_URL}/products`),
+        ]);
 
       setAccountHeads(headsRes.data);
       setAccountsTable(acctTableRes.data);
       setStock(stockRes.data);
       setHistory(histRes.data);
+      setProducts(productsRes.data);
 
       if (isStateAdmin) {
         const dnHead = headsRes.data.find((h) => h.AcctHead === "DN");
@@ -362,7 +367,7 @@ const ProductDistribution = () => {
 
             <div style={styles.sectionBanner}>Stock / Product Information</div>
 
-            {/* Product Selection Row */}
+            {/* Product Selection Row mapped from `product` table via state */}
             <div className="d-flex align-items-center mt-2 px-1 gap-2 mb-2">
               <label style={{ ...styles.label, width: "190px" }}>
                 Select Product
@@ -375,9 +380,9 @@ const ProductDistribution = () => {
                 }
               >
                 <option value="">-- Select Product --</option>
-                {stock.map((s) => (
-                  <option key={s.StockId} value={s.ProductName}>
-                    {s.ProductName}
+                {products.map((p) => (
+                  <option key={p.ProId} value={p.ProName}>
+                    {p.ProName}
                   </option>
                 ))}
               </select>

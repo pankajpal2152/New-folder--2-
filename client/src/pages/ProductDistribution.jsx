@@ -1,11 +1,9 @@
-productmanagement.js;
-
 import React, { useEffect, useState } from "react";
-import "../../styles/Productdistibution.css";
-import "../../styles/login.css";
+// import "../../styles/Productdistibution.css";
+// import "../../styles/login.css";
 import axios from "axios";
-import "bootstrap/dist/css/bootstrap.min.css";
-import { FaEdit, FaTrash, FaEye } from "react-icons/fa";
+// import "bootstrap/dist/css/bootstrap.min.css";
+// import { FaEdit, FaTrash, FaEye } from "react-icons/fa";
 export default function Productdistibution() {
   // ====================================
   // STATE

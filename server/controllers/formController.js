@@ -252,9 +252,6 @@ exports.updateAsthaDidi = (req, res) => {
     data.AsthaDidiSignupUserName,
     data.AsthaDidiSignupEmail,
     data.AsthaDidiSignupPassword,
-    data.DistNGORegId || null,
-    data.SupRegId || null,
-    data.AsthaDidiRegId || null,
     data.AsthaDidiIsActive,
     data.AsthaDidiAprovedBy,
     data.AsthaDidiAprovalDate,
@@ -982,7 +979,6 @@ exports.getDistributionHistory = (req, res) => {
     LEFT JOIN accounts acc2 ON acc2.AcctNo = SUBSTRING_INDEX(t1.UserName, ' - ', -1) AND acc2.AcctHead = SUBSTRING_INDEX(t1.UserName, ' - ', 1)
     WHERE t1.AcctNo = ? AND t1.AcctHead = ? AND t1.Withdraw > 0
     ORDER BY t1.TrnId DESC
-    LIMIT 50
   `;
   db.query(query, [senderId, senderHead], (err, results) => {
     if (err) {

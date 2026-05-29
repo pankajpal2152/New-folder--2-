@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import "./Productdistibution.css";
 import axios from "axios";
 import "bootstrap/dist/css/bootstrap.min.css";
@@ -10,6 +10,12 @@ export default function ProductDistribution() {
   const [products, setProducts] = useState([]);
   const [trnTypes, setTrnTypes] = useState([]);
   const [history, setHistory] = useState([]);
+
+  // Filtering States
+  const [searchTerm, setSearchTerm] = useState("");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+
   const [formData, setFormData] = useState({
     senderAcctHead: "",
     senderAcctName: "",
@@ -207,6 +213,45 @@ export default function ProductDistribution() {
       alert("Error distributing product");
     }
   };
+
+  // Memoized Filter Logic for the Ledger
+  const filteredHistory = useMemo(() => {
+    return history.filter((h) => {
+      // Date Filter
+      let dateMatch = true;
+      if (fromDate) {
+        dateMatch =
+          dateMatch && new Date(h.TransactionDate) >= new Date(fromDate);
+      }
+      if (toDate) {
+        dateMatch =
+          dateMatch && new Date(h.TransactionDate) <= new Date(toDate);
+      }
+
+      // Search Filter
+      let searchMatch = true;
+      if (searchTerm) {
+        const lowerSearch = searchTerm.toLowerCase();
+        const combinedString = `
+          ${h.TransactionDate} 
+          ${h.SenderHeadName} 
+          ${h.SenderAcctName} 
+          ${h.SenderAvailableQty} 
+          ${h.ProductName} 
+          ${h.TransferQty} 
+          ${h.ReceiverHeadName} 
+          ${h.ReceiverAcctName} 
+          ${h.ReceiverAvailableQty} 
+          ${h.SenderMode} 
+          ${h.Remarks}
+        `.toLowerCase();
+
+        searchMatch = combinedString.includes(lowerSearch);
+      }
+
+      return dateMatch && searchMatch;
+    });
+  }, [history, searchTerm, fromDate, toDate]);
 
   return (
     <div className="container mt-5">
@@ -475,43 +520,113 @@ export default function ProductDistribution() {
             </div>
           </form>
 
-          <div className="table-responsive mt-5">
+          {/* Ledger / History Filter Controls */}
+          <div
+            className="mt-5 mb-3"
+            style={{
+              backgroundColor: "#f8f9fa",
+              padding: "15px",
+              borderRadius: "8px",
+            }}
+          >
+            <div className="row align-items-end">
+              <div className="col-md-4">
+                <label className="form-label-custom">Search Ledger</label>
+                <input
+                  type="text"
+                  className="form-control form-control-sm"
+                  placeholder="Search any field..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              <div className="col-md-3">
+                <label className="form-label-custom">From Date</label>
+                <input
+                  type="date"
+                  className="form-control form-control-sm"
+                  value={fromDate}
+                  onChange={(e) => setFromDate(e.target.value)}
+                />
+              </div>
+              <div className="col-md-3">
+                <label className="form-label-custom">To Date</label>
+                <input
+                  type="date"
+                  className="form-control form-control-sm"
+                  value={toDate}
+                  onChange={(e) => setToDate(e.target.value)}
+                />
+              </div>
+              <div className="col-md-2">
+                <button
+                  className="btn btn-secondary btn-sm w-100"
+                  onClick={() => {
+                    setSearchTerm("");
+                    setFromDate("");
+                    setToDate("");
+                  }}
+                >
+                  Clear Filters
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="table-responsive">
             <table className="table table-bordered custom-table table-sm">
               <thead>
-                <tr>
+                <tr style={{ backgroundColor: "#696cff", color: "white" }}>
                   <th>Date</th>
-                  <th>Sender Head</th>
-                  <th>Sender Account</th>
-                  <th>Sender Bal</th>
+                  <th>Sender</th>
+                  <th>S-Bal</th>
                   <th>Product Name</th>
                   <th>Transferred</th>
-                  <th>Receiver Head</th>
-                  <th>Receiver Account</th>
-                  <th>Receiver Bal</th>
+                  <th>Receiver</th>
+                  <th>R-Bal</th>
                   <th>Mode</th>
                   <th>Remarks</th>
                 </tr>
               </thead>
               <tbody>
-                {history.map((h) => (
+                {filteredHistory.map((h) => (
                   <tr key={h.TrnId}>
                     <td>{h.TransactionDate}</td>
-                    <td>{h.SenderHeadName}</td>
                     <td>
-                      {h.SenderAcctName} ({h.SenderAcctNo})
+                      {h.SenderHeadName}
+                      <br />
+                      <small className="text-muted">
+                        {h.SenderAcctName} ({h.SenderAcctNo})
+                      </small>
                     </td>
-                    <td>{h.SenderAvailableQty}</td>
+                    <td>
+                      <strong>{h.SenderAvailableQty}</strong>
+                    </td>
                     <td>{h.ProductName}</td>
-                    <td>{h.TransferQty}</td>
-                    <td>{h.ReceiverHeadName}</td>
-                    <td>
-                      {h.ReceiverAcctName} ({h.ReceiverAcctNo})
+                    <td style={{ color: "red", fontWeight: "bold" }}>
+                      - {h.TransferQty}
                     </td>
-                    <td>{h.ReceiverAvailableQty}</td>
+                    <td>
+                      {h.ReceiverHeadName}
+                      <br />
+                      <small className="text-muted">
+                        {h.ReceiverAcctName} ({h.ReceiverAcctNo})
+                      </small>
+                    </td>
+                    <td>
+                      <strong>{h.ReceiverAvailableQty}</strong>
+                    </td>
                     <td>{h.SenderMode}</td>
                     <td>{h.Remarks}</td>
                   </tr>
                 ))}
+                {filteredHistory.length === 0 && (
+                  <tr>
+                    <td colSpan="9" className="text-center text-muted py-3">
+                      No transactions found for the selected criteria.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>

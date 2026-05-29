@@ -850,6 +850,7 @@ exports.getTrnTypes = (req, res) => {
 
 exports.getProductStock = (req, res) => {
   const { acctHead, acctNo, proId } = req.query;
+  // Calculate based on the specific account and product from transaction table
   const query = `
     SELECT SUM(Deposit) - SUM(Withdraw) AS AvailableQty
     FROM transaction
@@ -941,7 +942,7 @@ exports.distributeProduct = (req, res) => {
 exports.getDistributionHistory = (req, res) => {
   const { senderId } = req.query;
   db.query(
-    "SELECT * FROM product_distribution WHERE SenderId = ? ORDER BY ProductDate DESC LIMIT 10",
+    "SELECT * FROM product_distribution WHERE SenderId = ? ORDER BY ProductDate DESC",
     [senderId],
     (err, results) => {
       if (err) return res.json([]);

@@ -9,6 +9,7 @@ export default function ProductDistribution() {
   const [allAccounts, setAllAccounts] = useState([]);
   const [products, setProducts] = useState([]);
   const [trnTypes, setTrnTypes] = useState([]);
+  const [history, setHistory] = useState([]);
   const [formData, setFormData] = useState({
     senderAcctHead: "",
     senderAcctName: "",
@@ -34,7 +35,7 @@ export default function ProductDistribution() {
     fetchData();
   }, []);
 
-  // Fetch Sender Stock
+  // Fetch Stock for Sender
   useEffect(() => {
     const fetchSenderStock = async () => {
       if (
@@ -90,6 +91,19 @@ export default function ProductDistribution() {
     fetchReceiverStock();
   }, [formData.receiverAcctHead, formData.receiverAcctNo, formData.productId]);
 
+  // Fetch Distribution History
+  const fetchHistory = async (senderId) => {
+    if (!senderId) return;
+    try {
+      const res = await axios.get(`${API_BASE_URL}/distribution-history`, {
+        params: { senderId },
+      });
+      setHistory(res.data);
+    } catch (err) {
+      console.error("History fetch error", err);
+    }
+  };
+
   const fetchData = async () => {
     try {
       const [heads, prods, accounts, trn] = await Promise.all([
@@ -128,6 +142,7 @@ export default function ProductDistribution() {
         senderAcctNo: value,
         senderAcctNameDisplay: selected ? selected.AcctName : "",
       }));
+      fetchHistory(value);
     } else if (name === "productName") {
       const selectedPro = products.find((p) => p.ProName === value);
       setFormData((prev) => ({
@@ -183,6 +198,7 @@ export default function ProductDistribution() {
         Remarks: formData.remarks,
       });
       alert("Product Distributed Successfully");
+      fetchHistory(formData.senderAcctNo); // Refresh history
     } catch (err) {
       alert("Error distributing product");
     }
@@ -384,48 +400,41 @@ export default function ProductDistribution() {
                 />
               </div>
             </div>
-            <div className="row">
-              <div className="col-md-6 mb-3">
-                <label className="form-label-custom">Transaction Mode</label>
-                <select
-                  className="form-control form-control-sm"
-                  name="receiverMode"
-                  onChange={handleReceiverChange}
-                >
-                  <option value="">--Select Mode--</option>
-                  {trnTypes.map((t) => (
-                    <option key={t.TrnTypyId} value={t.DisplayName}>
-                      {t.DisplayName}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="col-md-3 mb-3">
-                <label className="form-label-custom">Receive Quantity</label>
-                <input
-                  className="form-control"
-                  type="number"
-                  name="receiveQty"
-                  onChange={handleReceiverChange}
-                />
-              </div>
-              <div className="col-md-3 mb-3">
-                <label className="form-label-custom">Current Qty</label>
-                <input
-                  className="form-control"
-                  type="text"
-                  name="receiverAvailableQty"
-                  value={formData.receiverAvailableQty}
-                  readOnly
-                />
-              </div>
-            </div>
+
             <div className="col-md-12">
               <button className="btn btn-primary" type="submit">
                 Submit
               </button>
             </div>
           </form>
+
+          {/* History Table */}
+          <div className="table-responsive mt-5">
+            <table className="custom-table table-sm">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Receiver</th>
+                  <th>Product</th>
+                  <th>Quantity</th>
+                  <th>Remarks</th>
+                </tr>
+              </thead>
+              <tbody>
+                {history.map((h) => (
+                  <tr key={h.DistId}>
+                    <td>{new Date(h.ProductDate).toLocaleDateString()}</td>
+                    <td>
+                      {h.ReceiverRole} - {h.ReceiverId}
+                    </td>
+                    <td>{h.ProductName}</td>
+                    <td>{h.DistributedQty}</td>
+                    <td>{h.Remarks}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>

@@ -809,8 +809,9 @@ exports.checkDuplicate = (req, res) => {
 // ==========================================
 
 exports.getAccountHeads = (req, res) => {
+  // UPDATED: Concatenating AcctHead and AcctHeadName for the dropdown pair
   db.query(
-    "SELECT accthead, AcctHeadName FROM accthead WHERE IsActive = 'T' ",
+    "SELECT accthead AS value, CONCAT(accthead, ' - ', AcctHeadName) AS label FROM accthead WHERE IsActive = 'T'",
     (err, results) => {
       if (err) return res.json([]);
       res.json(results);
@@ -827,7 +828,7 @@ exports.getAccountsMapping = (req, res) => {
 
 exports.getActiveProducts = (req, res) => {
   db.query(
-    "SELECT * FROM product WHERE IsActive = 'T' OR IsActive = '1' OR IsActive = 1",
+    "SELECT ProId AS value, ProName AS label FROM product WHERE IsActive = 'T' OR IsActive = '1' OR IsActive = 1",
     (err, results) => {
       if (err) return res.json([]);
       res.json(results);
@@ -838,14 +839,12 @@ exports.getActiveProducts = (req, res) => {
 exports.getProductStock = (req, res) => {
   // DYNAMIC STOCK CALCULATION BASED ON TRANSACTIONS
   const query = `
-
     SELECT p.ProName AS ProductName, 
            SUM(t.Deposit) - SUM(t.Withdraw) AS AvailableQty
     FROM product p
     LEFT JOIN transaction t ON p.ProId = t.ProId
     where t.AcctHead='sn' and t.AcctNo=1
     GROUP BY p.ProId, p.ProName
-    
   `;
   db.query(query, (err, results) => {
     if (err) {

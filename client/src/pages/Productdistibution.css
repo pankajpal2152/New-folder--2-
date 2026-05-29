@@ -1,0 +1,141 @@
+/* =========================================
+   Productdistibution.css
+   Styles for Product Distribution Interface
+========================================= */
+
+/* Main Card Container */
+.rounded-10 {
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.card {
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+}
+
+.card-header h3 {
+    margin: 0;
+    font-size: 1.5rem;
+    padding: 10px;
+    text-align: left;
+}
+
+/* Section Banners 
+  Targeting the specific classes provided in the React file
+*/
+.PerInfo {
+    background-color: #28a745; /* Green banner from the image */
+    color: #ffffff;
+    padding: 8px 15px;
+    font-size: 15px;
+    font-weight: bold;
+    border-radius: 4px;
+    margin-top: 10px;
+    margin-bottom: 15px;
+    text-align: center;
+}
+
+.AddInfo {
+    background-color: #3b82f6; /* Blue banner from the image */
+    color: #ffffff;
+    padding: 8px 15px;
+    font-size: 15px;
+    font-weight: bold;
+    border-radius: 4px;
+    margin-top: 25px;
+    margin-bottom: 15px;
+    text-align: center;
+}
+
+/* Form Labels */
+.form-label-custom {
+    font-size: 12px;
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 4px;
+    display: inline-block;
+}
+
+/* Input Fields and Select Dropdowns */
+.form-control, 
+.form-control-sm, 
+select.form-control {
+    border-radius: 20px !important; /* Creates the rounded pill look */
+    border: 1px solid #ced4da;
+    padding: 8px 15px;
+    font-size: 13px;
+    box-shadow: none !important;
+    transition: border-color 0.3s, box-shadow 0.3s;
+    background-color: #ffffff;
+}
+
+/* Input Focus State (Glow effect when clicked) */
+.form-control:focus, 
+.form-control-sm:focus, 
+select.form-control:focus {
+    border-color: #696cff;
+    box-shadow: 0 0 0 0.25rem rgba(105, 108, 255, 0.25) !important;
+    outline: none;
+}
+
+/* Textarea specific adjustment */
+textarea.form-control {
+    border-radius: 10px !important; /* Slightly less rounded for text areas */
+    resize: vertical;
+}
+
+/* Spacing between rows */
+.row {
+    margin-bottom: 15px;
+}
+
+/* Submit Button Styling */
+.btn-primary {
+    background-color: #696cff !important;
+    border-color: #696cff !important;
+    border-radius: 20px !important; /* Rounded button */
+    padding: 8px 30px !important;
+    font-weight: 600 !important;
+    margin-top: 15px;
+}
+
+.btn-primary:hover {
+    background-color: #5f61e6 !important;
+    border-color: #5f61e6 !important;
+}
+
+/* =========================================
+   Table Styling
+========================================= */
+.table-responsive {
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    background-color: #fff;
+    padding: 10px;
+}
+
+.custom-table {
+    width: 100%;
+    border-collapse: collapse;
+    color: #495057;
+}
+
+.custom-table th,
+.custom-table td {
+    padding: 12px 15px;
+    border-bottom: 1px solid #dee2e6;
+    text-align: left;
+    font-size: 13px;
+}
+
+.custom-table thead th {
+    background-color: #f8f9fa;
+    color: #495057;
+    font-weight: bold;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.custom-table tbody tr:hover {
+    background-color: #f1f3f5;
+}

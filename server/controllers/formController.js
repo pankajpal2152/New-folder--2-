@@ -808,7 +808,6 @@ exports.checkDuplicate = (req, res) => {
 // NEW: PRODUCT DISTRIBUTION MODULE
 // ==========================================
 
-// UPDATED: Fetches Account Head as "Head - Name"
 exports.getAccountHeads = (req, res) => {
   db.query(
     "SELECT AcctHead, AcctHeadName, CONCAT(AcctHead, ' - ', AcctHeadName) AS DisplayName FROM accthead WHERE IsActive = 'T'",
@@ -819,7 +818,6 @@ exports.getAccountHeads = (req, res) => {
   );
 };
 
-// NEW: Fetches all accounts
 exports.getAccountsMapping = (req, res) => {
   db.query(
     "SELECT AcctNo, AcctHead, AcctName, CONCAT(AcctNo, ' - ', AcctName) AS DisplayName FROM accounts",
@@ -851,19 +849,18 @@ exports.getTrnTypes = (req, res) => {
 };
 
 exports.getProductStock = (req, res) => {
+  const { acctHead, acctNo, proId } = req.query;
   const query = `
-    SELECT p.ProName AS ProductName, 
-           SUM(t.Deposit) - SUM(t.Withdraw) AS AvailableQty
-    FROM product p
-    LEFT JOIN transaction t ON p.ProId = t.ProId
-    GROUP BY p.ProId, p.ProName
+    SELECT SUM(Deposit) - SUM(Withdraw) AS AvailableQty
+    FROM transaction
+    WHERE AcctHead = ? AND AcctNo = ? AND ProId = ?
   `;
-  db.query(query, (err, results) => {
+  db.query(query, [acctHead, acctNo, proId], (err, results) => {
     if (err) {
       console.error("❌ getProductStock Error:", err);
-      return res.json([]);
+      return res.json({ availableQty: 0 });
     }
-    res.json(results);
+    res.json({ availableQty: results[0].AvailableQty || 0 });
   });
 };
 
@@ -910,31 +907,30 @@ exports.distributeProduct = (req, res) => {
     SenderId,
     ReceiverId,
     ReceiverRole,
+    ProductId,
     ProductName,
     DistributedQty,
     Remarks,
-    SupervisorId,
   } = req.body;
 
-  const insertQuery = `INSERT INTO product_distribution (SenderId, ReceiverId, ReceiverRole, ProductName, DistributedQty, Remarks, ProductDate, SupervisorId) VALUES (?,?,?,?,?,?,NOW(),?)`;
+  const insertQuery = `INSERT INTO product_distribution (SenderId, ReceiverId, ReceiverRole, ProductName, DistributedQty, Remarks, ProductDate) VALUES (?,?,?,?,?,?,NOW())`;
 
   db.query(
     insertQuery,
-    [
-      SenderId,
-      ReceiverId,
-      ReceiverRole,
-      ProductName,
-      DistributedQty,
-      Remarks,
-      SupervisorId || null,
-    ],
+    [SenderId, ReceiverId, ReceiverRole, ProductName, DistributedQty, Remarks],
     (err) => {
       if (err) return res.status(500).json({ error: err.message });
 
+      // Record withdrawal from Sender
       db.query(
-        "INSERT INTO transaction (TrnDate, AcctNo, AcctHead, ProId, Withdraw, DrCr, TrnType) VALUES (NOW(), ?, ?, (SELECT ProId FROM product WHERE ProName = ?), ?, 'Dr', 'TRANSFER')",
-        [ReceiverId, ReceiverRole, ProductName, DistributedQty],
+        "INSERT INTO transaction (TrnDate, AcctNo, AcctHead, ProId, Withdraw, DrCr, TrnType) VALUES (NOW(), ?, ?, ?, ?, 'Dr', 'TRANSFER')",
+        [SenderId, "SN", ProductId, DistributedQty],
+        () => {},
+      );
+      // Record deposit to Receiver
+      db.query(
+        "INSERT INTO transaction (TrnDate, AcctNo, AcctHead, ProId, Deposit, DrCr, TrnType) VALUES (NOW(), ?, ?, ?, ?, 'Cr', 'RECEIVED')",
+        [ReceiverId, ReceiverRole, ProductId, DistributedQty],
         () => {},
       );
       res.json({ message: "Product distributed successfully" });

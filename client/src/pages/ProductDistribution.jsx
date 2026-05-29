@@ -5,9 +5,6 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import { API_BASE_URL } from "../config/constants";
 
 export default function ProductDistribution() {
-  // ====================================
-  // STATE
-  // ====================================
   const [acctHeads, setAcctHeads] = useState([]);
   const [allAccounts, setAllAccounts] = useState([]);
   const [products, setProducts] = useState([]);
@@ -20,6 +17,7 @@ export default function ProductDistribution() {
     senderAcctNameDisplay: "",
     senderMode: "",
     productName: "",
+    productId: "",
     transferQty: "",
     availableQty: "",
     receiverAcctHead: "",
@@ -32,12 +30,36 @@ export default function ProductDistribution() {
     remarks: "",
   });
 
-  // ====================================
-  // DATA FETCHING
-  // ====================================
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    const fetchStock = async () => {
+      if (
+        formData.senderAcctHead &&
+        formData.senderAcctNo &&
+        formData.productId
+      ) {
+        try {
+          const res = await axios.get(`${API_BASE_URL}/stock`, {
+            params: {
+              acctHead: formData.senderAcctHead,
+              acctNo: formData.senderAcctNo,
+              proId: formData.productId,
+            },
+          });
+          setFormData((prev) => ({
+            ...prev,
+            availableQty: res.data.availableQty,
+          }));
+        } catch (err) {
+          console.error("Stock fetch error", err);
+        }
+      }
+    };
+    fetchStock();
+  }, [formData.senderAcctHead, formData.senderAcctNo, formData.productId]);
 
   const fetchData = async () => {
     try {
@@ -58,7 +80,6 @@ export default function ProductDistribution() {
 
   const handleSenderChange = (e) => {
     const { name, value } = e.target;
-
     if (name === "senderAcctHead") {
       const selected = acctHeads.find((h) => h.AcctHead === value);
       setFormData((prev) => ({
@@ -77,6 +98,13 @@ export default function ProductDistribution() {
         senderAcctNo: value,
         senderAcctNameDisplay: selected ? selected.AcctName : "",
       }));
+    } else if (name === "productName") {
+      const selectedPro = products.find((p) => p.ProName === value);
+      setFormData((prev) => ({
+        ...prev,
+        productName: value,
+        productId: selectedPro ? selectedPro.ProId : "",
+      }));
     } else {
       setFormData((prev) => ({ ...prev, [name]: value }));
     }
@@ -84,7 +112,6 @@ export default function ProductDistribution() {
 
   const handleReceiverChange = (e) => {
     const { name, value } = e.target;
-
     if (name === "receiverAcctHead") {
       const selected = acctHeads.find((h) => h.AcctHead === value);
       setFormData((prev) => ({
@@ -116,9 +143,9 @@ export default function ProductDistribution() {
         ReceiverId: formData.receiverAcctNo,
         ReceiverRole: formData.receiverAcctHead,
         ProductName: formData.productName,
+        ProductId: formData.productId,
         DistributedQty: formData.transferQty,
         Remarks: formData.remarks,
-        SupervisorId: null,
       });
       alert("Product Distributed Successfully");
     } catch (err) {
@@ -210,7 +237,6 @@ export default function ProductDistribution() {
                   />
                 </div>
               </div>
-
               <div className="row">
                 <div className="col-md-3 mb-2">
                   <label className="form-label-custom">Transaction Mode</label>
@@ -232,6 +258,7 @@ export default function ProductDistribution() {
                   <select
                     className="form-control form-control-sm"
                     name="productName"
+                    value={formData.productName}
                     onChange={handleSenderChange}
                   >
                     <option value="">--Select Product Name--</option>
@@ -260,7 +287,7 @@ export default function ProductDistribution() {
                     className="form-control"
                     type="text"
                     name="availableQty"
-                    placeholder="0"
+                    value={formData.availableQty}
                     readOnly
                   />
                 </div>
@@ -364,17 +391,6 @@ export default function ProductDistribution() {
                     name="receiverAvailableQty"
                     placeholder="0"
                     readOnly
-                  />
-                </div>
-              </div>
-              <div className="row">
-                <div className="col-md-12 mb-2">
-                  <label className="form-label-custom">Remarks</label>
-                  <textarea
-                    className="form-control"
-                    name="remarks"
-                    rows="2"
-                    onChange={handleReceiverChange}
                   />
                 </div>
               </div>

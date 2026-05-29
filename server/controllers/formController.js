@@ -808,6 +808,7 @@ exports.checkDuplicate = (req, res) => {
 // NEW: PRODUCT DISTRIBUTION MODULE
 // ==========================================
 
+// UPDATED: Fetches Account Head as "Head - Name"
 exports.getAccountHeads = (req, res) => {
   db.query(
     "SELECT AcctHead, AcctHeadName, CONCAT(AcctHead, ' - ', AcctHeadName) AS DisplayName FROM accthead WHERE IsActive = 'T'",
@@ -818,6 +819,7 @@ exports.getAccountHeads = (req, res) => {
   );
 };
 
+// NEW: Fetches all accounts
 exports.getAccountsMapping = (req, res) => {
   db.query(
     "SELECT AcctNo, AcctHead, AcctName, CONCAT(AcctNo, ' - ', AcctName) AS DisplayName FROM accounts",
@@ -854,7 +856,6 @@ exports.getProductStock = (req, res) => {
            SUM(t.Deposit) - SUM(t.Withdraw) AS AvailableQty
     FROM product p
     LEFT JOIN transaction t ON p.ProId = t.ProId
-    where t.AcctHead='sn' and t.AcctNo=1
     GROUP BY p.ProId, p.ProName
   `;
   db.query(query, (err, results) => {

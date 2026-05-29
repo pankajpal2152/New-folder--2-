@@ -194,7 +194,7 @@ export default function ProductDistribution() {
                       .filter((a) => a.AcctHead === formData.senderAcctHead)
                       .map((a) => (
                         <option key={a.AcctNo} value={a.AcctNo}>
-                          {a.AcctNo} - {a.AcctName}
+                          {a.DisplayName}
                         </option>
                       ))}
                   </select>
@@ -210,6 +210,7 @@ export default function ProductDistribution() {
                   />
                 </div>
               </div>
+
               <div className="row">
                 <div className="col-md-3 mb-2">
                   <label className="form-label-custom">Transaction Mode</label>
@@ -311,7 +312,7 @@ export default function ProductDistribution() {
                       .filter((a) => a.AcctHead === formData.receiverAcctHead)
                       .map((a) => (
                         <option key={a.AcctNo} value={a.AcctNo}>
-                          {a.AcctNo} - {a.AcctName}
+                          {a.DisplayName}
                         </option>
                       ))}
                   </select>

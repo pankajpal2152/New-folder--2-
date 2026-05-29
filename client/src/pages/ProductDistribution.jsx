@@ -4,31 +4,29 @@ import axios from "axios";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { FaEdit, FaTrash, FaEye } from "react-icons/fa";
 import { API_BASE_URL } from "../config/constants";
-import { toast, ToastContainer } from "react-toastify";
 
-export default function Productdistibution() {
+export default function ProductDistribution() {
   // ====================================
   // STATE
   // ====================================
   const [acctHeads, setAcctHeads] = useState([]);
-  const [accounts, setAccounts] = useState([]);
   const [products, setProducts] = useState([]);
   const [history, setHistory] = useState([]);
-
   const [formData, setFormData] = useState({
-    senderHead: "",
-    senderAcctNo: "",
+    senderAcctHead: "",
     senderAcctName: "",
-    transactionDate: "",
-    trnMode: "",
+    senderDate: "",
+    senderAcctNo: "",
+    senderAcctNameDisplay: "",
+    senderMode: "",
     productName: "",
     transferQty: "",
     availableQty: "",
-
-    receiverHead: "",
-    receiverAcctNo: "",
+    receiverAcctHead: "",
     receiverAcctName: "",
-    receiverTrnMode: "",
+    receiverAcctNo: "",
+    receiverAcctNameDisplay: "",
+    receiverMode: "",
     receiveQty: "",
     receiverAvailableQty: "",
     remarks: "",
@@ -43,16 +41,14 @@ export default function Productdistibution() {
 
   const fetchData = async () => {
     try {
-      const [headsRes, accountsRes, productsRes] = await Promise.all([
+      const [heads, prods] = await Promise.all([
         axios.get(`${API_BASE_URL}/accthead`),
-        axios.get(`${API_BASE_URL}/accounts-mapping`),
         axios.get(`${API_BASE_URL}/products`),
       ]);
-      setAcctHeads(headsRes.data);
-      setAccounts(accountsRes.data);
-      setProducts(productsRes.data);
-    } catch (error) {
-      toast.error("Failed to load dropdown data");
+      setAcctHeads(heads.data);
+      setProducts(prods.data);
+    } catch (err) {
+      console.error("Error loading initial data", err);
     }
   };
 
@@ -67,21 +63,19 @@ export default function Productdistibution() {
       await axios.post(`${API_BASE_URL}/distribute`, {
         SenderId: formData.senderAcctNo,
         ReceiverId: formData.receiverAcctNo,
-        ReceiverRole: formData.receiverHead,
+        ReceiverRole: formData.receiverAcctHead,
         ProductName: formData.productName,
         DistributedQty: formData.transferQty,
         Remarks: formData.remarks,
       });
-      toast.success("Product distributed successfully!");
-      setFormData({ ...formData, transferQty: "", receiveQty: "" });
-    } catch (error) {
-      toast.error("Failed to distribute product");
+      alert("Product Distributed Successfully");
+    } catch (err) {
+      alert("Error distributing product");
     }
   };
 
   return (
     <div className="container mt-5">
-      <ToastContainer />
       <div className="card shadow-lg border-0 rounded-10">
         <div
           className="card-header text-white"
@@ -100,14 +94,14 @@ export default function Productdistibution() {
                   <label className="form-label-custom">Account Head</label>
                   <select
                     className="form-control form-control-sm"
-                    name="senderHead"
+                    name="senderAcctHead"
                     onChange={handleChange}
                     required
                   >
                     <option value="">--Select Account Head--</option>
                     {acctHeads.map((h) => (
-                      <option key={h.accthead} value={h.accthead}>
-                        {h.accthead} - {h.AcctHeadName}
+                      <option key={h.AcctHead} value={h.AcctHead}>
+                        {h.DisplayName}
                       </option>
                     ))}
                   </select>
@@ -115,21 +109,19 @@ export default function Productdistibution() {
                 <div className="col-md-5 mb-2">
                   <label className="form-label-custom">Account Head Name</label>
                   <input
+                    className="form-control"
                     type="text"
                     name="senderAcctName"
-                    className="form-control"
                     placeholder="Account Head Name"
-                    value={formData.senderAcctName}
                     onChange={handleChange}
                   />
                 </div>
                 <div className="col-md-2 mb-3">
                   <label className="form-label-custom">Transaction Date</label>
                   <input
-                    type="date"
-                    name="transactionDate"
                     className="form-control form-control-sm"
-                    value={formData.transactionDate}
+                    type="date"
+                    name="senderDate"
                     onChange={handleChange}
                   />
                 </div>
@@ -141,26 +133,17 @@ export default function Productdistibution() {
                     className="form-control form-control-sm"
                     name="senderAcctNo"
                     onChange={handleChange}
-                    required
                   >
                     <option value="">--Select Account Number--</option>
-                    {accounts
-                      .filter((a) => a.AcctHead === formData.senderHead)
-                      .map((a) => (
-                        <option key={a.AcctNo} value={a.AcctNo}>
-                          {a.AcctNo}
-                        </option>
-                      ))}
                   </select>
                 </div>
                 <div className="col-md-7 mb-3">
                   <label className="form-label-custom">Account Name</label>
                   <input
-                    type="text"
-                    name="senderAcctName"
                     className="form-control"
+                    type="text"
+                    name="senderAcctNameDisplay"
                     placeholder="Account Name"
-                    value={formData.senderAcctName}
                     onChange={handleChange}
                   />
                 </div>
@@ -170,11 +153,12 @@ export default function Productdistibution() {
                   <label className="form-label-custom">Transaction Mode</label>
                   <select
                     className="form-control form-control-sm"
-                    name="trnMode"
+                    name="senderMode"
                     onChange={handleChange}
                   >
                     <option value="">--Select Transaction Mode--</option>
-                    <option value="TRANSFER">Transfer</option>
+                    <option value="Cash">Cash</option>
+                    <option value="Bank">Bank</option>
                   </select>
                 </div>
                 <div className="col-md-5 mb-2">
@@ -195,11 +179,10 @@ export default function Productdistibution() {
                 <div className="col-md-2 mb-2">
                   <label className="form-label-custom">Transfer Quantity</label>
                   <input
+                    className="form-control"
                     type="number"
                     name="transferQty"
-                    className="form-control"
-                    placeholder="Transfer Quantity"
-                    value={formData.transferQty}
+                    placeholder="0"
                     onChange={handleChange}
                   />
                 </div>
@@ -208,30 +191,31 @@ export default function Productdistibution() {
                     Available Quantity
                   </label>
                   <input
-                    type="text"
                     className="form-control"
-                    placeholder="Available Quantity"
+                    type="text"
+                    name="availableQty"
+                    placeholder="0"
                     readOnly
                   />
                 </div>
               </div>
 
+              {/* Receiver Info Section */}
               <div className="row">
                 <p className="AddInfo">Receiver Information:</p>
               </div>
-
               <div className="row">
                 <div className="col-md-6 mb-3">
                   <label className="form-label-custom">Account Head</label>
                   <select
                     className="form-control form-control-sm"
-                    name="receiverHead"
+                    name="receiverAcctHead"
                     onChange={handleChange}
                   >
                     <option value="">--Select Account Head--</option>
                     {acctHeads.map((h) => (
-                      <option key={h.accthead} value={h.accthead}>
-                        {h.accthead} - {h.AcctHeadName}
+                      <option key={h.AcctHead} value={h.AcctHead}>
+                        {h.DisplayName}
                       </option>
                     ))}
                   </select>
@@ -239,11 +223,10 @@ export default function Productdistibution() {
                 <div className="col-md-6 mb-3">
                   <label className="form-label-custom">Account Head Name</label>
                   <input
+                    className="form-control"
                     type="text"
                     name="receiverAcctName"
-                    className="form-control"
                     placeholder="Account Head Name"
-                    value={formData.receiverAcctName}
                     onChange={handleChange}
                   />
                 </div>
@@ -257,23 +240,15 @@ export default function Productdistibution() {
                     onChange={handleChange}
                   >
                     <option value="">--Select Account Number--</option>
-                    {accounts
-                      .filter((a) => a.AcctHead === formData.receiverHead)
-                      .map((a) => (
-                        <option key={a.AcctNo} value={a.AcctNo}>
-                          {a.AcctNo}
-                        </option>
-                      ))}
                   </select>
                 </div>
                 <div className="col-md-7 mb-3">
                   <label className="form-label-custom">Account Name</label>
                   <input
-                    type="text"
-                    name="receiverAcctName"
                     className="form-control"
+                    type="text"
+                    name="receiverAcctNameDisplay"
                     placeholder="Account Name"
-                    value={formData.receiverAcctName}
                     onChange={handleChange}
                   />
                 </div>
@@ -283,21 +258,19 @@ export default function Productdistibution() {
                   <label className="form-label-custom">Transaction Mode</label>
                   <select
                     className="form-control form-control-sm"
-                    name="receiverTrnMode"
+                    name="receiverMode"
                     onChange={handleChange}
                   >
                     <option value="">--Select Transaction Mode--</option>
-                    <option value="RECEIVED">Received</option>
                   </select>
                 </div>
                 <div className="col-md-3 mb-3">
                   <label className="form-label-custom">Receive Quantity</label>
                   <input
+                    className="form-control"
                     type="number"
                     name="receiveQty"
-                    className="form-control"
-                    placeholder="Receive Quantity"
-                    value={formData.receiveQty}
+                    placeholder="0"
                     onChange={handleChange}
                   />
                 </div>
@@ -306,9 +279,10 @@ export default function Productdistibution() {
                     Available Quantity
                   </label>
                   <input
-                    type="text"
                     className="form-control"
-                    placeholder="Available Quantity"
+                    type="text"
+                    name="receiverAvailableQty"
+                    placeholder="0"
                     readOnly
                   />
                 </div>
@@ -317,48 +291,21 @@ export default function Productdistibution() {
                 <div className="col-md-12 mb-2">
                   <label className="form-label-custom">Remarks</label>
                   <textarea
-                    className="form-control"
+                    className="form-control form-control-sm"
                     name="remarks"
                     rows="2"
                     placeholder="Remarks"
-                    value={formData.remarks}
                     onChange={handleChange}
                   />
                 </div>
               </div>
               <div className="col-md-12">
-                <button type="submit" className="btn btn-primary">
+                <button className="btn btn-primary" type="submit">
                   Submit
                 </button>
               </div>
             </div>
           </form>
-
-          {/* TABLE */}
-          <div className="table-responsive mt-5">
-            <table className="custom-table table-sm">
-              <thead>
-                <tr>
-                  <th>Id</th>
-                  <th>Product</th>
-                  <th>Qty</th>
-                  <th>Date</th>
-                  <th>Remarks</th>
-                </tr>
-              </thead>
-              <tbody>
-                {history.map((item) => (
-                  <tr key={item.DistId}>
-                    <td>{item.DistId}</td>
-                    <td>{item.ProductName}</td>
-                    <td>{item.DistributedQty}</td>
-                    <td>{new Date(item.ProductDate).toLocaleDateString()}</td>
-                    <td>{item.Remarks}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
         </div>
       </div>
     </div>

@@ -46,7 +46,10 @@ router.get("/accthead", formController.getAccountHeads);
 router.get("/accounts-mapping", formController.getAccountsMapping);
 router.get("/products", formController.getActiveProducts);
 router.get("/stock", formController.getProductStock);
-router.get("/juniors-for-distribution", formController.getJuniorsForDistribution);
+router.get(
+  "/juniors-for-distribution",
+  formController.getJuniorsForDistribution,
+);
 router.get("/supervisors-by-dist/:distId", formController.getSupervisorsByDist);
 router.get("/distribution-history", formController.getDistributionHistory);
 router.post("/distribute", formController.distributeProduct);

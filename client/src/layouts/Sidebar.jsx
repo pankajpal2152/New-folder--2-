@@ -146,7 +146,7 @@ const Sidebar = () => {
         </div>
 
         {/* --- 2. PRODUCT DISTRIBUTION (MAIN MENU) --- */}
-        <NavLink to="/product-distribution" style={styles.link}>
+        {/* <NavLink to="/product-distribution" style={styles.link}>
           {({ isActive }) => (
             <li style={styles.menuItem(isActive)}>
               <div style={styles.menuItemLeft}>
@@ -155,7 +155,7 @@ const Sidebar = () => {
               </div>
             </li>
           )}
-        </NavLink>
+        </NavLink> */}
 
         {/* --- 3. SETTINGS MENU --- */}
         {isDeveloper && (

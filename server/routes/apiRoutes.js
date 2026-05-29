@@ -46,6 +46,7 @@ router.get("/accthead", formController.getAccountHeads);
 router.get("/accounts-mapping", formController.getAccountsMapping);
 router.get("/products", formController.getActiveProducts);
 router.get("/stock", formController.getProductStock);
+router.get("/trntypes", formController.getTrnTypes); // ADDED
 router.get(
   "/juniors-for-distribution",
   formController.getJuniorsForDistribution,

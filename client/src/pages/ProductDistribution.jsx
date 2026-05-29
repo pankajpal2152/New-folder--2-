@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import "./Productdistibution.css";
 import axios from "axios";
 import "bootstrap/dist/css/bootstrap.min.css";
-import { FaEdit, FaTrash, FaEye } from "react-icons/fa";
 import { API_BASE_URL } from "../config/constants";
 
 export default function ProductDistribution() {
@@ -10,8 +9,9 @@ export default function ProductDistribution() {
   // STATE
   // ====================================
   const [acctHeads, setAcctHeads] = useState([]);
-  const [allAccounts, setAllAccounts] = useState([]); // Added to store all accounts for filtering
+  const [allAccounts, setAllAccounts] = useState([]);
   const [products, setProducts] = useState([]);
+  const [trnTypes, setTrnTypes] = useState([]);
   const [formData, setFormData] = useState({
     senderAcctHead: "",
     senderAcctName: "",
@@ -41,14 +41,16 @@ export default function ProductDistribution() {
 
   const fetchData = async () => {
     try {
-      const [heads, prods, accounts] = await Promise.all([
+      const [heads, prods, accounts, trn] = await Promise.all([
         axios.get(`${API_BASE_URL}/accthead`),
         axios.get(`${API_BASE_URL}/products`),
         axios.get(`${API_BASE_URL}/accounts-mapping`),
+        axios.get(`${API_BASE_URL}/trntypes`),
       ]);
       setAcctHeads(heads.data);
       setProducts(prods.data);
       setAllAccounts(accounts.data);
+      setTrnTypes(trn.data);
     } catch (err) {
       console.error("Error loading initial data", err);
     }
@@ -63,7 +65,7 @@ export default function ProductDistribution() {
         ...prev,
         senderAcctHead: value,
         senderAcctName: selected ? selected.AcctHeadName : "",
-        senderAcctNo: "", // Reset dependent
+        senderAcctNo: "",
         senderAcctNameDisplay: "",
       }));
     } else if (name === "senderAcctNo") {
@@ -89,7 +91,7 @@ export default function ProductDistribution() {
         ...prev,
         receiverAcctHead: value,
         receiverAcctName: selected ? selected.AcctHeadName : "",
-        receiverAcctNo: "", // Reset dependent
+        receiverAcctNo: "",
         receiverAcctNameDisplay: "",
       }));
     } else if (name === "receiverAcctNo") {
@@ -116,6 +118,7 @@ export default function ProductDistribution() {
         ProductName: formData.productName,
         DistributedQty: formData.transferQty,
         Remarks: formData.remarks,
+        SupervisorId: null,
       });
       alert("Product Distributed Successfully");
     } catch (err) {
@@ -163,7 +166,6 @@ export default function ProductDistribution() {
                     type="text"
                     name="senderAcctName"
                     value={formData.senderAcctName}
-                    placeholder="Account Head Name"
                     readOnly
                   />
                 </div>
@@ -204,13 +206,10 @@ export default function ProductDistribution() {
                     type="text"
                     name="senderAcctNameDisplay"
                     value={formData.senderAcctNameDisplay}
-                    placeholder="Account Name"
                     readOnly
                   />
                 </div>
               </div>
-
-              {/* Product selection logic same as before... */}
               <div className="row">
                 <div className="col-md-3 mb-2">
                   <label className="form-label-custom">Transaction Mode</label>
@@ -220,8 +219,11 @@ export default function ProductDistribution() {
                     onChange={handleSenderChange}
                   >
                     <option value="">--Select Transaction Mode--</option>
-                    <option value="Cash">Cash</option>
-                    <option value="Bank">Bank</option>
+                    {trnTypes.map((t) => (
+                      <option key={t.TrnTypyId} value={t.DisplayName}>
+                        {t.DisplayName}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div className="col-md-5 mb-2">
@@ -245,7 +247,7 @@ export default function ProductDistribution() {
                     className="form-control"
                     type="number"
                     name="transferQty"
-                    placeholder="Transfer Quantity"
+                    placeholder="0"
                     onChange={handleSenderChange}
                   />
                 </div>
@@ -263,7 +265,6 @@ export default function ProductDistribution() {
                 </div>
               </div>
 
-              {/* Receiver Info Section */}
               <div className="row">
                 <p className="AddInfo">Receiver Information:</p>
               </div>
@@ -291,7 +292,6 @@ export default function ProductDistribution() {
                     type="text"
                     name="receiverAcctName"
                     value={formData.receiverAcctName}
-                    placeholder="Account Head Name"
                     readOnly
                   />
                 </div>
@@ -323,7 +323,6 @@ export default function ProductDistribution() {
                     type="text"
                     name="receiverAcctNameDisplay"
                     value={formData.receiverAcctNameDisplay}
-                    placeholder="Account Name"
                     readOnly
                   />
                 </div>
@@ -337,6 +336,11 @@ export default function ProductDistribution() {
                     onChange={handleReceiverChange}
                   >
                     <option value="">--Select Transaction Mode--</option>
+                    {trnTypes.map((t) => (
+                      <option key={t.TrnTypyId} value={t.DisplayName}>
+                        {t.DisplayName}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div className="col-md-3 mb-3">
@@ -345,7 +349,7 @@ export default function ProductDistribution() {
                     className="form-control"
                     type="number"
                     name="receiveQty"
-                    placeholder="Receive Quantity"
+                    placeholder="0"
                     onChange={handleReceiverChange}
                   />
                 </div>
@@ -357,7 +361,7 @@ export default function ProductDistribution() {
                     className="form-control"
                     type="text"
                     name="receiverAvailableQty"
-                    placeholder="Available Quantity"
+                    placeholder="0"
                     readOnly
                   />
                 </div>
@@ -369,7 +373,6 @@ export default function ProductDistribution() {
                     className="form-control"
                     name="remarks"
                     rows="2"
-                    placeholder="Remarks"
                     onChange={handleReceiverChange}
                   />
                 </div>

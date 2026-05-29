@@ -808,7 +808,6 @@ exports.checkDuplicate = (req, res) => {
 // NEW: PRODUCT DISTRIBUTION MODULE
 // ==========================================
 
-// UPDATED: Fetches Account Head as "Head - Name"
 exports.getAccountHeads = (req, res) => {
   db.query(
     "SELECT AcctHead, AcctHeadName, CONCAT(AcctHead, ' - ', AcctHeadName) AS DisplayName FROM accthead WHERE IsActive = 'T'",
@@ -819,17 +818,29 @@ exports.getAccountHeads = (req, res) => {
   );
 };
 
-// NEW: Fetches all accounts
 exports.getAccountsMapping = (req, res) => {
-  db.query("SELECT * FROM accounts", (err, results) => {
-    if (err) return res.json([]);
-    res.json(results);
-  });
+  db.query(
+    "SELECT AcctNo, AcctHead, AcctName, CONCAT(AcctNo, ' - ', AcctName) AS DisplayName FROM accounts",
+    (err, results) => {
+      if (err) return res.json([]);
+      res.json(results);
+    },
+  );
 };
 
 exports.getActiveProducts = (req, res) => {
   db.query(
     "SELECT ProId, ProName FROM product WHERE IsActive = 'T' OR IsActive = '1' OR IsActive = 1",
+    (err, results) => {
+      if (err) return res.json([]);
+      res.json(results);
+    },
+  );
+};
+
+exports.getTrnTypes = (req, res) => {
+  db.query(
+    "SELECT TrnTypyId, CONCAT(DrCr, ' - ', TrnType) AS DisplayName FROM trntype WHERE IsActive = 'T'",
     (err, results) => {
       if (err) return res.json([]);
       res.json(results);

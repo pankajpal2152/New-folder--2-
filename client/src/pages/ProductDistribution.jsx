@@ -35,63 +35,40 @@ export default function ProductDistribution() {
     fetchData();
   }, []);
 
-  // Fetch Stock for Sender
+  // Utility to fetch accurate stock dynamically
+  const getStock = async (head, no, proId) => {
+    if (!head || !no || !proId) return 0;
+    try {
+      const res = await axios.get(`${API_BASE_URL}/stock`, {
+        params: { acctHead: head, acctNo: no, proId: proId },
+      });
+      return res.data.availableQty || 0;
+    } catch (err) {
+      console.error("Stock fetch error", err);
+      return 0;
+    }
+  };
+
+  // Real-time Update: Fetch Stock for Sender
   useEffect(() => {
-    const fetchSenderStock = async () => {
-      if (
-        formData.senderAcctHead &&
-        formData.senderAcctNo &&
-        formData.productId
-      ) {
-        try {
-          const res = await axios.get(`${API_BASE_URL}/stock`, {
-            params: {
-              acctHead: formData.senderAcctHead,
-              acctNo: formData.senderAcctNo,
-              proId: formData.productId,
-            },
-          });
-          setFormData((prev) => ({
-            ...prev,
-            availableQty: res.data.availableQty,
-          }));
-        } catch (err) {
-          console.error("Sender stock fetch error", err);
-        }
-      }
-    };
-    fetchSenderStock();
+    getStock(
+      formData.senderAcctHead,
+      formData.senderAcctNo,
+      formData.productId,
+    ).then((qty) => setFormData((prev) => ({ ...prev, availableQty: qty })));
   }, [formData.senderAcctHead, formData.senderAcctNo, formData.productId]);
 
-  // Fetch Receiver Stock
+  // Real-time Update: Fetch Stock for Receiver
   useEffect(() => {
-    const fetchReceiverStock = async () => {
-      if (
-        formData.receiverAcctHead &&
-        formData.receiverAcctNo &&
-        formData.productId
-      ) {
-        try {
-          const res = await axios.get(`${API_BASE_URL}/stock`, {
-            params: {
-              acctHead: formData.receiverAcctHead,
-              acctNo: formData.receiverAcctNo,
-              proId: formData.productId,
-            },
-          });
-          setFormData((prev) => ({
-            ...prev,
-            receiverAvailableQty: res.data.availableQty,
-          }));
-        } catch (err) {
-          console.error("Receiver stock fetch error", err);
-        }
-      }
-    };
-    fetchReceiverStock();
+    getStock(
+      formData.receiverAcctHead,
+      formData.receiverAcctNo,
+      formData.productId,
+    ).then((qty) =>
+      setFormData((prev) => ({ ...prev, receiverAvailableQty: qty })),
+    );
   }, [formData.receiverAcctHead, formData.receiverAcctNo, formData.productId]);
 
-  // Fetch Distribution History
   const fetchHistory = async (senderId) => {
     if (!senderId) return;
     try {
@@ -190,6 +167,7 @@ export default function ProductDistribution() {
     try {
       await axios.post(`${API_BASE_URL}/distribute`, {
         SenderId: formData.senderAcctNo,
+        SenderRole: formData.senderAcctHead, // Map exactly to transaction AcctHead
         ReceiverId: formData.receiverAcctNo,
         ReceiverRole: formData.receiverAcctHead,
         ProductName: formData.productName,
@@ -198,7 +176,31 @@ export default function ProductDistribution() {
         Remarks: formData.remarks,
       });
       alert("Product Distributed Successfully");
-      fetchHistory(formData.senderAcctNo); // Refresh history
+
+      // Auto Refresh Sender Stock to reflect changes
+      const updatedSenderQty = await getStock(
+        formData.senderAcctHead,
+        formData.senderAcctNo,
+        formData.productId,
+      );
+
+      // Reset Receiver Info Section Only + transferQty + remarks
+      setFormData((prev) => ({
+        ...prev,
+        transferQty: "",
+        receiverAcctHead: "",
+        receiverAcctName: "",
+        receiverAcctNo: "",
+        receiverAcctNameDisplay: "",
+        receiverMode: "",
+        receiveQty: "",
+        receiverAvailableQty: "",
+        remarks: "",
+        availableQty: updatedSenderQty, // Show real-time updated sender stock immediately
+      }));
+
+      // Refresh History Table
+      fetchHistory(formData.senderAcctNo);
     } catch (err) {
       alert("Error distributing product");
     }
@@ -293,6 +295,7 @@ export default function ProductDistribution() {
                 <select
                   className="form-control form-control-sm"
                   name="senderMode"
+                  value={formData.senderMode}
                   onChange={handleSenderChange}
                 >
                   <option value="">--Select Mode--</option>
@@ -325,6 +328,7 @@ export default function ProductDistribution() {
                   className="form-control"
                   type="number"
                   name="transferQty"
+                  value={formData.transferQty}
                   onChange={handleSenderChange}
                 />
               </div>
@@ -397,6 +401,58 @@ export default function ProductDistribution() {
                   name="receiverAcctNameDisplay"
                   value={formData.receiverAcctNameDisplay}
                   readOnly
+                />
+              </div>
+            </div>
+            <div className="row">
+              <div className="col-md-6 mb-3">
+                <label className="form-label-custom">Transaction Mode</label>
+                <select
+                  className="form-control form-control-sm"
+                  name="receiverMode"
+                  value={formData.receiverMode}
+                  onChange={handleReceiverChange}
+                >
+                  <option value="">--Select Mode--</option>
+                  {trnTypes.map((t) => (
+                    <option key={t.TrnTypyId} value={t.DisplayName}>
+                      {t.DisplayName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="col-md-3 mb-3">
+                <label className="form-label-custom">Receive Quantity</label>
+                <input
+                  className="form-control"
+                  type="number"
+                  name="receiveQty"
+                  value={formData.receiveQty}
+                  onChange={handleReceiverChange}
+                />
+              </div>
+              <div className="col-md-3 mb-3">
+                <label className="form-label-custom">Current Qty</label>
+                <input
+                  className="form-control"
+                  type="text"
+                  name="receiverAvailableQty"
+                  value={formData.receiverAvailableQty}
+                  readOnly
+                />
+              </div>
+            </div>
+
+            {/* REMARKS FIELD MOVED TO BOTTOM */}
+            <div className="row">
+              <div className="col-md-12 mb-2">
+                <label className="form-label-custom">Remarks</label>
+                <textarea
+                  className="form-control"
+                  name="remarks"
+                  rows="2"
+                  value={formData.remarks}
+                  onChange={handleReceiverChange}
                 />
               </div>
             </div>

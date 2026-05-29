@@ -177,7 +177,7 @@ exports.createAsthaDidi = (req, res) => {
         db.query(
           "UPDATE `asthadidi_reg` SET AsthaDidiProfileImage=? WHERE AsthaDidiRegId=?",
           [fileName, newId],
-          () => {},
+          () => { },
         );
 
         if (
@@ -196,7 +196,7 @@ exports.createAsthaDidi = (req, res) => {
               data.AsthaDidiCreatedByAuthRegId || null,
               newId,
             ],
-            () => {},
+            () => { },
           );
         }
         res.json({ message: "Astha Didi added successfully", id: newId });
@@ -265,7 +265,7 @@ exports.updateAsthaDidi = (req, res) => {
       db.query(
         `UPDATE userssignup SET UserSignUpPassword=? WHERE UserSignUpEmail=? AND UserSignUpRole='Astha Didi'`,
         [data.AsthaDidiSignupPassword, data.AsthaDidiSignupEmail],
-        () => {},
+        () => { },
       );
     }
     res.json({ message: "Record updated successfully" });
@@ -355,7 +355,7 @@ exports.createAsthaMaa = (req, res) => {
     db.query(
       "UPDATE asthama_reg SET AsthaMaProfileImage=? WHERE AsthaMaRegId=?",
       [fileName, newId],
-      () => {},
+      () => { },
     );
     if (data.AsthaMaSignupUserName) {
       db.query(
@@ -368,7 +368,7 @@ exports.createAsthaMaa = (req, res) => {
           data.AsthaMaCreatedByAuthRegId || null,
           newId,
         ],
-        () => {},
+        () => { },
       );
     }
     res.json({ message: "Astha Maa added successfully", id: newId });
@@ -521,7 +521,7 @@ exports.createDistrictAdmin = (req, res) => {
     db.query(
       "UPDATE dist_ngo_reg SET DistNGORecCertificate=?, DistNGOPanPic=?, DistNGODarpanPic=? WHERE DistNGORegId=?",
       [regCert, panPic, darpanPic, newId],
-      () => {},
+      () => { },
     );
 
     if (data.DistNGOSignupUserName) {
@@ -535,7 +535,7 @@ exports.createDistrictAdmin = (req, res) => {
           data.DistNGOCreatedByAuthRegId || null,
           newId,
         ],
-        () => {},
+        () => { },
       );
     }
     res.json({ message: "District Admin added successfully", id: newId });
@@ -683,7 +683,7 @@ exports.createSupervisor = (req, res) => {
     db.query(
       "UPDATE suvervisor_reg SET SupProfileImage=? WHERE SupRegId=?",
       [fileName, newId],
-      () => {},
+      () => { },
     );
     if (data.SupSignupUserName) {
       db.query(
@@ -696,7 +696,7 @@ exports.createSupervisor = (req, res) => {
           data.SupCreatedByAuthRegId || null,
           newId,
         ],
-        () => {},
+        () => { },
       );
     }
     res.json({ message: "Supervisor added successfully", id: newId });
@@ -848,9 +848,9 @@ exports.getTrnTypes = (req, res) => {
   );
 };
 
+// UPDATED: Dynamically fetch stock based on Account Head, Account No, and Product
 exports.getProductStock = (req, res) => {
   const { acctHead, acctNo, proId } = req.query;
-  // Calculate based on the specific account and product from transaction table
   const query = `
     SELECT SUM(Deposit) - SUM(Withdraw) AS AvailableQty
     FROM transaction
@@ -903,9 +903,11 @@ exports.getSupervisorsByDist = (req, res) => {
   );
 };
 
+// UPDATED: Distribute Product saves Sender AcctHead and Remarks correctly to transaction table
 exports.distributeProduct = (req, res) => {
   const {
     SenderId,
+    SenderRole,
     ReceiverId,
     ReceiverRole,
     ProductId,
@@ -922,19 +924,21 @@ exports.distributeProduct = (req, res) => {
     (err) => {
       if (err) return res.status(500).json({ error: err.message });
 
-      // Record withdrawal from Sender
+      // Record withdrawal from Sender (Dr)
       db.query(
-        "INSERT INTO transaction (TrnDate, AcctNo, AcctHead, ProId, Withdraw, DrCr, TrnType) VALUES (NOW(), ?, 'SN', ?, ?, 'Dr', 'TRANSFER')",
-        [SenderId, ProductId, DistributedQty],
-        () => {},
+        "INSERT INTO transaction (TrnDate, AcctNo, AcctHead, ProId, Deposit, Withdraw, DrCr, TrnType, Remerks) VALUES (NOW(), ?, ?, ?, 0, ?, 'Dr', 'Transfer', ?)",
+        [SenderId, SenderRole, ProductId, DistributedQty, Remarks],
+        () => {
+          // Record deposit to Receiver (Cr)
+          db.query(
+            "INSERT INTO transaction (TrnDate, AcctNo, AcctHead, ProId, Deposit, Withdraw, DrCr, TrnType, Remerks) VALUES (NOW(), ?, ?, ?, ?, 0, 'Cr', 'Received', ?)",
+            [ReceiverId, ReceiverRole, ProductId, DistributedQty, Remarks],
+            () => {
+              res.json({ message: "Product distributed successfully" });
+            },
+          );
+        },
       );
-      // Record deposit to Receiver
-      db.query(
-        "INSERT INTO transaction (TrnDate, AcctNo, AcctHead, ProId, Deposit, DrCr, TrnType) VALUES (NOW(), ?, ?, ?, ?, 'Cr', 'RECEIVED')",
-        [ReceiverId, ReceiverRole, ProductId, DistributedQty],
-        () => {},
-      );
-      res.json({ message: "Product distributed successfully" });
     },
   );
 };
@@ -942,7 +946,7 @@ exports.distributeProduct = (req, res) => {
 exports.getDistributionHistory = (req, res) => {
   const { senderId } = req.query;
   db.query(
-    "SELECT * FROM product_distribution WHERE SenderId = ? ORDER BY ProductDate DESC",
+    "SELECT * FROM product_distribution WHERE SenderId = ? ORDER BY ProductDate DESC LIMIT 10",
     [senderId],
     (err, results) => {
       if (err) return res.json([]);

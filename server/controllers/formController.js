@@ -811,7 +811,7 @@ exports.checkDuplicate = (req, res) => {
 // UPDATED: Fetches Account Head as "Head - Name"
 exports.getAccountHeads = (req, res) => {
   db.query(
-    "SELECT CONCAT(AcctHead, ' - ', AcctHeadName) AS DisplayName, AcctHead FROM accthead WHERE IsActive = 'T'",
+    "SELECT AcctHead, AcctHeadName, CONCAT(AcctHead, ' - ', AcctHeadName) AS DisplayName FROM accthead WHERE IsActive = 'T'",
     (err, results) => {
       if (err) return res.json([]);
       res.json(results);
@@ -837,7 +837,6 @@ exports.getActiveProducts = (req, res) => {
 };
 
 exports.getProductStock = (req, res) => {
-  // Logic remains as provided, assuming master stock calculation logic
   const query = `
     SELECT p.ProName AS ProductName, 
            SUM(t.Deposit) - SUM(t.Withdraw) AS AvailableQty
@@ -920,7 +919,6 @@ exports.distributeProduct = (req, res) => {
     (err) => {
       if (err) return res.status(500).json({ error: err.message });
 
-      // Insert into transaction log
       db.query(
         "INSERT INTO transaction (TrnDate, AcctNo, AcctHead, ProId, Withdraw, DrCr, TrnType) VALUES (NOW(), ?, ?, (SELECT ProId FROM product WHERE ProName = ?), ?, 'Dr', 'TRANSFER')",
         [ReceiverId, ReceiverRole, ProductName, DistributedQty],

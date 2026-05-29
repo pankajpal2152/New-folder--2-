@@ -11,13 +11,11 @@ export default function ProductDistribution() {
   // ====================================
   const [acctHeads, setAcctHeads] = useState([]);
   const [products, setProducts] = useState([]);
-  const [history, setHistory] = useState([]);
   const [formData, setFormData] = useState({
     senderAcctHead: "",
     senderAcctName: "",
     senderDate: "",
     senderAcctNo: "",
-    senderAcctNameDisplay: "",
     senderMode: "",
     productName: "",
     transferQty: "",
@@ -25,7 +23,6 @@ export default function ProductDistribution() {
     receiverAcctHead: "",
     receiverAcctName: "",
     receiverAcctNo: "",
-    receiverAcctNameDisplay: "",
     receiverMode: "",
     receiveQty: "",
     receiverAvailableQty: "",
@@ -52,9 +49,36 @@ export default function ProductDistribution() {
     }
   };
 
-  const handleChange = (e) => {
+  const handleSenderChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+
+    // Auto-fill Account Head Name when Account Head is selected
+    if (name === "senderAcctHead") {
+      const selected = acctHeads.find((h) => h.AcctHead === value);
+      setFormData((prev) => ({
+        ...prev,
+        senderAcctHead: value,
+        senderAcctName: selected ? selected.AcctHeadName : "",
+      }));
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    }
+  };
+
+  const handleReceiverChange = (e) => {
+    const { name, value } = e.target;
+
+    // Auto-fill Receiver Account Head Name
+    if (name === "receiverAcctHead") {
+      const selected = acctHeads.find((h) => h.AcctHead === value);
+      setFormData((prev) => ({
+        ...prev,
+        receiverAcctHead: value,
+        receiverAcctName: selected ? selected.AcctHeadName : "",
+      }));
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -95,7 +119,8 @@ export default function ProductDistribution() {
                   <select
                     className="form-control form-control-sm"
                     name="senderAcctHead"
-                    onChange={handleChange}
+                    value={formData.senderAcctHead}
+                    onChange={handleSenderChange}
                     required
                   >
                     <option value="">--Select Account Head--</option>
@@ -112,8 +137,9 @@ export default function ProductDistribution() {
                     className="form-control"
                     type="text"
                     name="senderAcctName"
+                    value={formData.senderAcctName}
                     placeholder="Account Head Name"
-                    onChange={handleChange}
+                    readOnly
                   />
                 </div>
                 <div className="col-md-2 mb-3">
@@ -122,7 +148,7 @@ export default function ProductDistribution() {
                     className="form-control form-control-sm"
                     type="date"
                     name="senderDate"
-                    onChange={handleChange}
+                    onChange={handleSenderChange}
                   />
                 </div>
               </div>
@@ -132,7 +158,7 @@ export default function ProductDistribution() {
                   <select
                     className="form-control form-control-sm"
                     name="senderAcctNo"
-                    onChange={handleChange}
+                    onChange={handleSenderChange}
                   >
                     <option value="">--Select Account Number--</option>
                   </select>
@@ -144,7 +170,7 @@ export default function ProductDistribution() {
                     type="text"
                     name="senderAcctNameDisplay"
                     placeholder="Account Name"
-                    onChange={handleChange}
+                    onChange={handleSenderChange}
                   />
                 </div>
               </div>
@@ -154,7 +180,7 @@ export default function ProductDistribution() {
                   <select
                     className="form-control form-control-sm"
                     name="senderMode"
-                    onChange={handleChange}
+                    onChange={handleSenderChange}
                   >
                     <option value="">--Select Transaction Mode--</option>
                     <option value="Cash">Cash</option>
@@ -166,7 +192,7 @@ export default function ProductDistribution() {
                   <select
                     className="form-control form-control-sm"
                     name="productName"
-                    onChange={handleChange}
+                    onChange={handleSenderChange}
                   >
                     <option value="">--Select Product Name--</option>
                     {products.map((p) => (
@@ -182,8 +208,8 @@ export default function ProductDistribution() {
                     className="form-control"
                     type="number"
                     name="transferQty"
-                    placeholder="0"
-                    onChange={handleChange}
+                    placeholder="Transfer Quantity"
+                    onChange={handleSenderChange}
                   />
                 </div>
                 <div className="col-md-2 mb-2">
@@ -194,13 +220,12 @@ export default function ProductDistribution() {
                     className="form-control"
                     type="text"
                     name="availableQty"
-                    placeholder="0"
+                    placeholder="Available Quantity"
                     readOnly
                   />
                 </div>
               </div>
 
-              {/* Receiver Info Section */}
               <div className="row">
                 <p className="AddInfo">Receiver Information:</p>
               </div>
@@ -210,7 +235,8 @@ export default function ProductDistribution() {
                   <select
                     className="form-control form-control-sm"
                     name="receiverAcctHead"
-                    onChange={handleChange}
+                    value={formData.receiverAcctHead}
+                    onChange={handleReceiverChange}
                   >
                     <option value="">--Select Account Head--</option>
                     {acctHeads.map((h) => (
@@ -226,8 +252,9 @@ export default function ProductDistribution() {
                     className="form-control"
                     type="text"
                     name="receiverAcctName"
+                    value={formData.receiverAcctName}
                     placeholder="Account Head Name"
-                    onChange={handleChange}
+                    readOnly
                   />
                 </div>
               </div>
@@ -237,7 +264,7 @@ export default function ProductDistribution() {
                   <select
                     className="form-control form-control-sm"
                     name="receiverAcctNo"
-                    onChange={handleChange}
+                    onChange={handleReceiverChange}
                   >
                     <option value="">--Select Account Number--</option>
                   </select>
@@ -249,7 +276,7 @@ export default function ProductDistribution() {
                     type="text"
                     name="receiverAcctNameDisplay"
                     placeholder="Account Name"
-                    onChange={handleChange}
+                    onChange={handleReceiverChange}
                   />
                 </div>
               </div>
@@ -259,7 +286,7 @@ export default function ProductDistribution() {
                   <select
                     className="form-control form-control-sm"
                     name="receiverMode"
-                    onChange={handleChange}
+                    onChange={handleReceiverChange}
                   >
                     <option value="">--Select Transaction Mode--</option>
                   </select>
@@ -270,8 +297,8 @@ export default function ProductDistribution() {
                     className="form-control"
                     type="number"
                     name="receiveQty"
-                    placeholder="0"
-                    onChange={handleChange}
+                    placeholder="Receive Quantity"
+                    onChange={handleReceiverChange}
                   />
                 </div>
                 <div className="col-md-3 mb-3">
@@ -282,7 +309,7 @@ export default function ProductDistribution() {
                     className="form-control"
                     type="text"
                     name="receiverAvailableQty"
-                    placeholder="0"
+                    placeholder="Available Quantity"
                     readOnly
                   />
                 </div>
@@ -291,11 +318,11 @@ export default function ProductDistribution() {
                 <div className="col-md-12 mb-2">
                   <label className="form-label-custom">Remarks</label>
                   <textarea
-                    className="form-control form-control-sm"
+                    className="form-control"
                     name="remarks"
                     rows="2"
                     placeholder="Remarks"
-                    onChange={handleChange}
+                    onChange={handleReceiverChange}
                   />
                 </div>
               </div>

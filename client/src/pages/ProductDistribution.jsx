@@ -167,7 +167,7 @@ export default function ProductDistribution() {
     try {
       await axios.post(`${API_BASE_URL}/distribute`, {
         SenderId: formData.senderAcctNo,
-        SenderRole: formData.senderAcctHead, // Map exactly to transaction AcctHead
+        SenderRole: formData.senderAcctHead,
         ReceiverId: formData.receiverAcctNo,
         ReceiverRole: formData.receiverAcctHead,
         ProductName: formData.productName,
@@ -443,7 +443,7 @@ export default function ProductDistribution() {
               </div>
             </div>
 
-            {/* REMARKS FIELD MOVED TO BOTTOM */}
+            {/* REMARKS FIELD */}
             <div className="row">
               <div className="col-md-12 mb-2">
                 <label className="form-label-custom">Remarks</label>

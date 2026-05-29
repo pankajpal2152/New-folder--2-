@@ -903,7 +903,7 @@ exports.getSupervisorsByDist = (req, res) => {
   );
 };
 
-// UPDATED: Distribute Product saves Sender AcctHead and Remarks correctly to transaction table
+// UPDATED: Distribute Product saves Remarks correctly to transaction table
 exports.distributeProduct = (req, res) => {
   const {
     SenderId,
@@ -924,20 +924,20 @@ exports.distributeProduct = (req, res) => {
     (err) => {
       if (err) return res.status(500).json({ error: err.message });
 
-      // Record withdrawal from Sender (Dr)
+      // Record withdrawal from Sender (Dr) - includes Remarks
       db.query(
         "INSERT INTO transaction (TrnDate, AcctNo, AcctHead, ProId, Deposit, Withdraw, DrCr, TrnType, Remerks) VALUES (NOW(), ?, ?, ?, 0, ?, 'Dr', 'Transfer', ?)",
         [SenderId, SenderRole, ProductId, DistributedQty, Remarks],
         () => {
-          // Record deposit to Receiver (Cr)
+          // Record deposit to Receiver (Cr) - includes Remarks
           db.query(
             "INSERT INTO transaction (TrnDate, AcctNo, AcctHead, ProId, Deposit, Withdraw, DrCr, TrnType, Remerks) VALUES (NOW(), ?, ?, ?, ?, 0, 'Cr', 'Received', ?)",
             [ReceiverId, ReceiverRole, ProductId, DistributedQty, Remarks],
             () => {
               res.json({ message: "Product distributed successfully" });
-            },
+            }
           );
-        },
+        }
       );
     },
   );

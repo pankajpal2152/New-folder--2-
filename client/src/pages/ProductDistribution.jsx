@@ -10,12 +10,14 @@ export default function ProductDistribution() {
   // STATE
   // ====================================
   const [acctHeads, setAcctHeads] = useState([]);
+  const [allAccounts, setAllAccounts] = useState([]); // Added to store all accounts for filtering
   const [products, setProducts] = useState([]);
   const [formData, setFormData] = useState({
     senderAcctHead: "",
     senderAcctName: "",
     senderDate: "",
     senderAcctNo: "",
+    senderAcctNameDisplay: "",
     senderMode: "",
     productName: "",
     transferQty: "",
@@ -23,6 +25,7 @@ export default function ProductDistribution() {
     receiverAcctHead: "",
     receiverAcctName: "",
     receiverAcctNo: "",
+    receiverAcctNameDisplay: "",
     receiverMode: "",
     receiveQty: "",
     receiverAvailableQty: "",
@@ -38,12 +41,14 @@ export default function ProductDistribution() {
 
   const fetchData = async () => {
     try {
-      const [heads, prods] = await Promise.all([
+      const [heads, prods, accounts] = await Promise.all([
         axios.get(`${API_BASE_URL}/accthead`),
         axios.get(`${API_BASE_URL}/products`),
+        axios.get(`${API_BASE_URL}/accounts-mapping`),
       ]);
       setAcctHeads(heads.data);
       setProducts(prods.data);
+      setAllAccounts(accounts.data);
     } catch (err) {
       console.error("Error loading initial data", err);
     }
@@ -52,13 +57,23 @@ export default function ProductDistribution() {
   const handleSenderChange = (e) => {
     const { name, value } = e.target;
 
-    // Auto-fill Account Head Name when Account Head is selected
     if (name === "senderAcctHead") {
       const selected = acctHeads.find((h) => h.AcctHead === value);
       setFormData((prev) => ({
         ...prev,
         senderAcctHead: value,
         senderAcctName: selected ? selected.AcctHeadName : "",
+        senderAcctNo: "", // Reset dependent
+        senderAcctNameDisplay: "",
+      }));
+    } else if (name === "senderAcctNo") {
+      const selected = allAccounts.find(
+        (a) => a.AcctNo == value && a.AcctHead === formData.senderAcctHead,
+      );
+      setFormData((prev) => ({
+        ...prev,
+        senderAcctNo: value,
+        senderAcctNameDisplay: selected ? selected.AcctName : "",
       }));
     } else {
       setFormData((prev) => ({ ...prev, [name]: value }));
@@ -68,13 +83,23 @@ export default function ProductDistribution() {
   const handleReceiverChange = (e) => {
     const { name, value } = e.target;
 
-    // Auto-fill Receiver Account Head Name
     if (name === "receiverAcctHead") {
       const selected = acctHeads.find((h) => h.AcctHead === value);
       setFormData((prev) => ({
         ...prev,
         receiverAcctHead: value,
         receiverAcctName: selected ? selected.AcctHeadName : "",
+        receiverAcctNo: "", // Reset dependent
+        receiverAcctNameDisplay: "",
+      }));
+    } else if (name === "receiverAcctNo") {
+      const selected = allAccounts.find(
+        (a) => a.AcctNo == value && a.AcctHead === formData.receiverAcctHead,
+      );
+      setFormData((prev) => ({
+        ...prev,
+        receiverAcctNo: value,
+        receiverAcctNameDisplay: selected ? selected.AcctName : "",
       }));
     } else {
       setFormData((prev) => ({ ...prev, [name]: value }));
@@ -158,9 +183,18 @@ export default function ProductDistribution() {
                   <select
                     className="form-control form-control-sm"
                     name="senderAcctNo"
+                    value={formData.senderAcctNo}
                     onChange={handleSenderChange}
+                    disabled={!formData.senderAcctHead}
                   >
                     <option value="">--Select Account Number--</option>
+                    {allAccounts
+                      .filter((a) => a.AcctHead === formData.senderAcctHead)
+                      .map((a) => (
+                        <option key={a.AcctNo} value={a.AcctNo}>
+                          {a.AcctNo} - {a.AcctName}
+                        </option>
+                      ))}
                   </select>
                 </div>
                 <div className="col-md-7 mb-3">
@@ -169,11 +203,14 @@ export default function ProductDistribution() {
                     className="form-control"
                     type="text"
                     name="senderAcctNameDisplay"
+                    value={formData.senderAcctNameDisplay}
                     placeholder="Account Name"
-                    onChange={handleSenderChange}
+                    readOnly
                   />
                 </div>
               </div>
+
+              {/* Product selection logic same as before... */}
               <div className="row">
                 <div className="col-md-3 mb-2">
                   <label className="form-label-custom">Transaction Mode</label>
@@ -220,12 +257,13 @@ export default function ProductDistribution() {
                     className="form-control"
                     type="text"
                     name="availableQty"
-                    placeholder="Available Quantity"
+                    placeholder="0"
                     readOnly
                   />
                 </div>
               </div>
 
+              {/* Receiver Info Section */}
               <div className="row">
                 <p className="AddInfo">Receiver Information:</p>
               </div>
@@ -264,9 +302,18 @@ export default function ProductDistribution() {
                   <select
                     className="form-control form-control-sm"
                     name="receiverAcctNo"
+                    value={formData.receiverAcctNo}
                     onChange={handleReceiverChange}
+                    disabled={!formData.receiverAcctHead}
                   >
                     <option value="">--Select Account Number--</option>
+                    {allAccounts
+                      .filter((a) => a.AcctHead === formData.receiverAcctHead)
+                      .map((a) => (
+                        <option key={a.AcctNo} value={a.AcctNo}>
+                          {a.AcctNo} - {a.AcctName}
+                        </option>
+                      ))}
                   </select>
                 </div>
                 <div className="col-md-7 mb-3">
@@ -275,8 +322,9 @@ export default function ProductDistribution() {
                     className="form-control"
                     type="text"
                     name="receiverAcctNameDisplay"
+                    value={formData.receiverAcctNameDisplay}
                     placeholder="Account Name"
-                    onChange={handleReceiverChange}
+                    readOnly
                   />
                 </div>
               </div>

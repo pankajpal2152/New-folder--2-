@@ -819,6 +819,7 @@ exports.getAccountHeads = (req, res) => {
   );
 };
 
+// NEW: Fetches all accounts
 exports.getAccountsMapping = (req, res) => {
   db.query("SELECT * FROM accounts", (err, results) => {
     if (err) return res.json([]);

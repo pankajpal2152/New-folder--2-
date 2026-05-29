@@ -923,8 +923,8 @@ exports.distributeProduct = (req, res) => {
 
       // Record withdrawal from Sender
       db.query(
-        "INSERT INTO transaction (TrnDate, AcctNo, AcctHead, ProId, Withdraw, DrCr, TrnType) VALUES (NOW(), ?, ?, ?, ?, 'Dr', 'TRANSFER')",
-        [SenderId, "SN", ProductId, DistributedQty],
+        "INSERT INTO transaction (TrnDate, AcctNo, AcctHead, ProId, Withdraw, DrCr, TrnType) VALUES (NOW(), ?, 'SN', ?, ?, 'Dr', 'TRANSFER')",
+        [SenderId, ProductId, DistributedQty],
         () => {},
       );
       // Record deposit to Receiver

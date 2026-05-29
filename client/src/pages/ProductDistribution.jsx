@@ -34,8 +34,9 @@ export default function ProductDistribution() {
     fetchData();
   }, []);
 
+  // Fetch Sender Stock
   useEffect(() => {
-    const fetchStock = async () => {
+    const fetchSenderStock = async () => {
       if (
         formData.senderAcctHead &&
         formData.senderAcctNo &&
@@ -54,12 +55,40 @@ export default function ProductDistribution() {
             availableQty: res.data.availableQty,
           }));
         } catch (err) {
-          console.error("Stock fetch error", err);
+          console.error("Sender stock fetch error", err);
         }
       }
     };
-    fetchStock();
+    fetchSenderStock();
   }, [formData.senderAcctHead, formData.senderAcctNo, formData.productId]);
+
+  // Fetch Receiver Stock
+  useEffect(() => {
+    const fetchReceiverStock = async () => {
+      if (
+        formData.receiverAcctHead &&
+        formData.receiverAcctNo &&
+        formData.productId
+      ) {
+        try {
+          const res = await axios.get(`${API_BASE_URL}/stock`, {
+            params: {
+              acctHead: formData.receiverAcctHead,
+              acctNo: formData.receiverAcctNo,
+              proId: formData.productId,
+            },
+          });
+          setFormData((prev) => ({
+            ...prev,
+            receiverAvailableQty: res.data.availableQty,
+          }));
+        } catch (err) {
+          console.error("Receiver stock fetch error", err);
+        }
+      }
+    };
+    fetchReceiverStock();
+  }, [formData.receiverAcctHead, formData.receiverAcctNo, formData.productId]);
 
   const fetchData = async () => {
     try {
@@ -88,6 +117,7 @@ export default function ProductDistribution() {
         senderAcctName: selected ? selected.AcctHeadName : "",
         senderAcctNo: "",
         senderAcctNameDisplay: "",
+        availableQty: "",
       }));
     } else if (name === "senderAcctNo") {
       const selected = allAccounts.find(
@@ -120,6 +150,7 @@ export default function ProductDistribution() {
         receiverAcctName: selected ? selected.AcctHeadName : "",
         receiverAcctNo: "",
         receiverAcctNameDisplay: "",
+        receiverAvailableQty: "",
       }));
     } else if (name === "receiverAcctNo") {
       const selected = allAccounts.find(
@@ -137,6 +168,10 @@ export default function ProductDistribution() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (parseFloat(formData.transferQty) > parseFloat(formData.availableQty)) {
+      alert("Transfer quantity cannot exceed available quantity!");
+      return;
+    }
     try {
       await axios.post(`${API_BASE_URL}/distribute`, {
         SenderId: formData.senderAcctNo,
@@ -162,243 +197,233 @@ export default function ProductDistribution() {
         >
           <h3>Product Transfer Information</h3>
         </div>
-        <div className="col-md-12 mt-4">
-          <p className="PerInfo">Sender Information:</p>
-        </div>
         <div className="card-body">
           <form onSubmit={handleSubmit}>
+            <p className="PerInfo">Sender Information:</p>
             <div className="row">
-              <div className="row">
-                <div className="col-md-4 mb-2">
-                  <label className="form-label-custom">Account Head</label>
-                  <select
-                    className="form-control form-control-sm"
-                    name="senderAcctHead"
-                    value={formData.senderAcctHead}
-                    onChange={handleSenderChange}
-                    required
-                  >
-                    <option value="">--Select Account Head--</option>
-                    {acctHeads.map((h) => (
-                      <option key={h.AcctHead} value={h.AcctHead}>
-                        {h.DisplayName}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="col-md-5 mb-2">
-                  <label className="form-label-custom">Account Head Name</label>
-                  <input
-                    className="form-control"
-                    type="text"
-                    name="senderAcctName"
-                    value={formData.senderAcctName}
-                    readOnly
-                  />
-                </div>
-                <div className="col-md-2 mb-3">
-                  <label className="form-label-custom">Transaction Date</label>
-                  <input
-                    className="form-control form-control-sm"
-                    type="date"
-                    name="senderDate"
-                    onChange={handleSenderChange}
-                  />
-                </div>
+              <div className="col-md-4 mb-2">
+                <label className="form-label-custom">Account Head</label>
+                <select
+                  className="form-control form-control-sm"
+                  name="senderAcctHead"
+                  value={formData.senderAcctHead}
+                  onChange={handleSenderChange}
+                  required
+                >
+                  <option value="">--Select Account Head--</option>
+                  {acctHeads.map((h) => (
+                    <option key={h.AcctHead} value={h.AcctHead}>
+                      {h.DisplayName}
+                    </option>
+                  ))}
+                </select>
               </div>
-              <div className="row">
-                <div className="col-md-5">
-                  <label className="form-label-custom">Account Number</label>
-                  <select
-                    className="form-control form-control-sm"
-                    name="senderAcctNo"
-                    value={formData.senderAcctNo}
-                    onChange={handleSenderChange}
-                    disabled={!formData.senderAcctHead}
-                  >
-                    <option value="">--Select Account Number--</option>
-                    {allAccounts
-                      .filter((a) => a.AcctHead === formData.senderAcctHead)
-                      .map((a) => (
-                        <option key={a.AcctNo} value={a.AcctNo}>
-                          {a.DisplayName}
-                        </option>
-                      ))}
-                  </select>
-                </div>
-                <div className="col-md-7 mb-3">
-                  <label className="form-label-custom">Account Name</label>
-                  <input
-                    className="form-control"
-                    type="text"
-                    name="senderAcctNameDisplay"
-                    value={formData.senderAcctNameDisplay}
-                    readOnly
-                  />
-                </div>
+              <div className="col-md-5 mb-2">
+                <label className="form-label-custom">Account Head Name</label>
+                <input
+                  className="form-control"
+                  type="text"
+                  name="senderAcctName"
+                  value={formData.senderAcctName}
+                  readOnly
+                />
               </div>
-              <div className="row">
-                <div className="col-md-3 mb-2">
-                  <label className="form-label-custom">Transaction Mode</label>
-                  <select
-                    className="form-control form-control-sm"
-                    name="senderMode"
-                    onChange={handleSenderChange}
-                  >
-                    <option value="">--Select Transaction Mode--</option>
-                    {trnTypes.map((t) => (
-                      <option key={t.TrnTypyId} value={t.DisplayName}>
-                        {t.DisplayName}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="col-md-5 mb-2">
-                  <label className="form-label-custom">Product Name</label>
-                  <select
-                    className="form-control form-control-sm"
-                    name="productName"
-                    value={formData.productName}
-                    onChange={handleSenderChange}
-                  >
-                    <option value="">--Select Product Name--</option>
-                    {products.map((p) => (
-                      <option key={p.ProId} value={p.ProName}>
-                        {p.ProName}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="col-md-2 mb-2">
-                  <label className="form-label-custom">Transfer Quantity</label>
-                  <input
-                    className="form-control"
-                    type="number"
-                    name="transferQty"
-                    placeholder="0"
-                    onChange={handleSenderChange}
-                  />
-                </div>
-                <div className="col-md-2 mb-2">
-                  <label className="form-label-custom">
-                    Available Quantity
-                  </label>
-                  <input
-                    className="form-control"
-                    type="text"
-                    name="availableQty"
-                    value={formData.availableQty}
-                    readOnly
-                  />
-                </div>
+              <div className="col-md-3 mb-3">
+                <label className="form-label-custom">Transaction Date</label>
+                <input
+                  className="form-control form-control-sm"
+                  type="date"
+                  name="senderDate"
+                  onChange={handleSenderChange}
+                />
               </div>
+            </div>
 
-              <div className="row">
-                <p className="AddInfo">Receiver Information:</p>
-              </div>
-              <div className="row">
-                <div className="col-md-6 mb-3">
-                  <label className="form-label-custom">Account Head</label>
-                  <select
-                    className="form-control form-control-sm"
-                    name="receiverAcctHead"
-                    value={formData.receiverAcctHead}
-                    onChange={handleReceiverChange}
-                  >
-                    <option value="">--Select Account Head--</option>
-                    {acctHeads.map((h) => (
-                      <option key={h.AcctHead} value={h.AcctHead}>
-                        {h.DisplayName}
+            <div className="row">
+              <div className="col-md-5">
+                <label className="form-label-custom">Account Number</label>
+                <select
+                  className="form-control form-control-sm"
+                  name="senderAcctNo"
+                  value={formData.senderAcctNo}
+                  onChange={handleSenderChange}
+                  disabled={!formData.senderAcctHead}
+                >
+                  <option value="">--Select Account Number--</option>
+                  {allAccounts
+                    .filter((a) => a.AcctHead === formData.senderAcctHead)
+                    .map((a) => (
+                      <option key={a.AcctNo} value={a.AcctNo}>
+                        {a.DisplayName}
                       </option>
                     ))}
-                  </select>
-                </div>
-                <div className="col-md-6 mb-3">
-                  <label className="form-label-custom">Account Head Name</label>
-                  <input
-                    className="form-control"
-                    type="text"
-                    name="receiverAcctName"
-                    value={formData.receiverAcctName}
-                    readOnly
-                  />
-                </div>
+                </select>
               </div>
-              <div className="row">
-                <div className="col-md-5">
-                  <label className="form-label-custom">Account Number</label>
-                  <select
-                    className="form-control form-control-sm"
-                    name="receiverAcctNo"
-                    value={formData.receiverAcctNo}
-                    onChange={handleReceiverChange}
-                    disabled={!formData.receiverAcctHead}
-                  >
-                    <option value="">--Select Account Number--</option>
-                    {allAccounts
-                      .filter((a) => a.AcctHead === formData.receiverAcctHead)
-                      .map((a) => (
-                        <option key={a.AcctNo} value={a.AcctNo}>
-                          {a.DisplayName}
-                        </option>
-                      ))}
-                  </select>
-                </div>
-                <div className="col-md-7 mb-3">
-                  <label className="form-label-custom">Account Name</label>
-                  <input
-                    className="form-control"
-                    type="text"
-                    name="receiverAcctNameDisplay"
-                    value={formData.receiverAcctNameDisplay}
-                    readOnly
-                  />
-                </div>
+              <div className="col-md-7 mb-3">
+                <label className="form-label-custom">Account Name</label>
+                <input
+                  className="form-control"
+                  type="text"
+                  name="senderAcctNameDisplay"
+                  value={formData.senderAcctNameDisplay}
+                  readOnly
+                />
               </div>
-              <div className="row">
-                <div className="col-md-6 mb-3">
-                  <label className="form-label-custom">Transaction Mode</label>
-                  <select
-                    className="form-control form-control-sm"
-                    name="receiverMode"
-                    onChange={handleReceiverChange}
-                  >
-                    <option value="">--Select Transaction Mode--</option>
-                    {trnTypes.map((t) => (
-                      <option key={t.TrnTypyId} value={t.DisplayName}>
-                        {t.DisplayName}
+            </div>
+
+            <div className="row">
+              <div className="col-md-3 mb-2">
+                <label className="form-label-custom">Transaction Mode</label>
+                <select
+                  className="form-control form-control-sm"
+                  name="senderMode"
+                  onChange={handleSenderChange}
+                >
+                  <option value="">--Select Mode--</option>
+                  {trnTypes.map((t) => (
+                    <option key={t.TrnTypyId} value={t.DisplayName}>
+                      {t.DisplayName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="col-md-4 mb-2">
+                <label className="form-label-custom">Product Name</label>
+                <select
+                  className="form-control form-control-sm"
+                  name="productName"
+                  value={formData.productName}
+                  onChange={handleSenderChange}
+                >
+                  <option value="">--Select Product--</option>
+                  {products.map((p) => (
+                    <option key={p.ProId} value={p.ProName}>
+                      {p.ProName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="col-md-2 mb-2">
+                <label className="form-label-custom">Transfer Qty</label>
+                <input
+                  className="form-control"
+                  type="number"
+                  name="transferQty"
+                  onChange={handleSenderChange}
+                />
+              </div>
+              <div className="col-md-3 mb-2">
+                <label className="form-label-custom">Available Qty</label>
+                <input
+                  className="form-control"
+                  type="text"
+                  name="availableQty"
+                  value={formData.availableQty}
+                  readOnly
+                />
+              </div>
+            </div>
+
+            <p className="AddInfo">Receiver Information:</p>
+            <div className="row">
+              <div className="col-md-6 mb-3">
+                <label className="form-label-custom">Account Head</label>
+                <select
+                  className="form-control form-control-sm"
+                  name="receiverAcctHead"
+                  value={formData.receiverAcctHead}
+                  onChange={handleReceiverChange}
+                >
+                  <option value="">--Select Account Head--</option>
+                  {acctHeads.map((h) => (
+                    <option key={h.AcctHead} value={h.AcctHead}>
+                      {h.DisplayName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="col-md-6 mb-3">
+                <label className="form-label-custom">Account Head Name</label>
+                <input
+                  className="form-control"
+                  type="text"
+                  name="receiverAcctName"
+                  value={formData.receiverAcctName}
+                  readOnly
+                />
+              </div>
+            </div>
+            <div className="row">
+              <div className="col-md-5">
+                <label className="form-label-custom">Account Number</label>
+                <select
+                  className="form-control form-control-sm"
+                  name="receiverAcctNo"
+                  value={formData.receiverAcctNo}
+                  onChange={handleReceiverChange}
+                  disabled={!formData.receiverAcctHead}
+                >
+                  <option value="">--Select Account Number--</option>
+                  {allAccounts
+                    .filter((a) => a.AcctHead === formData.receiverAcctHead)
+                    .map((a) => (
+                      <option key={a.AcctNo} value={a.AcctNo}>
+                        {a.DisplayName}
                       </option>
                     ))}
-                  </select>
-                </div>
-                <div className="col-md-3 mb-3">
-                  <label className="form-label-custom">Receive Quantity</label>
-                  <input
-                    className="form-control"
-                    type="number"
-                    name="receiveQty"
-                    placeholder="0"
-                    onChange={handleReceiverChange}
-                  />
-                </div>
-                <div className="col-md-3 mb-3">
-                  <label className="form-label-custom">
-                    Available Quantity
-                  </label>
-                  <input
-                    className="form-control"
-                    type="text"
-                    name="receiverAvailableQty"
-                    placeholder="0"
-                    readOnly
-                  />
-                </div>
+                </select>
               </div>
-              <div className="col-md-12">
-                <button className="btn btn-primary" type="submit">
-                  Submit
-                </button>
+              <div className="col-md-7 mb-3">
+                <label className="form-label-custom">Account Name</label>
+                <input
+                  className="form-control"
+                  type="text"
+                  name="receiverAcctNameDisplay"
+                  value={formData.receiverAcctNameDisplay}
+                  readOnly
+                />
               </div>
+            </div>
+            <div className="row">
+              <div className="col-md-6 mb-3">
+                <label className="form-label-custom">Transaction Mode</label>
+                <select
+                  className="form-control form-control-sm"
+                  name="receiverMode"
+                  onChange={handleReceiverChange}
+                >
+                  <option value="">--Select Mode--</option>
+                  {trnTypes.map((t) => (
+                    <option key={t.TrnTypyId} value={t.DisplayName}>
+                      {t.DisplayName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="col-md-3 mb-3">
+                <label className="form-label-custom">Receive Quantity</label>
+                <input
+                  className="form-control"
+                  type="number"
+                  name="receiveQty"
+                  onChange={handleReceiverChange}
+                />
+              </div>
+              <div className="col-md-3 mb-3">
+                <label className="form-label-custom">Current Qty</label>
+                <input
+                  className="form-control"
+                  type="text"
+                  name="receiverAvailableQty"
+                  value={formData.receiverAvailableQty}
+                  readOnly
+                />
+              </div>
+            </div>
+            <div className="col-md-12">
+              <button className="btn btn-primary" type="submit">
+                Submit
+              </button>
             </div>
           </form>
         </div>

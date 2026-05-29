@@ -49,7 +49,7 @@ export default function ProductDistribution() {
     }
   };
 
-  // Real-time Update: Fetch Stock for Sender
+  // Real-time Update: Fetch Stock for Sender dynamically
   useEffect(() => {
     getStock(
       formData.senderAcctHead,
@@ -58,7 +58,7 @@ export default function ProductDistribution() {
     ).then((qty) => setFormData((prev) => ({ ...prev, availableQty: qty })));
   }, [formData.senderAcctHead, formData.senderAcctNo, formData.productId]);
 
-  // Real-time Update: Fetch Stock for Receiver
+  // Real-time Update: Fetch Stock for Receiver dynamically
   useEffect(() => {
     getStock(
       formData.receiverAcctHead,
@@ -69,11 +69,11 @@ export default function ProductDistribution() {
     );
   }, [formData.receiverAcctHead, formData.receiverAcctNo, formData.productId]);
 
-  const fetchHistory = async (senderId) => {
-    if (!senderId) return;
+  const fetchHistory = async (senderId, senderHead) => {
+    if (!senderId || !senderHead) return;
     try {
       const res = await axios.get(`${API_BASE_URL}/distribution-history`, {
-        params: { senderId },
+        params: { senderId, senderHead },
       });
       setHistory(res.data);
     } catch (err) {
@@ -110,6 +110,7 @@ export default function ProductDistribution() {
         senderAcctNameDisplay: "",
         availableQty: "",
       }));
+      setHistory([]);
     } else if (name === "senderAcctNo") {
       const selected = allAccounts.find(
         (a) => a.AcctNo == value && a.AcctHead === formData.senderAcctHead,
@@ -119,7 +120,7 @@ export default function ProductDistribution() {
         senderAcctNo: value,
         senderAcctNameDisplay: selected ? selected.AcctName : "",
       }));
-      fetchHistory(value);
+      fetchHistory(value, formData.senderAcctHead);
     } else if (name === "productName") {
       const selectedPro = products.find((p) => p.ProName === value);
       setFormData((prev) => ({
@@ -160,6 +161,10 @@ export default function ProductDistribution() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!formData.transferQty || parseFloat(formData.transferQty) <= 0) {
+      alert("Please enter a valid transfer quantity.");
+      return;
+    }
     if (parseFloat(formData.transferQty) > parseFloat(formData.availableQty)) {
       alert("Transfer quantity cannot exceed available quantity!");
       return;
@@ -177,14 +182,14 @@ export default function ProductDistribution() {
       });
       alert("Product Distributed Successfully");
 
-      // Auto Refresh Sender Stock to reflect changes
+      // Instantly calculate what the new stock of the sender should be
       const updatedSenderQty = await getStock(
         formData.senderAcctHead,
         formData.senderAcctNo,
         formData.productId,
       );
 
-      // Reset Receiver Info Section Only + transferQty + remarks
+      // Reset exclusively Receiver Info + Transaction Qty + Remarks
       setFormData((prev) => ({
         ...prev,
         transferQty: "",
@@ -196,11 +201,11 @@ export default function ProductDistribution() {
         receiveQty: "",
         receiverAvailableQty: "",
         remarks: "",
-        availableQty: updatedSenderQty, // Show real-time updated sender stock immediately
+        availableQty: updatedSenderQty, // Show accurate real-time sender stock directly after form completion
       }));
 
-      // Refresh History Table
-      fetchHistory(formData.senderAcctNo);
+      // Pull new latest history row from backend
+      fetchHistory(formData.senderAcctNo, formData.senderAcctHead);
     } catch (err) {
       alert("Error distributing product");
     }
@@ -253,6 +258,7 @@ export default function ProductDistribution() {
                   type="date"
                   name="senderDate"
                   onChange={handleSenderChange}
+                  required
                 />
               </div>
             </div>
@@ -266,6 +272,7 @@ export default function ProductDistribution() {
                   value={formData.senderAcctNo}
                   onChange={handleSenderChange}
                   disabled={!formData.senderAcctHead}
+                  required
                 >
                   <option value="">--Select Account Number--</option>
                   {allAccounts
@@ -297,6 +304,7 @@ export default function ProductDistribution() {
                   name="senderMode"
                   value={formData.senderMode}
                   onChange={handleSenderChange}
+                  required
                 >
                   <option value="">--Select Mode--</option>
                   {trnTypes.map((t) => (
@@ -313,6 +321,7 @@ export default function ProductDistribution() {
                   name="productName"
                   value={formData.productName}
                   onChange={handleSenderChange}
+                  required
                 >
                   <option value="">--Select Product--</option>
                   {products.map((p) => (
@@ -330,6 +339,7 @@ export default function ProductDistribution() {
                   name="transferQty"
                   value={formData.transferQty}
                   onChange={handleSenderChange}
+                  required
                 />
               </div>
               <div className="col-md-3 mb-2">
@@ -353,6 +363,7 @@ export default function ProductDistribution() {
                   name="receiverAcctHead"
                   value={formData.receiverAcctHead}
                   onChange={handleReceiverChange}
+                  required
                 >
                   <option value="">--Select Account Head--</option>
                   {acctHeads.map((h) => (
@@ -382,6 +393,7 @@ export default function ProductDistribution() {
                   value={formData.receiverAcctNo}
                   onChange={handleReceiverChange}
                   disabled={!formData.receiverAcctHead}
+                  required
                 >
                   <option value="">--Select Account Number--</option>
                   {allAccounts
@@ -412,6 +424,7 @@ export default function ProductDistribution() {
                   name="receiverMode"
                   value={formData.receiverMode}
                   onChange={handleReceiverChange}
+                  required
                 >
                   <option value="">--Select Mode--</option>
                   {trnTypes.map((t) => (
@@ -443,7 +456,7 @@ export default function ProductDistribution() {
               </div>
             </div>
 
-            {/* REMARKS FIELD */}
+            {/* REMARKS FIELD MOVED TO BOTTOM JUST BEFORE SUBMIT*/}
             <div className="row">
               <div className="col-md-12 mb-2">
                 <label className="form-label-custom">Remarks</label>
@@ -452,7 +465,9 @@ export default function ProductDistribution() {
                   name="remarks"
                   rows="2"
                   value={formData.remarks}
-                  onChange={handleReceiverChange}
+                  onChange={(e) =>
+                    setFormData({ ...formData, remarks: e.target.value })
+                  }
                 />
               </div>
             </div>
@@ -464,7 +479,7 @@ export default function ProductDistribution() {
             </div>
           </form>
 
-          {/* History Table */}
+          {/* Real-time History Table Rendered from Transactions */}
           <div className="table-responsive mt-5">
             <table className="custom-table table-sm">
               <thead>
@@ -480,9 +495,7 @@ export default function ProductDistribution() {
                 {history.map((h) => (
                   <tr key={h.DistId}>
                     <td>{new Date(h.ProductDate).toLocaleDateString()}</td>
-                    <td>
-                      {h.ReceiverRole} - {h.ReceiverId}
-                    </td>
+                    <td>{h.ReceiverRole}</td>
                     <td>{h.ProductName}</td>
                     <td>{h.DistributedQty}</td>
                     <td>{h.Remarks}</td>

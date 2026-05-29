@@ -848,7 +848,7 @@ exports.getTrnTypes = (req, res) => {
   );
 };
 
-// UPDATED: Dynamically fetch stock based on Account Head, Account No, and Product
+// Calculate real-time stock directly from transaction ledger
 exports.getProductStock = (req, res) => {
   const { acctHead, acctNo, proId } = req.query;
   const query = `
@@ -903,7 +903,7 @@ exports.getSupervisorsByDist = (req, res) => {
   );
 };
 
-// UPDATED: Distribute Product saves Remarks correctly to transaction table
+
 exports.distributeProduct = (req, res) => {
   const {
     SenderId,
@@ -916,41 +916,47 @@ exports.distributeProduct = (req, res) => {
     Remarks,
   } = req.body;
 
-  const insertQuery = `INSERT INTO product_distribution (SenderId, ReceiverId, ReceiverRole, ProductName, DistributedQty, Remarks, ProductDate) VALUES (?,?,?,?,?,?,NOW())`;
+  const receiverInfo = `${ReceiverRole} - ${ReceiverId}`;
+  const senderInfo = `${SenderRole} - ${SenderId}`;
 
+  // Record withdrawal from Sender (Dr)
   db.query(
-    insertQuery,
-    [SenderId, ReceiverId, ReceiverRole, ProductName, DistributedQty, Remarks],
+    "INSERT INTO transaction (TrnDate, AcctNo, AcctHead, ProId, Deposit, Withdraw, DrCr, TrnType, Remerks, UserName) VALUES (NOW(), ?, ?, ?, 0, ?, 'Dr', 'TRANSFER', ?, ?)",
+    [SenderId, SenderRole, ProductId, DistributedQty, Remarks, receiverInfo],
     (err) => {
       if (err) return res.status(500).json({ error: err.message });
 
-      // Record withdrawal from Sender (Dr) - includes Remarks
+      // Record deposit to Receiver (Cr)
       db.query(
-        "INSERT INTO transaction (TrnDate, AcctNo, AcctHead, ProId, Deposit, Withdraw, DrCr, TrnType, Remerks) VALUES (NOW(), ?, ?, ?, 0, ?, 'Dr', 'Transfer', ?)",
-        [SenderId, SenderRole, ProductId, DistributedQty, Remarks],
-        () => {
-          // Record deposit to Receiver (Cr) - includes Remarks
-          db.query(
-            "INSERT INTO transaction (TrnDate, AcctNo, AcctHead, ProId, Deposit, Withdraw, DrCr, TrnType, Remerks) VALUES (NOW(), ?, ?, ?, ?, 0, 'Cr', 'Received', ?)",
-            [ReceiverId, ReceiverRole, ProductId, DistributedQty, Remarks],
-            () => {
-              res.json({ message: "Product distributed successfully" });
-            }
-          );
+        "INSERT INTO transaction (TrnDate, AcctNo, AcctHead, ProId, Deposit, Withdraw, DrCr, TrnType, Remerks, UserName) VALUES (NOW(), ?, ?, ?, ?, 0, 'Cr', 'RECEIVED', ?, ?)",
+        [ReceiverId, ReceiverRole, ProductId, DistributedQty, Remarks, senderInfo],
+        (err2) => {
+          if (err2) return res.status(500).json({ error: err2.message });
+          res.json({ message: "Product distributed successfully" });
         }
       );
-    },
+    }
   );
 };
 
+// Fetch History from the active `transaction` table
 exports.getDistributionHistory = (req, res) => {
-  const { senderId } = req.query;
-  db.query(
-    "SELECT * FROM product_distribution WHERE SenderId = ? ORDER BY ProductDate DESC LIMIT 10",
-    [senderId],
-    (err, results) => {
-      if (err) return res.json([]);
-      res.json(results);
-    },
-  );
+  const { senderId, senderHead } = req.query;
+  const query = `
+    SELECT 
+      t.TrnId AS DistId, 
+      t.TrnDate AS ProductDate, 
+      t.UserName AS ReceiverRole, 
+      p.ProName AS ProductName, 
+      t.Withdraw AS DistributedQty, 
+      t.Remerks AS Remarks
+    FROM transaction t
+    LEFT JOIN product p ON t.ProId = p.ProId
+    WHERE t.AcctNo = ? AND t.AcctHead = ? AND t.Withdraw > 0 AND UPPER(t.TrnType) = 'TRANSFER'
+    ORDER BY t.TrnDate DESC, t.TrnId DESC LIMIT 10
+  `;
+  db.query(query, [senderId, senderHead], (err, results) => {
+    if (err) return res.json([]);
+    res.json(results);
+  });
 };

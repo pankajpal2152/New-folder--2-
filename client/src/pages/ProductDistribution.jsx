@@ -35,7 +35,6 @@ export default function ProductDistribution() {
     fetchData();
   }, []);
 
-  // Utility to fetch accurate stock dynamically
   const getStock = async (head, no, proId) => {
     if (!head || !no || !proId) return 0;
     try {
@@ -49,7 +48,6 @@ export default function ProductDistribution() {
     }
   };
 
-  // Real-time Update: Fetch Stock for Sender dynamically
   useEffect(() => {
     getStock(
       formData.senderAcctHead,
@@ -58,7 +56,6 @@ export default function ProductDistribution() {
     ).then((qty) => setFormData((prev) => ({ ...prev, availableQty: qty })));
   }, [formData.senderAcctHead, formData.senderAcctNo, formData.productId]);
 
-  // Real-time Update: Fetch Stock for Receiver dynamically
   useEffect(() => {
     getStock(
       formData.receiverAcctHead,
@@ -171,10 +168,13 @@ export default function ProductDistribution() {
     }
     try {
       await axios.post(`${API_BASE_URL}/distribute`, {
+        SenderDate: formData.senderDate,
         SenderId: formData.senderAcctNo,
         SenderRole: formData.senderAcctHead,
+        SenderMode: formData.senderMode,
         ReceiverId: formData.receiverAcctNo,
         ReceiverRole: formData.receiverAcctHead,
+        ReceiverMode: formData.receiverMode,
         ProductName: formData.productName,
         ProductId: formData.productId,
         DistributedQty: formData.transferQty,
@@ -182,14 +182,12 @@ export default function ProductDistribution() {
       });
       alert("Product Distributed Successfully");
 
-      // Instantly calculate what the new stock of the sender should be
       const updatedSenderQty = await getStock(
         formData.senderAcctHead,
         formData.senderAcctNo,
         formData.productId,
       );
 
-      // Reset exclusively Receiver Info + Transaction Qty + Remarks
       setFormData((prev) => ({
         ...prev,
         transferQty: "",
@@ -201,10 +199,9 @@ export default function ProductDistribution() {
         receiveQty: "",
         receiverAvailableQty: "",
         remarks: "",
-        availableQty: updatedSenderQty, // Show accurate real-time sender stock directly after form completion
+        availableQty: updatedSenderQty,
       }));
 
-      // Pull new latest history row from backend
       fetchHistory(formData.senderAcctNo, formData.senderAcctHead);
     } catch (err) {
       alert("Error distributing product");
@@ -456,7 +453,6 @@ export default function ProductDistribution() {
               </div>
             </div>
 
-            {/* REMARKS FIELD MOVED TO BOTTOM JUST BEFORE SUBMIT*/}
             <div className="row">
               <div className="col-md-12 mb-2">
                 <label className="form-label-custom">Remarks</label>
@@ -479,25 +475,40 @@ export default function ProductDistribution() {
             </div>
           </form>
 
-          {/* Real-time History Table Rendered from Transactions */}
           <div className="table-responsive mt-5">
-            <table className="custom-table table-sm">
+            <table className="table table-bordered custom-table table-sm">
               <thead>
                 <tr>
                   <th>Date</th>
-                  <th>Receiver</th>
-                  <th>Product</th>
-                  <th>Quantity</th>
+                  <th>Sender Head</th>
+                  <th>Sender Account</th>
+                  <th>Sender Bal</th>
+                  <th>Product Name</th>
+                  <th>Transferred</th>
+                  <th>Receiver Head</th>
+                  <th>Receiver Account</th>
+                  <th>Receiver Bal</th>
+                  <th>Mode</th>
                   <th>Remarks</th>
                 </tr>
               </thead>
               <tbody>
                 {history.map((h) => (
-                  <tr key={h.DistId}>
-                    <td>{new Date(h.ProductDate).toLocaleDateString()}</td>
-                    <td>{h.ReceiverRole}</td>
+                  <tr key={h.TrnId}>
+                    <td>{h.TransactionDate}</td>
+                    <td>{h.SenderHeadName}</td>
+                    <td>
+                      {h.SenderAcctName} ({h.SenderAcctNo})
+                    </td>
+                    <td>{h.SenderAvailableQty}</td>
                     <td>{h.ProductName}</td>
-                    <td>{h.DistributedQty}</td>
+                    <td>{h.TransferQty}</td>
+                    <td>{h.ReceiverHeadName}</td>
+                    <td>
+                      {h.ReceiverAcctName} ({h.ReceiverAcctNo})
+                    </td>
+                    <td>{h.ReceiverAvailableQty}</td>
+                    <td>{h.SenderMode}</td>
                     <td>{h.Remarks}</td>
                   </tr>
                 ))}

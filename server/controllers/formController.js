@@ -252,6 +252,9 @@ exports.updateAsthaDidi = (req, res) => {
     data.AsthaDidiSignupUserName,
     data.AsthaDidiSignupEmail,
     data.AsthaDidiSignupPassword,
+    data.DistNGORegId || null,
+    data.SupRegId || null,
+    data.AsthaDidiRegId || null,
     data.AsthaDidiIsActive,
     data.AsthaDidiAprovedBy,
     data.AsthaDidiAprovalDate,
@@ -848,7 +851,6 @@ exports.getTrnTypes = (req, res) => {
   );
 };
 
-// Calculate real-time stock directly from transaction ledger
 exports.getProductStock = (req, res) => {
   const { acctHead, acctNo, proId } = req.query;
   const query = `
@@ -903,33 +905,41 @@ exports.getSupervisorsByDist = (req, res) => {
   );
 };
 
-
 exports.distributeProduct = (req, res) => {
   const {
+    SenderDate,
     SenderId,
     SenderRole,
+    SenderMode,
     ReceiverId,
     ReceiverRole,
+    ReceiverMode,
     ProductId,
-    ProductName,
     DistributedQty,
     Remarks,
   } = req.body;
 
   const receiverInfo = `${ReceiverRole} - ${ReceiverId}`;
   const senderInfo = `${SenderRole} - ${SenderId}`;
+  const trnDate = SenderDate || new Date().toISOString().split('T')[0];
+
+  const sModeParsed = SenderMode ? SenderMode.split(' - ')[1] : 'TRANSFER';
+  const sDrCr = SenderMode ? SenderMode.split(' - ')[0] : 'Dr';
+
+  const rModeParsed = ReceiverMode ? ReceiverMode.split(' - ')[1] : 'RECEIVED';
+  const rDrCr = ReceiverMode ? ReceiverMode.split(' - ')[0] : 'Cr';
 
   // Record withdrawal from Sender (Dr)
   db.query(
-    "INSERT INTO transaction (TrnDate, AcctNo, AcctHead, ProId, Deposit, Withdraw, DrCr, TrnType, Remerks, UserName) VALUES (NOW(), ?, ?, ?, 0, ?, 'Dr', 'TRANSFER', ?, ?)",
-    [SenderId, SenderRole, ProductId, DistributedQty, Remarks, receiverInfo],
+    "INSERT INTO transaction (TrnDate, AcctNo, AcctHead, ProId, Deposit, Withdraw, DrCr, TrnType, Remerks, UserName) VALUES (?, ?, ?, ?, 0, ?, ?, ?, ?, ?)",
+    [trnDate, SenderId, SenderRole, ProductId, DistributedQty, sDrCr, sModeParsed, Remarks, receiverInfo],
     (err) => {
       if (err) return res.status(500).json({ error: err.message });
 
       // Record deposit to Receiver (Cr)
       db.query(
-        "INSERT INTO transaction (TrnDate, AcctNo, AcctHead, ProId, Deposit, Withdraw, DrCr, TrnType, Remerks, UserName) VALUES (NOW(), ?, ?, ?, ?, 0, 'Cr', 'RECEIVED', ?, ?)",
-        [ReceiverId, ReceiverRole, ProductId, DistributedQty, Remarks, senderInfo],
+        "INSERT INTO transaction (TrnDate, AcctNo, AcctHead, ProId, Deposit, Withdraw, DrCr, TrnType, Remerks, UserName) VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?, ?)",
+        [trnDate, ReceiverId, ReceiverRole, ProductId, DistributedQty, rDrCr, rModeParsed, Remarks, senderInfo],
         (err2) => {
           if (err2) return res.status(500).json({ error: err2.message });
           res.json({ message: "Product distributed successfully" });
@@ -939,24 +949,46 @@ exports.distributeProduct = (req, res) => {
   );
 };
 
-// Fetch History from the active `transaction` table
+// Advanced Full Ledger Transaction History
 exports.getDistributionHistory = (req, res) => {
   const { senderId, senderHead } = req.query;
   const query = `
     SELECT 
-      t.TrnId AS DistId, 
-      t.TrnDate AS ProductDate, 
-      t.UserName AS ReceiverRole, 
-      p.ProName AS ProductName, 
-      t.Withdraw AS DistributedQty, 
-      t.Remerks AS Remarks
-    FROM transaction t
-    LEFT JOIN product p ON t.ProId = p.ProId
-    WHERE t.AcctNo = ? AND t.AcctHead = ? AND t.Withdraw > 0 AND UPPER(t.TrnType) = 'TRANSFER'
-    ORDER BY t.TrnDate DESC, t.TrnId DESC LIMIT 10
+      t1.TrnId,
+      DATE_FORMAT(t1.TrnDate, '%Y-%m-%d') AS TransactionDate,
+      t1.AcctHead AS SenderHead,
+      ah1.AcctHeadName AS SenderHeadName,
+      t1.AcctNo AS SenderAcctNo,
+      acc1.AcctName AS SenderAcctName,
+      t1.TrnType AS SenderMode,
+      p.ProName AS ProductName,
+      t1.Withdraw AS TransferQty,
+      (SELECT SUM(Deposit - Withdraw) FROM transaction WHERE AcctNo = t1.AcctNo AND AcctHead = t1.AcctHead AND ProId = t1.ProId AND TrnId <= t1.TrnId) AS SenderAvailableQty,
+      
+      SUBSTRING_INDEX(t1.UserName, ' - ', 1) AS ReceiverHead,
+      ah2.AcctHeadName AS ReceiverHeadName,
+      SUBSTRING_INDEX(t1.UserName, ' - ', -1) AS ReceiverAcctNo,
+      acc2.AcctName AS ReceiverAcctName,
+      t1.Withdraw AS ReceiveQty,
+      
+      (SELECT SUM(Deposit - Withdraw) FROM transaction WHERE AcctNo = SUBSTRING_INDEX(t1.UserName, ' - ', -1) AND AcctHead = SUBSTRING_INDEX(t1.UserName, ' - ', 1) AND ProId = t1.ProId AND TrnId <= (t1.TrnId + 1)) AS ReceiverAvailableQty,
+      
+      t1.Remerks AS Remarks
+    FROM transaction t1
+    LEFT JOIN accthead ah1 ON t1.AcctHead = ah1.AcctHead
+    LEFT JOIN accounts acc1 ON t1.AcctNo = acc1.AcctNo AND t1.AcctHead = acc1.AcctHead
+    LEFT JOIN product p ON t1.ProId = p.ProId
+    LEFT JOIN accthead ah2 ON ah2.AcctHead = SUBSTRING_INDEX(t1.UserName, ' - ', 1)
+    LEFT JOIN accounts acc2 ON acc2.AcctNo = SUBSTRING_INDEX(t1.UserName, ' - ', -1) AND acc2.AcctHead = SUBSTRING_INDEX(t1.UserName, ' - ', 1)
+    WHERE t1.AcctNo = ? AND t1.AcctHead = ? AND t1.Withdraw > 0
+    ORDER BY t1.TrnId DESC
+    LIMIT 50
   `;
   db.query(query, [senderId, senderHead], (err, results) => {
-    if (err) return res.json([]);
+    if (err) {
+      console.error("❌ History fetch error:", err);
+      return res.json([]);
+    }
     res.json(results);
   });
 };

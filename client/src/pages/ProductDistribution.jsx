@@ -11,6 +11,9 @@ export default function ProductDistribution() {
   const [trnTypes, setTrnTypes] = useState([]);
   const [history, setHistory] = useState([]);
 
+  // ✅ NEW: State to hold the logged-in user's role
+  const [userRole, setUserRole] = useState("");
+
   // Filtering States
   const [searchTerm, setSearchTerm] = useState("");
   const [fromDate, setFromDate] = useState("");
@@ -38,6 +41,12 @@ export default function ProductDistribution() {
   });
 
   useEffect(() => {
+    // ✅ NEW: Extract the logged-in user's role from localStorage on mount
+    const userStr = localStorage.getItem("loggedInUser");
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      setUserRole(user.role || user.UserSignUpRole || "");
+    }
     fetchData();
   }, []);
 
@@ -112,6 +121,11 @@ export default function ProductDistribution() {
         senderAcctNo: "",
         senderAcctNameDisplay: "",
         availableQty: "",
+        // Automatically clear receiver when sender head changes to enforce hierarchy
+        receiverAcctHead: "",
+        receiverAcctName: "",
+        receiverAcctNo: "",
+        receiverAcctNameDisplay: "",
       }));
       setHistory([]);
     } else if (name === "senderAcctNo") {
@@ -253,6 +267,36 @@ export default function ProductDistribution() {
     });
   }, [history, searchTerm, fromDate, toDate]);
 
+  // ✅ SMART FILTER: Enforce Role-Based Restrictions for the Sender Dropdown
+  const allowedSenderHeads = useMemo(() => {
+    if (userRole === "State Super Administrator")
+      return acctHeads.filter((h) => h.AcctHead === "SN");
+    if (userRole === "District Administrator")
+      return acctHeads.filter((h) => h.AcctHead === "DN");
+    if (userRole === "Supervisor")
+      return acctHeads.filter((h) => h.AcctHead === "SV");
+    if (userRole === "Astha Didi")
+      return acctHeads.filter((h) => h.AcctHead === "AD");
+    if (userRole === "Astha Maa")
+      return acctHeads.filter((h) => h.AcctHead === "AM");
+    return acctHeads; // Fallback for Developer or unrestricted access
+  }, [acctHeads, userRole]);
+
+  // ✅ SMART FILTER: Cascade the Receiver Dropdown based on the Sender selected
+  const allowedReceiverHeads = useMemo(() => {
+    if (formData.senderAcctHead === "SU")
+      return acctHeads.filter((h) => h.AcctHead === "SN"); // Factory sends to SN
+    if (formData.senderAcctHead === "SN")
+      return acctHeads.filter((h) => h.AcctHead === "DN"); // SN sends to DN
+    if (formData.senderAcctHead === "DN")
+      return acctHeads.filter((h) => h.AcctHead === "SV"); // DN sends to SV
+    if (formData.senderAcctHead === "SV")
+      return acctHeads.filter((h) => h.AcctHead === "AD"); // SV sends to AD
+    if (formData.senderAcctHead === "AD")
+      return acctHeads.filter((h) => h.AcctHead === "AM"); // AD sends to AM
+    return acctHeads;
+  }, [acctHeads, formData.senderAcctHead]);
+
   return (
     <div className="container mt-5">
       <div className="card shadow-lg border-0 rounded-10">
@@ -276,7 +320,8 @@ export default function ProductDistribution() {
                   required
                 >
                   <option value="">--Select Account Head--</option>
-                  {acctHeads.map((h) => (
+                  {/* ✅ MAP OVER THE FILTERED ARRAY */}
+                  {allowedSenderHeads.map((h) => (
                     <option key={h.AcctHead} value={h.AcctHead}>
                       {h.DisplayName}
                     </option>
@@ -408,7 +453,8 @@ export default function ProductDistribution() {
                   required
                 >
                   <option value="">--Select Account Head--</option>
-                  {acctHeads.map((h) => (
+                  {/* ✅ MAP OVER THE CASCADED ARRAY */}
+                  {allowedReceiverHeads.map((h) => (
                     <option key={h.AcctHead} value={h.AcctHead}>
                       {h.DisplayName}
                     </option>

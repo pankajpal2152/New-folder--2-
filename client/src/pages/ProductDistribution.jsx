@@ -112,7 +112,15 @@ export default function ProductDistribution() {
 
   const handleSenderChange = (e) => {
     const { name, value } = e.target;
-    if (name === "senderAcctHead") {
+
+    // ✅ Logic for Transfer Qty & Receive Qty Sync
+    if (name === "transferQty") {
+      setFormData((prev) => ({
+        ...prev,
+        transferQty: value,
+        receiveQty: value, // Default receiver qty to transfer qty
+      }));
+    } else if (name === "senderAcctHead") {
       const selected = acctHeads.find((h) => h.AcctHead === value);
       setFormData((prev) => ({
         ...prev,
@@ -121,7 +129,6 @@ export default function ProductDistribution() {
         senderAcctNo: "",
         senderAcctNameDisplay: "",
         availableQty: "",
-        // Automatically clear receiver when sender head changes to enforce hierarchy
         receiverAcctHead: "",
         receiverAcctName: "",
         receiverAcctNo: "",
@@ -178,11 +185,14 @@ export default function ProductDistribution() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.transferQty || parseFloat(formData.transferQty) <= 0) {
-      alert("Please enter a valid transfer quantity.");
+    const tQty = parseFloat(formData.transferQty);
+
+    // ✅ VALIDATION: > 0 and <= Available
+    if (!formData.transferQty || tQty <= 0) {
+      alert("Please enter a valid transfer quantity (Must be > 0).");
       return;
     }
-    if (parseFloat(formData.transferQty) > parseFloat(formData.availableQty)) {
+    if (tQty > parseFloat(formData.availableQty)) {
       alert("Transfer quantity cannot exceed available quantity!");
       return;
     }
@@ -211,12 +221,12 @@ export default function ProductDistribution() {
       setFormData((prev) => ({
         ...prev,
         transferQty: "",
+        receiveQty: "",
         receiverAcctHead: "",
         receiverAcctName: "",
         receiverAcctNo: "",
         receiverAcctNameDisplay: "",
         receiverMode: "",
-        receiveQty: "",
         receiverAvailableQty: "",
         remarks: "",
         availableQty: updatedSenderQty,
@@ -228,46 +238,27 @@ export default function ProductDistribution() {
     }
   };
 
-  // Memoized Filter Logic for the Ledger
   const filteredHistory = useMemo(() => {
     return history.filter((h) => {
-      // Date Filter
       let dateMatch = true;
-      if (fromDate) {
+      if (fromDate)
         dateMatch =
           dateMatch && new Date(h.TransactionDate) >= new Date(fromDate);
-      }
-      if (toDate) {
+      if (toDate)
         dateMatch =
           dateMatch && new Date(h.TransactionDate) <= new Date(toDate);
-      }
 
-      // Search Filter
       let searchMatch = true;
       if (searchTerm) {
         const lowerSearch = searchTerm.toLowerCase();
-        const combinedString = `
-          ${h.TransactionDate} 
-          ${h.SenderHeadName} 
-          ${h.SenderAcctName} 
-          ${h.SenderAvailableQty} 
-          ${h.ProductName} 
-          ${h.TransferQty} 
-          ${h.ReceiverHeadName} 
-          ${h.ReceiverAcctName} 
-          ${h.ReceiverAvailableQty} 
-          ${h.SenderMode} 
-          ${h.Remarks}
-        `.toLowerCase();
-
+        const combinedString =
+          `${h.TransactionDate} ${h.SenderHeadName} ${h.SenderAcctName} ${h.SenderAvailableQty} ${h.ProductName} ${h.TransferQty} ${h.ReceiverHeadName} ${h.ReceiverAcctName} ${h.ReceiverAvailableQty} ${h.SenderMode} ${h.Remarks}`.toLowerCase();
         searchMatch = combinedString.includes(lowerSearch);
       }
-
       return dateMatch && searchMatch;
     });
   }, [history, searchTerm, fromDate, toDate]);
 
-  // ✅ SMART FILTER: Enforce Role-Based Restrictions for the Sender Dropdown
   const allowedSenderHeads = useMemo(() => {
     if (userRole === "State Super Administrator")
       return acctHeads.filter((h) => h.AcctHead === "SN");
@@ -279,10 +270,9 @@ export default function ProductDistribution() {
       return acctHeads.filter((h) => h.AcctHead === "AD");
     if (userRole === "Astha Maa")
       return acctHeads.filter((h) => h.AcctHead === "AM");
-    return acctHeads; // Fallback
+    return acctHeads;
   }, [acctHeads, userRole]);
 
-  // ✅ SMART FILTER: Cascade the Receiver Dropdown based on the Sender selected
   const allowedReceiverHeads = useMemo(() => {
     if (formData.senderAcctHead === "SU")
       return acctHeads.filter((h) => h.AcctHead === "SN");
@@ -297,7 +287,7 @@ export default function ProductDistribution() {
     return acctHeads;
   }, [acctHeads, formData.senderAcctHead]);
 
-  // ✅ NEW: Filter modes based on Dr/Cr logic
+  // ✅ FILTER MODES: Dr for Sender, Cr for Receiver
   const filteredSenderModes = useMemo(
     () => trnTypes.filter((t) => t.DisplayName.startsWith("Dr")),
     [trnTypes],
@@ -532,12 +522,13 @@ export default function ProductDistribution() {
               </div>
               <div className="col-md-3 mb-3">
                 <label className="form-label-custom">Receive Quantity</label>
+                {/* ✅ Read-Only, tied to transferQty */}
                 <input
                   className="form-control"
                   type="number"
                   name="receiveQty"
-                  value={formData.receiveQty}
-                  onChange={handleReceiverChange}
+                  value={formData.transferQty}
+                  readOnly
                 />
               </div>
               <div className="col-md-3 mb-3">
@@ -574,7 +565,7 @@ export default function ProductDistribution() {
             </div>
           </form>
 
-          {/* Ledger / History Filter Controls */}
+          {/* Ledger History Area */}
           <div
             className="mt-5 mb-3"
             style={{
@@ -589,7 +580,7 @@ export default function ProductDistribution() {
                 <input
                   type="text"
                   className="form-control form-control-sm"
-                  placeholder="Search any field..."
+                  placeholder="Search..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -621,7 +612,7 @@ export default function ProductDistribution() {
                     setToDate("");
                   }}
                 >
-                  Clear Filters
+                  Clear
                 </button>
               </div>
             </div>
@@ -634,7 +625,7 @@ export default function ProductDistribution() {
                   <th>Date</th>
                   <th>Sender</th>
                   <th>S-Bal</th>
-                  <th>Product Name</th>
+                  <th>Product</th>
                   <th>Transferred</th>
                   <th>Receiver</th>
                   <th>R-Bal</th>
@@ -674,13 +665,6 @@ export default function ProductDistribution() {
                     <td>{h.Remarks}</td>
                   </tr>
                 ))}
-                {filteredHistory.length === 0 && (
-                  <tr>
-                    <td colSpan="9" className="text-center text-muted py-3">
-                      No transactions found for the selected criteria.
-                    </td>
-                  </tr>
-                )}
               </tbody>
             </table>
           </div>

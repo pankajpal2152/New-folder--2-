@@ -11,11 +11,12 @@ export default function ProductDistribution() {
   const [trnTypes, setTrnTypes] = useState([]);
   const [history, setHistory] = useState([]);
 
-  // ✅ Pagination State
+  // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const rowsPerPage = 10;
 
   const [userRole, setUserRole] = useState("");
+  const [userName, setUserName] = useState(""); // Capturing username
   const [searchTerm, setSearchTerm] = useState("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
@@ -46,6 +47,7 @@ export default function ProductDistribution() {
     if (userStr) {
       const user = JSON.parse(userStr);
       setUserRole(user.role || user.UserSignUpRole || "");
+      setUserName(user.SignupUserName || "");
     }
     fetchData();
   }, []);
@@ -251,7 +253,6 @@ export default function ProductDistribution() {
     });
   }, [history, searchTerm, fromDate, toDate]);
 
-  // ✅ PAGINATION LOGIC
   const indexOfLastItem = currentPage * rowsPerPage;
   const indexOfFirstItem = indexOfLastItem - rowsPerPage;
   const currentItems = filteredHistory.slice(indexOfFirstItem, indexOfLastItem);
@@ -270,6 +271,16 @@ export default function ProductDistribution() {
       : acctHeads;
   }, [acctHeads, userRole]);
 
+  const filteredSenderAccounts = useMemo(() => {
+    if (userRole === "District Administrator") {
+      return allAccounts.filter(
+        (a) =>
+          a.AcctName === userName && a.AcctHead === formData.senderAcctHead,
+      );
+    }
+    return allAccounts.filter((a) => a.AcctHead === formData.senderAcctHead);
+  }, [allAccounts, formData.senderAcctHead, userRole, userName]);
+
   const allowedReceiverHeads = useMemo(() => {
     const hierarchy = { SU: "SN", SN: "DN", DN: "SV", SV: "AD", AD: "AM" };
     return hierarchy[formData.senderAcctHead]
@@ -279,13 +290,12 @@ export default function ProductDistribution() {
       : acctHeads;
   }, [acctHeads, formData.senderAcctHead]);
 
-  // ✅ FILTER MODES: Dr for Sender, Cr for Receiver
   const filteredSenderModes = useMemo(
-    () => trnTypes.filter((t) => t.DrCr === "Dr"),
+    () => trnTypes.filter((t) => t.DisplayName.toLowerCase().includes("dr")),
     [trnTypes],
   );
   const filteredReceiverModes = useMemo(
-    () => trnTypes.filter((t) => t.DrCr === "Cr"),
+    () => trnTypes.filter((t) => t.DisplayName.toLowerCase().includes("cr")),
     [trnTypes],
   );
 
@@ -353,13 +363,11 @@ export default function ProductDistribution() {
                   required
                 >
                   <option value="">--Select Account Number--</option>
-                  {allAccounts
-                    .filter((a) => a.AcctHead === formData.senderAcctHead)
-                    .map((a) => (
-                      <option key={a.AcctNo} value={a.AcctNo}>
-                        {a.DisplayName}
-                      </option>
-                    ))}
+                  {filteredSenderAccounts.map((a) => (
+                    <option key={a.AcctNo} value={a.AcctNo}>
+                      {a.DisplayName}
+                    </option>
+                  ))}
                 </select>
               </div>
               <div className="col-md-7 mb-3">
@@ -533,7 +541,6 @@ export default function ProductDistribution() {
                 />
               </div>
             </div>
-
             <div className="row">
               <div className="col-md-12 mb-2">
                 <label className="form-label-custom">Remarks</label>
@@ -548,7 +555,6 @@ export default function ProductDistribution() {
                 />
               </div>
             </div>
-
             <div className="col-md-12">
               <button className="btn btn-primary" type="submit">
                 Submit
@@ -556,7 +562,6 @@ export default function ProductDistribution() {
             </div>
           </form>
 
-          {/* Ledger History Area */}
           <div
             className="mt-5 mb-3"
             style={{
@@ -660,7 +665,6 @@ export default function ProductDistribution() {
                 ))}
               </tbody>
             </table>
-            {/* Pagination Controls */}
             <div className="d-flex justify-content-between align-items-center mt-3">
               <button
                 className="btn btn-sm btn-outline-secondary"

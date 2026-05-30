@@ -947,8 +947,10 @@ exports.distributeProduct = (req, res) => {
 };
 
 // Advanced Full Ledger Transaction History
+// Replace your existing getDistributionHistory in controllers/formController.js with this:
 exports.getDistributionHistory = (req, res) => {
   const { senderId, senderHead } = req.query;
+  // REMOVED 'AND t1.Withdraw > 0' to include both sent and received transactions
   const query = `
     SELECT 
       t1.TrnId,
@@ -977,10 +979,10 @@ exports.getDistributionHistory = (req, res) => {
     LEFT JOIN product p ON t1.ProId = p.ProId
     LEFT JOIN accthead ah2 ON ah2.AcctHead = SUBSTRING_INDEX(t1.UserName, ' - ', 1)
     LEFT JOIN accounts acc2 ON acc2.AcctNo = SUBSTRING_INDEX(t1.UserName, ' - ', -1) AND acc2.AcctHead = SUBSTRING_INDEX(t1.UserName, ' - ', 1)
-    WHERE t1.AcctNo = ? AND t1.AcctHead = ? AND t1.Withdraw > 0
+    WHERE (t1.AcctNo = ? AND t1.AcctHead = ?) OR (SUBSTRING_INDEX(t1.UserName, ' - ', -1) = ? AND SUBSTRING_INDEX(t1.UserName, ' - ', 1) = ?)
     ORDER BY t1.TrnId DESC
   `;
-  db.query(query, [senderId, senderHead], (err, results) => {
+  db.query(query, [senderId, senderHead, senderId, senderHead], (err, results) => {
     if (err) {
       console.error("❌ History fetch error:", err);
       return res.json([]);

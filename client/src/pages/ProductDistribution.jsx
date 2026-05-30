@@ -11,10 +11,11 @@ export default function ProductDistribution() {
   const [trnTypes, setTrnTypes] = useState([]);
   const [history, setHistory] = useState([]);
 
-  // ✅ NEW: State to hold the logged-in user's role
-  const [userRole, setUserRole] = useState("");
+  // ✅ Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const rowsPerPage = 10;
 
-  // Filtering States
+  const [userRole, setUserRole] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
@@ -41,7 +42,6 @@ export default function ProductDistribution() {
   });
 
   useEffect(() => {
-    // ✅ NEW: Extract the logged-in user's role from localStorage on mount
     const userStr = localStorage.getItem("loggedInUser");
     if (userStr) {
       const user = JSON.parse(userStr);
@@ -112,13 +112,11 @@ export default function ProductDistribution() {
 
   const handleSenderChange = (e) => {
     const { name, value } = e.target;
-
-    // ✅ Logic for Transfer Qty & Receive Qty Sync
     if (name === "transferQty") {
       setFormData((prev) => ({
         ...prev,
         transferQty: value,
-        receiveQty: value, // Default receiver qty to transfer qty
+        receiveQty: value,
       }));
     } else if (name === "senderAcctHead") {
       const selected = acctHeads.find((h) => h.AcctHead === value);
@@ -186,10 +184,8 @@ export default function ProductDistribution() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const tQty = parseFloat(formData.transferQty);
-
-    // ✅ VALIDATION: > 0 and <= Available
     if (!formData.transferQty || tQty <= 0) {
-      alert("Please enter a valid transfer quantity (Must be > 0).");
+      alert("Transfer quantity must be greater than 0.");
       return;
     }
     if (tQty > parseFloat(formData.availableQty)) {
@@ -211,13 +207,11 @@ export default function ProductDistribution() {
         Remarks: formData.remarks,
       });
       alert("Product Distributed Successfully");
-
       const updatedSenderQty = await getStock(
         formData.senderAcctHead,
         formData.senderAcctNo,
         formData.productId,
       );
-
       setFormData((prev) => ({
         ...prev,
         transferQty: "",
@@ -231,7 +225,6 @@ export default function ProductDistribution() {
         remarks: "",
         availableQty: updatedSenderQty,
       }));
-
       fetchHistory(formData.senderAcctNo, formData.senderAcctHead);
     } catch (err) {
       alert("Error distributing product");
@@ -247,7 +240,6 @@ export default function ProductDistribution() {
       if (toDate)
         dateMatch =
           dateMatch && new Date(h.TransactionDate) <= new Date(toDate);
-
       let searchMatch = true;
       if (searchTerm) {
         const lowerSearch = searchTerm.toLowerCase();
@@ -259,41 +251,41 @@ export default function ProductDistribution() {
     });
   }, [history, searchTerm, fromDate, toDate]);
 
+  // ✅ PAGINATION LOGIC
+  const indexOfLastItem = currentPage * rowsPerPage;
+  const indexOfFirstItem = indexOfLastItem - rowsPerPage;
+  const currentItems = filteredHistory.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredHistory.length / rowsPerPage);
+
   const allowedSenderHeads = useMemo(() => {
-    if (userRole === "State Super Administrator")
-      return acctHeads.filter((h) => h.AcctHead === "SN");
-    if (userRole === "District Administrator")
-      return acctHeads.filter((h) => h.AcctHead === "DN");
-    if (userRole === "Supervisor")
-      return acctHeads.filter((h) => h.AcctHead === "SV");
-    if (userRole === "Astha Didi")
-      return acctHeads.filter((h) => h.AcctHead === "AD");
-    if (userRole === "Astha Maa")
-      return acctHeads.filter((h) => h.AcctHead === "AM");
-    return acctHeads;
+    const roles = {
+      "State Super Administrator": "SN",
+      "District Administrator": "DN",
+      Supervisor: "SV",
+      "Astha Didi": "AD",
+      "Astha Maa": "AM",
+    };
+    return roles[userRole]
+      ? acctHeads.filter((h) => h.AcctHead === roles[userRole])
+      : acctHeads;
   }, [acctHeads, userRole]);
 
   const allowedReceiverHeads = useMemo(() => {
-    if (formData.senderAcctHead === "SU")
-      return acctHeads.filter((h) => h.AcctHead === "SN");
-    if (formData.senderAcctHead === "SN")
-      return acctHeads.filter((h) => h.AcctHead === "DN");
-    if (formData.senderAcctHead === "DN")
-      return acctHeads.filter((h) => h.AcctHead === "SV");
-    if (formData.senderAcctHead === "SV")
-      return acctHeads.filter((h) => h.AcctHead === "AD");
-    if (formData.senderAcctHead === "AD")
-      return acctHeads.filter((h) => h.AcctHead === "AM");
-    return acctHeads;
+    const hierarchy = { SU: "SN", SN: "DN", DN: "SV", SV: "AD", AD: "AM" };
+    return hierarchy[formData.senderAcctHead]
+      ? acctHeads.filter(
+          (h) => h.AcctHead === hierarchy[formData.senderAcctHead],
+        )
+      : acctHeads;
   }, [acctHeads, formData.senderAcctHead]);
 
   // ✅ FILTER MODES: Dr for Sender, Cr for Receiver
   const filteredSenderModes = useMemo(
-    () => trnTypes.filter((t) => t.DisplayName.startsWith("Dr")),
+    () => trnTypes.filter((t) => t.DrCr === "Dr"),
     [trnTypes],
   );
   const filteredReceiverModes = useMemo(
-    () => trnTypes.filter((t) => t.DisplayName.startsWith("Cr")),
+    () => trnTypes.filter((t) => t.DrCr === "Cr"),
     [trnTypes],
   );
 
@@ -522,7 +514,6 @@ export default function ProductDistribution() {
               </div>
               <div className="col-md-3 mb-3">
                 <label className="form-label-custom">Receive Quantity</label>
-                {/* ✅ Read-Only, tied to transferQty */}
                 <input
                   className="form-control"
                   type="number"
@@ -622,7 +613,7 @@ export default function ProductDistribution() {
             <table className="table table-bordered custom-table table-sm">
               <thead>
                 <tr style={{ backgroundColor: "#696cff", color: "white" }}>
-                  <th>Date</th>
+                  <th style={{ whiteSpace: "nowrap" }}>Date</th>
                   <th>Sender</th>
                   <th>S-Bal</th>
                   <th>Product</th>
@@ -634,9 +625,11 @@ export default function ProductDistribution() {
                 </tr>
               </thead>
               <tbody>
-                {filteredHistory.map((h) => (
+                {currentItems.map((h) => (
                   <tr key={h.TrnId}>
-                    <td>{h.TransactionDate}</td>
+                    <td style={{ whiteSpace: "nowrap" }}>
+                      {h.TransactionDate}
+                    </td>
                     <td>
                       {h.SenderHeadName}
                       <br />
@@ -667,6 +660,26 @@ export default function ProductDistribution() {
                 ))}
               </tbody>
             </table>
+            {/* Pagination Controls */}
+            <div className="d-flex justify-content-between align-items-center mt-3">
+              <button
+                className="btn btn-sm btn-outline-secondary"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage((prev) => prev - 1)}
+              >
+                Prev
+              </button>
+              <span>
+                Page {currentPage} of {totalPages || 1}
+              </span>
+              <button
+                className="btn btn-sm btn-outline-secondary"
+                disabled={currentPage >= totalPages}
+                onClick={() => setCurrentPage((prev) => prev + 1)}
+              >
+                Next
+              </button>
+            </div>
           </div>
         </div>
       </div>

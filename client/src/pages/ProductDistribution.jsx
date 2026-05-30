@@ -279,23 +279,33 @@ export default function ProductDistribution() {
       return acctHeads.filter((h) => h.AcctHead === "AD");
     if (userRole === "Astha Maa")
       return acctHeads.filter((h) => h.AcctHead === "AM");
-    return acctHeads; // Fallback for Developer or unrestricted access
+    return acctHeads; // Fallback
   }, [acctHeads, userRole]);
 
   // ✅ SMART FILTER: Cascade the Receiver Dropdown based on the Sender selected
   const allowedReceiverHeads = useMemo(() => {
     if (formData.senderAcctHead === "SU")
-      return acctHeads.filter((h) => h.AcctHead === "SN"); // Factory sends to SN
+      return acctHeads.filter((h) => h.AcctHead === "SN");
     if (formData.senderAcctHead === "SN")
-      return acctHeads.filter((h) => h.AcctHead === "DN"); // SN sends to DN
+      return acctHeads.filter((h) => h.AcctHead === "DN");
     if (formData.senderAcctHead === "DN")
-      return acctHeads.filter((h) => h.AcctHead === "SV"); // DN sends to SV
+      return acctHeads.filter((h) => h.AcctHead === "SV");
     if (formData.senderAcctHead === "SV")
-      return acctHeads.filter((h) => h.AcctHead === "AD"); // SV sends to AD
+      return acctHeads.filter((h) => h.AcctHead === "AD");
     if (formData.senderAcctHead === "AD")
-      return acctHeads.filter((h) => h.AcctHead === "AM"); // AD sends to AM
+      return acctHeads.filter((h) => h.AcctHead === "AM");
     return acctHeads;
   }, [acctHeads, formData.senderAcctHead]);
+
+  // ✅ NEW: Filter modes based on Dr/Cr logic
+  const filteredSenderModes = useMemo(
+    () => trnTypes.filter((t) => t.DisplayName.startsWith("Dr")),
+    [trnTypes],
+  );
+  const filteredReceiverModes = useMemo(
+    () => trnTypes.filter((t) => t.DisplayName.startsWith("Cr")),
+    [trnTypes],
+  );
 
   return (
     <div className="container mt-5">
@@ -320,7 +330,6 @@ export default function ProductDistribution() {
                   required
                 >
                   <option value="">--Select Account Head--</option>
-                  {/* ✅ MAP OVER THE FILTERED ARRAY */}
                   {allowedSenderHeads.map((h) => (
                     <option key={h.AcctHead} value={h.AcctHead}>
                       {h.DisplayName}
@@ -394,7 +403,7 @@ export default function ProductDistribution() {
                   required
                 >
                   <option value="">--Select Mode--</option>
-                  {trnTypes.map((t) => (
+                  {filteredSenderModes.map((t) => (
                     <option key={t.TrnTypyId} value={t.DisplayName}>
                       {t.DisplayName}
                     </option>
@@ -453,7 +462,6 @@ export default function ProductDistribution() {
                   required
                 >
                   <option value="">--Select Account Head--</option>
-                  {/* ✅ MAP OVER THE CASCADED ARRAY */}
                   {allowedReceiverHeads.map((h) => (
                     <option key={h.AcctHead} value={h.AcctHead}>
                       {h.DisplayName}
@@ -515,7 +523,7 @@ export default function ProductDistribution() {
                   required
                 >
                   <option value="">--Select Mode--</option>
-                  {trnTypes.map((t) => (
+                  {filteredReceiverModes.map((t) => (
                     <option key={t.TrnTypyId} value={t.DisplayName}>
                       {t.DisplayName}
                     </option>

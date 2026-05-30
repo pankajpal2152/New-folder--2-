@@ -11,7 +11,7 @@ export default function ProductDistribution() {
   const [trnTypes, setTrnTypes] = useState([]);
   const [history, setHistory] = useState([]);
 
-  // Pagination State
+  // ✅ Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const rowsPerPage = 10;
 
@@ -184,8 +184,6 @@ export default function ProductDistribution() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const tQty = parseFloat(formData.transferQty);
-
-    // ✅ Validation: Ensure within bounds
     if (!formData.transferQty || tQty <= 0) {
       alert("Transfer quantity must be greater than 0.");
       return;
@@ -209,13 +207,11 @@ export default function ProductDistribution() {
         Remarks: formData.remarks,
       });
       alert("Product Distributed Successfully");
-
       const updatedSenderQty = await getStock(
         formData.senderAcctHead,
         formData.senderAcctNo,
         formData.productId,
       );
-
       setFormData((prev) => ({
         ...prev,
         transferQty: "",
@@ -229,7 +225,6 @@ export default function ProductDistribution() {
         remarks: "",
         availableQty: updatedSenderQty,
       }));
-
       fetchHistory(formData.senderAcctNo, formData.senderAcctHead);
     } catch (err) {
       alert("Error distributing product");
@@ -245,7 +240,6 @@ export default function ProductDistribution() {
       if (toDate)
         dateMatch =
           dateMatch && new Date(h.TransactionDate) <= new Date(toDate);
-
       let searchMatch = true;
       if (searchTerm) {
         const lowerSearch = searchTerm.toLowerCase();
@@ -257,6 +251,7 @@ export default function ProductDistribution() {
     });
   }, [history, searchTerm, fromDate, toDate]);
 
+  // ✅ PAGINATION LOGIC
   const indexOfLastItem = currentPage * rowsPerPage;
   const indexOfFirstItem = indexOfLastItem - rowsPerPage;
   const currentItems = filteredHistory.slice(indexOfFirstItem, indexOfLastItem);
@@ -284,13 +279,13 @@ export default function ProductDistribution() {
       : acctHeads;
   }, [acctHeads, formData.senderAcctHead]);
 
-  // ✅ Filter Modes by Label (Dr for Sender, Cr for Receiver)
+  // ✅ FILTER MODES: Dr for Sender, Cr for Receiver
   const filteredSenderModes = useMemo(
-    () => trnTypes.filter((t) => t.DisplayName.startsWith("Dr")),
+    () => trnTypes.filter((t) => t.DrCr === "Dr"),
     [trnTypes],
   );
   const filteredReceiverModes = useMemo(
-    () => trnTypes.filter((t) => t.DisplayName.startsWith("Cr")),
+    () => trnTypes.filter((t) => t.DrCr === "Cr"),
     [trnTypes],
   );
 
@@ -561,6 +556,7 @@ export default function ProductDistribution() {
             </div>
           </form>
 
+          {/* Ledger History Area */}
           <div
             className="mt-5 mb-3"
             style={{
@@ -664,6 +660,7 @@ export default function ProductDistribution() {
                 ))}
               </tbody>
             </table>
+            {/* Pagination Controls */}
             <div className="d-flex justify-content-between align-items-center mt-3">
               <button
                 className="btn btn-sm btn-outline-secondary"

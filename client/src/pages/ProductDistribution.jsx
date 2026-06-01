@@ -153,7 +153,7 @@ export default function ProductDistribution() {
         ...prev,
         senderAcctNo: value,
         senderAcctNameDisplay: selected ? selected.AcctName : "",
-        receiverAcctNo: "", // ✅ FIXED: Clears receiver selection when sender changes to prevent invalid mapping
+        receiverAcctNo: "",
         receiverAcctNameDisplay: "",
         receiverAvailableQty: "",
       }));
@@ -285,7 +285,8 @@ export default function ProductDistribution() {
   }, [acctHeads, userRole]);
 
   const filteredSenderAccounts = useMemo(() => {
-    if (userRole === "District Administrator") {
+    // ✅ FIXED: Checks for both District Administrator AND Supervisor to strictly lock their AcctNo to their ProfileRegId
+    if (userRole === "District Administrator" || userRole === "Supervisor") {
       return allAccounts.filter(
         (a) =>
           String(a.AcctNo) === String(profileRegId) &&
@@ -304,7 +305,6 @@ export default function ProductDistribution() {
       : acctHeads;
   }, [acctHeads, formData.senderAcctHead]);
 
-  // ✅ FIXED: Hierarchical matching based strictly on the selected Sender's AcctNo across the accounts table columns
   const filteredReceiverAccounts = useMemo(() => {
     if (!formData.receiverAcctHead) return [];
 
@@ -539,7 +539,6 @@ export default function ProductDistribution() {
                   required
                 >
                   <option value="">--Select Account Number--</option>
-                  {/* ✅ FIXED: Now maps to the strict hierarchical filter hook instead of allAccounts */}
                   {filteredReceiverAccounts.map((a) => (
                     <option key={a.AcctNo} value={a.AcctNo}>
                       {a.DisplayName}

@@ -285,7 +285,12 @@ export default function ProductDistribution() {
   }, [acctHeads, userRole]);
 
   const filteredSenderAccounts = useMemo(() => {
-    if (userRole === "District Administrator" || userRole === "Supervisor") {
+    // ✅ FIXED: Included Astha Didi so their AcctNo strictly matches their ProfileRegId in the sender dropdown
+    if (
+      userRole === "District Administrator" ||
+      userRole === "Supervisor" ||
+      userRole === "Astha Didi"
+    ) {
       return allAccounts.filter(
         (a) =>
           String(a.AcctNo) === String(profileRegId) &&
@@ -304,7 +309,6 @@ export default function ProductDistribution() {
       : acctHeads;
   }, [acctHeads, formData.senderAcctHead]);
 
-  // ✅ FIXED: Deep hierarchical matching based strictly on ALL parent column values in the accounts table
   const filteredReceiverAccounts = useMemo(() => {
     if (!formData.receiverAcctHead) return [];
 

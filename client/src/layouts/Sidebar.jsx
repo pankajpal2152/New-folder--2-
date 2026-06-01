@@ -15,15 +15,17 @@ const Sidebar = () => {
       const userStr = localStorage.getItem("loggedInUser");
       if (userStr) {
         const user = JSON.parse(userStr);
-        setUserRole(user.role || "");
+        // ✅ Ensure we capture the role securely, checking both possible keys
+        setUserRole(user.role || user.UserSignUpRole || "");
       }
     } catch (error) {
       console.error("Error parsing user data from local storage", error);
     }
   }, []);
 
-  // Check if the role is 'developer' (case-insensitive for safety)
+  // Check roles (case-insensitive for safety)
   const isDeveloper = userRole.toLowerCase() === "developer";
+  const isAsthaMaa = userRole.toLowerCase() === "astha maa"; // ✅ ADDED: Identify if user is Astha Maa
 
   const styles = {
     sidebar: {
@@ -146,16 +148,19 @@ const Sidebar = () => {
         </div>
 
         {/* --- 2. PRODUCT DISTRIBUTION (MAIN MENU) --- */}
-        <NavLink to="/product-distribution" style={styles.link}>
-          {({ isActive }) => (
-            <li style={styles.menuItem(isActive)}>
-              <div style={styles.menuItemLeft}>
-                <span style={{ marginRight: "10px" }}>📦</span> Product
-                Distribution
-              </div>
-            </li>
-          )}
-        </NavLink>
+        {/* ✅ FIXED: Hide this menu item entirely if the user is an Astha Maa */}
+        {!isAsthaMaa && (
+          <NavLink to="/product-distribution" style={styles.link}>
+            {({ isActive }) => (
+              <li style={styles.menuItem(isActive)}>
+                <div style={styles.menuItemLeft}>
+                  <span style={{ marginRight: "10px" }}>📦</span> Product
+                  Distribution
+                </div>
+              </li>
+            )}
+          </NavLink>
+        )}
 
         {/* --- 3. SETTINGS MENU --- */}
         {isDeveloper && (

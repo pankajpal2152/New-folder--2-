@@ -114,11 +114,20 @@ export default function ProductDistribution() {
 
   const handleSenderChange = (e) => {
     const { name, value } = e.target;
+
     if (name === "transferQty") {
+      let val = value;
+      const maxAvail = parseFloat(formData.availableQty) || 0;
+
+      // ✅ FIXED: Instantly cap the input if the user types a number greater than available qty
+      if (val !== "" && parseFloat(val) > maxAvail) {
+        val = maxAvail.toString();
+      }
+
       setFormData((prev) => ({
         ...prev,
-        transferQty: value,
-        receiveQty: value,
+        transferQty: val,
+        receiveQty: val,
       }));
     } else if (name === "senderAcctHead") {
       const selected = acctHeads.find((h) => h.AcctHead === value);
@@ -290,7 +299,6 @@ export default function ProductDistribution() {
       : acctHeads;
   }, [acctHeads, formData.senderAcctHead]);
 
-  // ✅ FIXED: Removed the `.filter` restriction so BOTH Cr and Dr modes appear globally
   const filteredSenderModes = useMemo(() => trnTypes, [trnTypes]);
   const filteredReceiverModes = useMemo(() => trnTypes, [trnTypes]);
 
@@ -420,6 +428,14 @@ export default function ProductDistribution() {
                   name="transferQty"
                   value={formData.transferQty}
                   onChange={handleSenderChange}
+                  min="1"
+                  max={formData.availableQty || ""}
+                  onKeyDown={(e) => {
+                    // ✅ FIXED: Blocks physical typing of negatives, zeros, or exponents
+                    if (e.key === "-" || e.key === "e" || e.key === "E") {
+                      e.preventDefault();
+                    }
+                  }}
                   required
                 />
               </div>

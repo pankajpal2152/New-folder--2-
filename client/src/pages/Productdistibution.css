@@ -25,7 +25,8 @@
   Targeting the specific classes provided in the React file
 */
 .PerInfo {
-    background-color: #28a745; /* Green banner from the image */
+    background-color: #28a745;
+    /* Green banner from the image */
     color: #ffffff;
     padding: 8px 15px;
     font-size: 15px;
@@ -37,7 +38,8 @@
 }
 
 .AddInfo {
-    background-color: #3b82f6; /* Blue banner from the image */
+    background-color: #3b82f6;
+    /* Blue banner from the image */
     color: #ffffff;
     padding: 8px 15px;
     font-size: 15px;
@@ -58,10 +60,11 @@
 }
 
 /* Input Fields and Select Dropdowns */
-.form-control, 
-.form-control-sm, 
+.form-control,
+.form-control-sm,
 select.form-control {
-    border-radius: 20px !important; /* Creates the rounded pill look */
+    border-radius: 20px !important;
+    /* Creates the rounded pill look */
     border: 1px solid #ced4da;
     padding: 8px 15px;
     font-size: 13px;
@@ -71,8 +74,8 @@ select.form-control {
 }
 
 /* Input Focus State (Glow effect when clicked) */
-.form-control:focus, 
-.form-control-sm:focus, 
+.form-control:focus,
+.form-control-sm:focus,
 select.form-control:focus {
     border-color: #696cff;
     box-shadow: 0 0 0 0.25rem rgba(105, 108, 255, 0.25) !important;
@@ -81,7 +84,8 @@ select.form-control:focus {
 
 /* Textarea specific adjustment */
 textarea.form-control {
-    border-radius: 10px !important; /* Slightly less rounded for text areas */
+    border-radius: 10px !important;
+    /* Slightly less rounded for text areas */
     resize: vertical;
 }
 
@@ -94,7 +98,8 @@ textarea.form-control {
 .btn-primary {
     background-color: #696cff !important;
     border-color: #696cff !important;
-    border-radius: 20px !important; /* Rounded button */
+    border-radius: 20px !important;
+    /* Rounded button */
     padding: 8px 30px !important;
     font-weight: 600 !important;
     margin-top: 15px;

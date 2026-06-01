@@ -6,7 +6,7 @@ import react from '@vitejs/plugin-react';
 // ==========================================
 export default defineConfig({
   plugins: [react()],
-  
+
   // --- 1. LOCAL DEVELOPMENT SERVER ---
   server: {
     port: 3000,       // Standardized local frontend port
@@ -29,11 +29,11 @@ export default defineConfig({
 
   // --- 2. PRODUCTION BUILD SETTINGS (For Vercel) ---
   build: {
-    outDir: 'dist',    
-    emptyOutDir: true, 
-    sourcemap: false,  
-    chunkSizeWarningLimit: 1000, 
-    
+    outDir: 'dist',
+    emptyOutDir: true,
+    sourcemap: false,
+    chunkSizeWarningLimit: 1000,
+
     rollupOptions: {
       output: {
         manualChunks(id) {

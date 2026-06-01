@@ -36,13 +36,13 @@ exports.login = (req, res) => {
             // ✅ This will send the EXACT reason to your browser's Network tab
             return res.status(500).json({ error: 'Database error', details: err.message, code: err.code });
         }
-        
+
         if (results.length === 0) {
             return res.status(400).json({ error: 'User not found or role mismatch' });
         }
 
         const user = results[0];
-        
+
         // Check password against the mapped column
         if (password !== user.UserSignUpPassword) {
             return res.status(400).json({ error: 'Incorrect password' });
@@ -51,10 +51,10 @@ exports.login = (req, res) => {
         // ✅ Returning ALL columns exactly as they appear in the database for Local Storage
         res.status(200).json({
             message: 'Login successful',
-            user: { 
-                id: user.UserSignUpId, 
-                role: user.UserSignUpRole, 
-                username: user.SignupUserName || user.UserSignUpEmail.split('@')[0], 
+            user: {
+                id: user.UserSignUpId,
+                role: user.UserSignUpRole,
+                username: user.SignupUserName || user.UserSignUpEmail.split('@')[0],
                 email: user.UserSignUpEmail,
                 UserSignUpId: user.UserSignUpId,
                 UserSignUpRole: user.UserSignUpRole,

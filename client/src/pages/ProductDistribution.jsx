@@ -290,14 +290,9 @@ export default function ProductDistribution() {
       : acctHeads;
   }, [acctHeads, formData.senderAcctHead]);
 
-  const filteredSenderModes = useMemo(
-    () => trnTypes.filter((t) => t.DisplayName.toLowerCase().includes("dr")),
-    [trnTypes],
-  );
-  const filteredReceiverModes = useMemo(
-    () => trnTypes.filter((t) => t.DisplayName.toLowerCase().includes("cr")),
-    [trnTypes],
-  );
+  // ✅ FIXED: Removed the `.filter` restriction so BOTH Cr and Dr modes appear globally
+  const filteredSenderModes = useMemo(() => trnTypes, [trnTypes]);
+  const filteredReceiverModes = useMemo(() => trnTypes, [trnTypes]);
 
   return (
     <div className="container mt-5">

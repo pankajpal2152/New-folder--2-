@@ -285,7 +285,6 @@ export default function ProductDistribution() {
   }, [acctHeads, userRole]);
 
   const filteredSenderAccounts = useMemo(() => {
-    // ✅ FIXED: Checks for both District Administrator AND Supervisor to strictly lock their AcctNo to their ProfileRegId
     if (userRole === "District Administrator" || userRole === "Supervisor") {
       return allAccounts.filter(
         (a) =>
@@ -305,6 +304,7 @@ export default function ProductDistribution() {
       : acctHeads;
   }, [acctHeads, formData.senderAcctHead]);
 
+  // ✅ FIXED: Deep hierarchical matching based strictly on ALL parent column values in the accounts table
   const filteredReceiverAccounts = useMemo(() => {
     if (!formData.receiverAcctHead) return [];
 
@@ -312,29 +312,50 @@ export default function ProductDistribution() {
       if (a.AcctHead !== formData.receiverAcctHead) return false;
 
       if (formData.senderAcctHead && formData.senderAcctNo) {
+        // Find the sender's account row to get its full hierarchy path
+        const senderObj = allAccounts.find(
+          (acc) =>
+            String(acc.AcctNo) === String(formData.senderAcctNo) &&
+            acc.AcctHead === formData.senderAcctHead,
+        );
+
+        if (!senderObj) return false;
+
         if (
           formData.senderAcctHead === "SN" &&
           formData.receiverAcctHead === "DN"
         ) {
-          return String(a.SNGOAcctNo) === String(formData.senderAcctNo);
+          return String(a.SNGOAcctNo) === String(senderObj.AcctNo);
         }
         if (
           formData.senderAcctHead === "DN" &&
           formData.receiverAcctHead === "SV"
         ) {
-          return String(a.DNGOAcctNo) === String(formData.senderAcctNo);
+          return (
+            String(a.SNGOAcctNo) === String(senderObj.SNGOAcctNo) &&
+            String(a.DNGOAcctNo) === String(senderObj.AcctNo)
+          );
         }
         if (
           formData.senderAcctHead === "SV" &&
           formData.receiverAcctHead === "AD"
         ) {
-          return String(a.SVAcctNo) === String(formData.senderAcctNo);
+          return (
+            String(a.SNGOAcctNo) === String(senderObj.SNGOAcctNo) &&
+            String(a.DNGOAcctNo) === String(senderObj.DNGOAcctNo) &&
+            String(a.SVAcctNo) === String(senderObj.AcctNo)
+          );
         }
         if (
           formData.senderAcctHead === "AD" &&
           formData.receiverAcctHead === "AM"
         ) {
-          return String(a.ADAcctNo) === String(formData.senderAcctNo);
+          return (
+            String(a.SNGOAcctNo) === String(senderObj.SNGOAcctNo) &&
+            String(a.DNGOAcctNo) === String(senderObj.DNGOAcctNo) &&
+            String(a.SVAcctNo) === String(senderObj.SVAcctNo) &&
+            String(a.ADAcctNo) === String(senderObj.AcctNo)
+          );
         }
       }
       return true;

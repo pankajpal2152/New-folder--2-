@@ -177,7 +177,7 @@ exports.createAsthaDidi = (req, res) => {
         db.query(
           "UPDATE `asthadidi_reg` SET AsthaDidiProfileImage=? WHERE AsthaDidiRegId=?",
           [fileName, newId],
-          () => { },
+          () => {},
         );
 
         if (
@@ -196,7 +196,7 @@ exports.createAsthaDidi = (req, res) => {
               data.AsthaDidiCreatedByAuthRegId || null,
               newId,
             ],
-            () => { },
+            () => {},
           );
         }
         res.json({ message: "Astha Didi added successfully", id: newId });
@@ -265,7 +265,7 @@ exports.updateAsthaDidi = (req, res) => {
       db.query(
         `UPDATE userssignup SET UserSignUpPassword=? WHERE UserSignUpEmail=? AND UserSignUpRole='Astha Didi'`,
         [data.AsthaDidiSignupPassword, data.AsthaDidiSignupEmail],
-        () => { },
+        () => {},
       );
     }
     res.json({ message: "Record updated successfully" });
@@ -355,7 +355,7 @@ exports.createAsthaMaa = (req, res) => {
     db.query(
       "UPDATE asthama_reg SET AsthaMaProfileImage=? WHERE AsthaMaRegId=?",
       [fileName, newId],
-      () => { },
+      () => {},
     );
     if (data.AsthaMaSignupUserName) {
       db.query(
@@ -368,7 +368,7 @@ exports.createAsthaMaa = (req, res) => {
           data.AsthaMaCreatedByAuthRegId || null,
           newId,
         ],
-        () => { },
+        () => {},
       );
     }
     res.json({ message: "Astha Maa added successfully", id: newId });
@@ -521,7 +521,7 @@ exports.createDistrictAdmin = (req, res) => {
     db.query(
       "UPDATE dist_ngo_reg SET DistNGORecCertificate=?, DistNGOPanPic=?, DistNGODarpanPic=? WHERE DistNGORegId=?",
       [regCert, panPic, darpanPic, newId],
-      () => { },
+      () => {},
     );
 
     if (data.DistNGOSignupUserName) {
@@ -535,7 +535,7 @@ exports.createDistrictAdmin = (req, res) => {
           data.DistNGOCreatedByAuthRegId || null,
           newId,
         ],
-        () => { },
+        () => {},
       );
     }
     res.json({ message: "District Admin added successfully", id: newId });
@@ -683,7 +683,7 @@ exports.createSupervisor = (req, res) => {
     db.query(
       "UPDATE suvervisor_reg SET SupProfileImage=? WHERE SupRegId=?",
       [fileName, newId],
-      () => { },
+      () => {},
     );
     if (data.SupSignupUserName) {
       db.query(
@@ -696,7 +696,7 @@ exports.createSupervisor = (req, res) => {
           data.SupCreatedByAuthRegId || null,
           newId,
         ],
-        () => { },
+        () => {},
       );
     }
     res.json({ message: "Supervisor added successfully", id: newId });
@@ -818,9 +818,10 @@ exports.getAccountHeads = (req, res) => {
   );
 };
 
+// ✅ FIXED: Select all columns so the frontend can properly match hierarchical links (SNGOAcctNo, DNGOAcctNo, etc.)
 exports.getAccountsMapping = (req, res) => {
   db.query(
-    "SELECT AcctNo, AcctHead, AcctName, CONCAT(AcctNo, ' - ', AcctName) AS DisplayName FROM accounts",
+    "SELECT *, CONCAT(AcctNo, ' - ', AcctName) AS DisplayName FROM accounts",
     (err, results) => {
       if (err) return res.json([]);
       res.json(results);
@@ -918,39 +919,56 @@ exports.distributeProduct = (req, res) => {
 
   const receiverInfo = `${ReceiverRole} - ${ReceiverId}`;
   const senderInfo = `${SenderRole} - ${SenderId}`;
-  const trnDate = SenderDate || new Date().toISOString().split('T')[0];
+  const trnDate = SenderDate || new Date().toISOString().split("T")[0];
 
-  const sModeParsed = SenderMode ? SenderMode.split(' - ')[1] : 'TRANSFER';
-  const sDrCr = SenderMode ? SenderMode.split(' - ')[0] : 'Dr';
+  const sModeParsed = SenderMode ? SenderMode.split(" - ")[1] : "TRANSFER";
+  const sDrCr = SenderMode ? SenderMode.split(" - ")[0] : "Dr";
 
-  const rModeParsed = ReceiverMode ? ReceiverMode.split(' - ')[1] : 'RECEIVED';
-  const rDrCr = ReceiverMode ? ReceiverMode.split(' - ')[0] : 'Cr';
+  const rModeParsed = ReceiverMode ? ReceiverMode.split(" - ")[1] : "RECEIVED";
+  const rDrCr = ReceiverMode ? ReceiverMode.split(" - ")[0] : "Cr";
 
   // Record withdrawal from Sender (Dr)
   db.query(
     "INSERT INTO transaction (TrnDate, AcctNo, AcctHead, ProId, Deposit, Withdraw, DrCr, TrnType, Remerks, UserName) VALUES (?, ?, ?, ?, 0, ?, ?, ?, ?, ?)",
-    [trnDate, SenderId, SenderRole, ProductId, DistributedQty, sDrCr, sModeParsed, Remarks, receiverInfo],
+    [
+      trnDate,
+      SenderId,
+      SenderRole,
+      ProductId,
+      DistributedQty,
+      sDrCr,
+      sModeParsed,
+      Remarks,
+      receiverInfo,
+    ],
     (err) => {
       if (err) return res.status(500).json({ error: err.message });
 
       // Record deposit to Receiver (Cr)
       db.query(
         "INSERT INTO transaction (TrnDate, AcctNo, AcctHead, ProId, Deposit, Withdraw, DrCr, TrnType, Remerks, UserName) VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?, ?)",
-        [trnDate, ReceiverId, ReceiverRole, ProductId, DistributedQty, rDrCr, rModeParsed, Remarks, senderInfo],
+        [
+          trnDate,
+          ReceiverId,
+          ReceiverRole,
+          ProductId,
+          DistributedQty,
+          rDrCr,
+          rModeParsed,
+          Remarks,
+          senderInfo,
+        ],
         (err2) => {
           if (err2) return res.status(500).json({ error: err2.message });
           res.json({ message: "Product distributed successfully" });
-        }
+        },
       );
-    }
+    },
   );
 };
 
-// Advanced Full Ledger Transaction History
-// Replace your existing getDistributionHistory in controllers/formController.js with this:
 exports.getDistributionHistory = (req, res) => {
   const { senderId, senderHead } = req.query;
-  // REMOVED 'AND t1.Withdraw > 0' to include both sent and received transactions
   const query = `
     SELECT 
       t1.TrnId,
@@ -982,11 +1000,15 @@ exports.getDistributionHistory = (req, res) => {
     WHERE (t1.AcctNo = ? AND t1.AcctHead = ?) OR (SUBSTRING_INDEX(t1.UserName, ' - ', -1) = ? AND SUBSTRING_INDEX(t1.UserName, ' - ', 1) = ?)
     ORDER BY t1.TrnId DESC
   `;
-  db.query(query, [senderId, senderHead, senderId, senderHead], (err, results) => {
-    if (err) {
-      console.error("❌ History fetch error:", err);
-      return res.json([]);
-    }
-    res.json(results);
-  });
+  db.query(
+    query,
+    [senderId, senderHead, senderId, senderHead],
+    (err, results) => {
+      if (err) {
+        console.error("❌ History fetch error:", err);
+        return res.json([]);
+      }
+      res.json(results);
+    },
+  );
 };

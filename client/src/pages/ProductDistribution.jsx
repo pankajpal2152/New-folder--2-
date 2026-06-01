@@ -17,7 +17,7 @@ export default function ProductDistribution() {
 
   const [userRole, setUserRole] = useState("");
   const [userName, setUserName] = useState(""); // Capturing username
-  const [profileRegId, setProfileRegId] = useState(""); // ✅ ADDED: Capturing ProfileRegId for strict AcctNo matching
+  const [profileRegId, setProfileRegId] = useState(""); // Capturing ProfileRegId for strict AcctNo matching
   const [searchTerm, setSearchTerm] = useState("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
@@ -49,7 +49,7 @@ export default function ProductDistribution() {
       const user = JSON.parse(userStr);
       setUserRole(user.role || user.UserSignUpRole || "");
       setUserName(user.SignupUserName || "");
-      setProfileRegId(user.ProfileRegId || ""); // ✅ ADDED: Set ProfileRegId from session
+      setProfileRegId(user.ProfileRegId || "");
     }
     fetchData();
   }, []);
@@ -153,6 +153,9 @@ export default function ProductDistribution() {
         ...prev,
         senderAcctNo: value,
         senderAcctNameDisplay: selected ? selected.AcctName : "",
+        receiverAcctNo: "", // ✅ FIXED: Clears receiver selection when sender changes to prevent invalid mapping
+        receiverAcctNameDisplay: "",
+        receiverAvailableQty: "",
       }));
       fetchHistory(value, formData.senderAcctHead);
     } else if (name === "productName") {
@@ -283,7 +286,6 @@ export default function ProductDistribution() {
 
   const filteredSenderAccounts = useMemo(() => {
     if (userRole === "District Administrator") {
-      // ✅ FIXED: Strictly mapping AcctNo to the logged-in user's ProfileRegId
       return allAccounts.filter(
         (a) =>
           String(a.AcctNo) === String(profileRegId) &&
@@ -301,6 +303,48 @@ export default function ProductDistribution() {
         )
       : acctHeads;
   }, [acctHeads, formData.senderAcctHead]);
+
+  // ✅ FIXED: Hierarchical matching based strictly on the selected Sender's AcctNo across the accounts table columns
+  const filteredReceiverAccounts = useMemo(() => {
+    if (!formData.receiverAcctHead) return [];
+
+    return allAccounts.filter((a) => {
+      if (a.AcctHead !== formData.receiverAcctHead) return false;
+
+      if (formData.senderAcctHead && formData.senderAcctNo) {
+        if (
+          formData.senderAcctHead === "SN" &&
+          formData.receiverAcctHead === "DN"
+        ) {
+          return String(a.SNGOAcctNo) === String(formData.senderAcctNo);
+        }
+        if (
+          formData.senderAcctHead === "DN" &&
+          formData.receiverAcctHead === "SV"
+        ) {
+          return String(a.DNGOAcctNo) === String(formData.senderAcctNo);
+        }
+        if (
+          formData.senderAcctHead === "SV" &&
+          formData.receiverAcctHead === "AD"
+        ) {
+          return String(a.SVAcctNo) === String(formData.senderAcctNo);
+        }
+        if (
+          formData.senderAcctHead === "AD" &&
+          formData.receiverAcctHead === "AM"
+        ) {
+          return String(a.ADAcctNo) === String(formData.senderAcctNo);
+        }
+      }
+      return true;
+    });
+  }, [
+    allAccounts,
+    formData.receiverAcctHead,
+    formData.senderAcctHead,
+    formData.senderAcctNo,
+  ]);
 
   const filteredSenderModes = useMemo(() => trnTypes, [trnTypes]);
   const filteredReceiverModes = useMemo(() => trnTypes, [trnTypes]);
@@ -495,13 +539,12 @@ export default function ProductDistribution() {
                   required
                 >
                   <option value="">--Select Account Number--</option>
-                  {allAccounts
-                    .filter((a) => a.AcctHead === formData.receiverAcctHead)
-                    .map((a) => (
-                      <option key={a.AcctNo} value={a.AcctNo}>
-                        {a.DisplayName}
-                      </option>
-                    ))}
+                  {/* ✅ FIXED: Now maps to the strict hierarchical filter hook instead of allAccounts */}
+                  {filteredReceiverAccounts.map((a) => (
+                    <option key={a.AcctNo} value={a.AcctNo}>
+                      {a.DisplayName}
+                    </option>
+                  ))}
                 </select>
               </div>
               <div className="col-md-7 mb-3">

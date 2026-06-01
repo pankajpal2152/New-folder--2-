@@ -17,6 +17,7 @@ export default function ProductDistribution() {
 
   const [userRole, setUserRole] = useState("");
   const [userName, setUserName] = useState(""); // Capturing username
+  const [profileRegId, setProfileRegId] = useState(""); // ✅ ADDED: Capturing ProfileRegId for strict AcctNo matching
   const [searchTerm, setSearchTerm] = useState("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
@@ -48,6 +49,7 @@ export default function ProductDistribution() {
       const user = JSON.parse(userStr);
       setUserRole(user.role || user.UserSignUpRole || "");
       setUserName(user.SignupUserName || "");
+      setProfileRegId(user.ProfileRegId || ""); // ✅ ADDED: Set ProfileRegId from session
     }
     fetchData();
   }, []);
@@ -119,7 +121,6 @@ export default function ProductDistribution() {
       let val = value;
       const maxAvail = parseFloat(formData.availableQty) || 0;
 
-      // ✅ FIXED: Instantly cap the input if the user types a number greater than available qty
       if (val !== "" && parseFloat(val) > maxAvail) {
         val = maxAvail.toString();
       }
@@ -282,13 +283,15 @@ export default function ProductDistribution() {
 
   const filteredSenderAccounts = useMemo(() => {
     if (userRole === "District Administrator") {
+      // ✅ FIXED: Strictly mapping AcctNo to the logged-in user's ProfileRegId
       return allAccounts.filter(
         (a) =>
-          a.AcctName === userName && a.AcctHead === formData.senderAcctHead,
+          String(a.AcctNo) === String(profileRegId) &&
+          a.AcctHead === formData.senderAcctHead,
       );
     }
     return allAccounts.filter((a) => a.AcctHead === formData.senderAcctHead);
-  }, [allAccounts, formData.senderAcctHead, userRole, userName]);
+  }, [allAccounts, formData.senderAcctHead, userRole, profileRegId]);
 
   const allowedReceiverHeads = useMemo(() => {
     const hierarchy = { SU: "SN", SN: "DN", DN: "SV", SV: "AD", AD: "AM" };
@@ -431,7 +434,6 @@ export default function ProductDistribution() {
                   min="1"
                   max={formData.availableQty || ""}
                   onKeyDown={(e) => {
-                    // ✅ FIXED: Blocks physical typing of negatives, zeros, or exponents
                     if (e.key === "-" || e.key === "e" || e.key === "E") {
                       e.preventDefault();
                     }

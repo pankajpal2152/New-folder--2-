@@ -1257,10 +1257,13 @@ const AsthaMaaTable = ({ refreshTrigger, externalFilters }) => {
                           👁️
                         </button>
 
+                        {/* ✅ FIXED: Allowed District Administrator to edit Astha Maa */}
                         {userRole &&
-                          ["state super administrator", "astha didi"].includes(
-                            (userRole || "").toLowerCase(),
-                          ) && (
+                          [
+                            "state super administrator",
+                            "district administrator",
+                            "astha didi",
+                          ].includes((userRole || "").toLowerCase()) && (
                             <button
                               onClick={() => openModal("edit", row)}
                               style={styles.actionBtn}
@@ -1269,11 +1272,15 @@ const AsthaMaaTable = ({ refreshTrigger, externalFilters }) => {
                             </button>
                           )}
 
+                        {/* ✅ FIXED: Allowed District Administrator and Supervisor to approve Astha Maa */}
                         {Number(row.AsthaMaIsActive) !== 2 &&
                           userRole &&
-                          ["state super administrator", "astha didi"].includes(
-                            (userRole || "").toLowerCase(),
-                          ) && (
+                          [
+                            "state super administrator",
+                            "district administrator",
+                            "supervisor",
+                            "astha didi",
+                          ].includes((userRole || "").toLowerCase()) && (
                             <button
                               onClick={() => openModal("approve", row)}
                               style={styles.actionBtn}

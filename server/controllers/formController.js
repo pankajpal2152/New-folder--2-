@@ -927,15 +927,23 @@ exports.distributeProduct = (req, res) => {
   const rModeParsed = ReceiverMode ? ReceiverMode.split(" - ")[1] : "RECEIVED";
   const rDrCr = ReceiverMode ? ReceiverMode.split(" - ")[0] : "Cr";
 
-  // Record withdrawal from Sender (Dr)
+  // ✅ DYNAMIC DR/CR ASSIGNMENTS FOR DOUBLE-ENTRY ACCOUNTING
+  const sDeposit = sDrCr === "Cr" ? DistributedQty : 0;
+  const sWithdraw = sDrCr === "Dr" ? DistributedQty : 0;
+
+  const rDeposit = rDrCr === "Cr" ? DistributedQty : 0;
+  const rWithdraw = rDrCr === "Dr" ? DistributedQty : 0;
+
+  // Record transaction for Sender
   db.query(
-    "INSERT INTO transaction (TrnDate, AcctNo, AcctHead, ProId, Deposit, Withdraw, DrCr, TrnType, Remerks, UserName) VALUES (?, ?, ?, ?, 0, ?, ?, ?, ?, ?)",
+    "INSERT INTO transaction (TrnDate, AcctNo, AcctHead, ProId, Deposit, Withdraw, DrCr, TrnType, Remerks, UserName) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     [
       trnDate,
       SenderId,
       SenderRole,
       ProductId,
-      DistributedQty,
+      sDeposit,
+      sWithdraw,
       sDrCr,
       sModeParsed,
       Remarks,
@@ -944,15 +952,16 @@ exports.distributeProduct = (req, res) => {
     (err) => {
       if (err) return res.status(500).json({ error: err.message });
 
-      // Record deposit to Receiver (Cr)
+      // Record transaction for Receiver
       db.query(
-        "INSERT INTO transaction (TrnDate, AcctNo, AcctHead, ProId, Deposit, Withdraw, DrCr, TrnType, Remerks, UserName) VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?, ?)",
+        "INSERT INTO transaction (TrnDate, AcctNo, AcctHead, ProId, Deposit, Withdraw, DrCr, TrnType, Remerks, UserName) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         [
           trnDate,
           ReceiverId,
           ReceiverRole,
           ProductId,
-          DistributedQty,
+          rDeposit,
+          rWithdraw,
           rDrCr,
           rModeParsed,
           Remarks,
@@ -960,7 +969,7 @@ exports.distributeProduct = (req, res) => {
         ],
         (err2) => {
           if (err2) return res.status(500).json({ error: err2.message });
-          res.json({ message: "Product distributed successfully" });
+          res.json({ message: "Product transaction completed successfully" });
         },
       );
     },
@@ -979,14 +988,14 @@ exports.getDistributionHistory = (req, res) => {
       acc1.AcctName AS SenderAcctName,
       t1.TrnType AS SenderMode,
       p.ProName AS ProductName,
-      t1.Withdraw AS TransferQty,
+      (t1.Deposit + t1.Withdraw) AS TransferQty,
       (SELECT SUM(Deposit - Withdraw) FROM transaction WHERE AcctNo = t1.AcctNo AND AcctHead = t1.AcctHead AND ProId = t1.ProId AND TrnId <= t1.TrnId) AS SenderAvailableQty,
       
       SUBSTRING_INDEX(t1.UserName, ' - ', 1) AS ReceiverHead,
       ah2.AcctHeadName AS ReceiverHeadName,
       SUBSTRING_INDEX(t1.UserName, ' - ', -1) AS ReceiverAcctNo,
       acc2.AcctName AS ReceiverAcctName,
-      t1.Withdraw AS ReceiveQty,
+      (t1.Deposit + t1.Withdraw) AS ReceiveQty,
       
       (SELECT SUM(Deposit - Withdraw) FROM transaction WHERE AcctNo = SUBSTRING_INDEX(t1.UserName, ' - ', -1) AND AcctHead = SUBSTRING_INDEX(t1.UserName, ' - ', 1) AND ProId = t1.ProId AND TrnId <= (t1.TrnId + 1)) AS ReceiverAvailableQty,
       

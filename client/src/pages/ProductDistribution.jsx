@@ -119,7 +119,12 @@ export default function ProductDistribution() {
 
     if (name === "transferQty") {
       let val = value;
-      const maxAvail = parseFloat(formData.availableQty) || 0;
+      const isDr = formData.senderMode
+        ? formData.senderMode.startsWith("Dr")
+        : true;
+      const maxAvail = isDr
+        ? parseFloat(formData.availableQty) || 0
+        : parseFloat(formData.receiverAvailableQty) || 0;
 
       if (val !== "" && parseFloat(val) > maxAvail) {
         val = maxAvail.toString();
@@ -199,14 +204,28 @@ export default function ProductDistribution() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const tQty = parseFloat(formData.transferQty);
+
     if (!formData.transferQty || tQty <= 0) {
       alert("Transfer quantity must be greater than 0.");
       return;
     }
-    if (tQty > parseFloat(formData.availableQty)) {
-      alert("Transfer quantity cannot exceed available quantity!");
+
+    const sDrCr = formData.senderMode
+      ? formData.senderMode.split(" - ")[0]
+      : "Dr";
+
+    // ✅ VALIDATE CORRECT INVENTORY SOURCE FOR BOTH TRANSFER (DR) AND REFUND (CR)
+    if (sDrCr === "Dr" && tQty > parseFloat(formData.availableQty)) {
+      alert("Transfer quantity cannot exceed sender's available quantity!");
       return;
     }
+    if (sDrCr === "Cr" && tQty > parseFloat(formData.receiverAvailableQty)) {
+      alert(
+        "Receive/Refund quantity cannot exceed receiver's available quantity!",
+      );
+      return;
+    }
+
     try {
       await axios.post(`${API_BASE_URL}/distribute`, {
         SenderDate: formData.senderDate,
@@ -221,7 +240,7 @@ export default function ProductDistribution() {
         DistributedQty: formData.transferQty,
         Remarks: formData.remarks,
       });
-      alert("Product Distributed Successfully");
+      alert("Product Transaction Completed Successfully");
       const updatedSenderQty = await getStock(
         formData.senderAcctHead,
         formData.senderAcctNo,
@@ -242,7 +261,7 @@ export default function ProductDistribution() {
       }));
       fetchHistory(formData.senderAcctNo, formData.senderAcctHead);
     } catch (err) {
-      alert("Error distributing product");
+      alert("Error executing transaction");
     }
   };
 
@@ -285,7 +304,6 @@ export default function ProductDistribution() {
   }, [acctHeads, userRole]);
 
   const filteredSenderAccounts = useMemo(() => {
-    // ✅ FIXED: Included Astha Didi so their AcctNo strictly matches their ProfileRegId in the sender dropdown
     if (
       userRole === "District Administrator" ||
       userRole === "Supervisor" ||
@@ -316,7 +334,6 @@ export default function ProductDistribution() {
       if (a.AcctHead !== formData.receiverAcctHead) return false;
 
       if (formData.senderAcctHead && formData.senderAcctNo) {
-        // Find the sender's account row to get its full hierarchy path
         const senderObj = allAccounts.find(
           (acc) =>
             String(acc.AcctNo) === String(formData.senderAcctNo) &&
@@ -373,6 +390,9 @@ export default function ProductDistribution() {
 
   const filteredSenderModes = useMemo(() => trnTypes, [trnTypes]);
   const filteredReceiverModes = useMemo(() => trnTypes, [trnTypes]);
+  const isSenderDr = formData.senderMode
+    ? formData.senderMode.startsWith("Dr")
+    : true;
 
   return (
     <div className="container mt-5">
@@ -501,7 +521,11 @@ export default function ProductDistribution() {
                   value={formData.transferQty}
                   onChange={handleSenderChange}
                   min="1"
-                  max={formData.availableQty || ""}
+                  max={
+                    isSenderDr
+                      ? formData.availableQty || ""
+                      : formData.receiverAvailableQty || ""
+                  }
                   onKeyDown={(e) => {
                     if (e.key === "-" || e.key === "e" || e.key === "E") {
                       e.preventDefault();
@@ -710,39 +734,49 @@ export default function ProductDistribution() {
                 </tr>
               </thead>
               <tbody>
-                {currentItems.map((h) => (
-                  <tr key={h.TrnId}>
-                    <td style={{ whiteSpace: "nowrap" }}>
-                      {h.TransactionDate}
-                    </td>
-                    <td>
-                      {h.SenderHeadName}
-                      <br />
-                      <small className="text-muted">
-                        {h.SenderAcctName} ({h.SenderAcctNo})
-                      </small>
-                    </td>
-                    <td>
-                      <strong>{h.SenderAvailableQty}</strong>
-                    </td>
-                    <td>{h.ProductName}</td>
-                    <td style={{ color: "red", fontWeight: "bold" }}>
-                      - {h.TransferQty}
-                    </td>
-                    <td>
-                      {h.ReceiverHeadName}
-                      <br />
-                      <small className="text-muted">
-                        {h.ReceiverAcctName} ({h.ReceiverAcctNo})
-                      </small>
-                    </td>
-                    <td>
-                      <strong>{h.ReceiverAvailableQty}</strong>
-                    </td>
-                    <td>{h.SenderMode}</td>
-                    <td>{h.Remarks}</td>
-                  </tr>
-                ))}
+                {currentItems.map((h) => {
+                  const isReceived =
+                    h.SenderMode &&
+                    h.SenderMode.toUpperCase().includes("RECEIVED");
+                  return (
+                    <tr key={h.TrnId}>
+                      <td style={{ whiteSpace: "nowrap" }}>
+                        {h.TransactionDate}
+                      </td>
+                      <td>
+                        {h.SenderHeadName}
+                        <br />
+                        <small className="text-muted">
+                          {h.SenderAcctName} ({h.SenderAcctNo})
+                        </small>
+                      </td>
+                      <td>
+                        <strong>{h.SenderAvailableQty}</strong>
+                      </td>
+                      <td>{h.ProductName}</td>
+                      <td
+                        style={{
+                          color: isReceived ? "green" : "red",
+                          fontWeight: "bold",
+                        }}
+                      >
+                        {isReceived ? "+" : "-"} {h.TransferQty}
+                      </td>
+                      <td>
+                        {h.ReceiverHeadName}
+                        <br />
+                        <small className="text-muted">
+                          {h.ReceiverAcctName} ({h.ReceiverAcctNo})
+                        </small>
+                      </td>
+                      <td>
+                        <strong>{h.ReceiverAvailableQty}</strong>
+                      </td>
+                      <td>{h.SenderMode}</td>
+                      <td>{h.Remarks}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
             <div className="d-flex justify-content-between align-items-center mt-3">

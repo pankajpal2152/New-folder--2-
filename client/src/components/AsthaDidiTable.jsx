@@ -1268,10 +1268,12 @@ const MembersTable = ({ refreshTrigger, externalFilters }) => {
                         >
                           👁️
                         </button>
-                        {/* ✅ FIXED: Super Admin and Supervisor can edit */}
-                        {["state super administrator", "supervisor"].includes(
-                          (userRole || "").toLowerCase(),
-                        ) && (
+                        {/* ✅ FIXED: Super Admin, District Administrator, and Supervisor can edit */}
+                        {[
+                          "state super administrator",
+                          "district administrator",
+                          "supervisor",
+                        ].includes((userRole || "").toLowerCase()) && (
                           <button
                             onClick={() => openModal("edit", row)}
                             style={styles.actionBtn}
@@ -1289,11 +1291,13 @@ const MembersTable = ({ refreshTrigger, externalFilters }) => {
                             🗑️
                           </button>
                         )}
-                        {/* ✅ FIXED: Super Admin and Supervisor can approve */}
+                        {/* ✅ FIXED: Super Admin, District Administrator, and Supervisor can approve */}
                         {Number(row.AsthaDidiIsActive) !== 2 &&
-                          ["state super administrator", "supervisor"].includes(
-                            (userRole || "").toLowerCase(),
-                          ) && (
+                          [
+                            "state super administrator",
+                            "district administrator",
+                            "supervisor",
+                          ].includes((userRole || "").toLowerCase()) && (
                             <button
                               onClick={() => openModal("approve", row)}
                               style={styles.actionBtn}

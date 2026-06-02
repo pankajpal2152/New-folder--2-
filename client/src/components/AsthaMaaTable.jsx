@@ -154,7 +154,6 @@ const AsthaMaaModal = ({ member, mode, onClose, onSuccess }) => {
       },
     ];
 
-    // FIXED: Only check for duplicate Aadhar if the user actually typed one in
     if (data.aadharNo && data.aadharNo.trim() !== "") {
       checks.push({
         table: "asthama_reg",
@@ -399,6 +398,7 @@ const AsthaMaaModal = ({ member, mode, onClose, onSuccess }) => {
                     <Select
                       {...field}
                       options={dbStates}
+                      placeholder={member.AsthaMaStateName || "Select..."}
                       styles={{
                         ...styles.selectStyles(!!errors.state),
                         menuPortal: (base) => ({ ...base, zIndex: 99999 }),
@@ -420,6 +420,7 @@ const AsthaMaaModal = ({ member, mode, onClose, onSuccess }) => {
                     <Select
                       {...field}
                       options={dbDistricts}
+                      placeholder={member.AsthaMaDistName || "Select..."}
                       styles={{
                         ...styles.selectStyles(!!errors.district),
                         menuPortal: (base) => ({ ...base, zIndex: 99999 }),
@@ -599,7 +600,6 @@ const AsthaMaaModal = ({ member, mode, onClose, onSuccess }) => {
                 )}
               />
             </div>
-
             <h6 style={styles.sectionHeader}>Banking & Payment Details</h6>
             <div style={styles.formGrid}>
               <Controller
@@ -672,13 +672,12 @@ const AsthaMaaModal = ({ member, mode, onClose, onSuccess }) => {
                   />
                 )}
               />
-              {/* FIXED: Removed the '*' from label since it is now optional */}
               <Controller
                 name="aadharNo"
                 control={control}
                 render={({ field }) => (
                   <FormInput
-                    label="Aadhar No"
+                    label="Aadhar No *"
                     id="edit_aadharNo"
                     error={errors.aadharNo}
                     disabled
@@ -1260,8 +1259,11 @@ const AsthaMaaTable = ({ refreshTrigger, externalFilters }) => {
                           👁️
                         </button>
 
+                        {/* ✅ FIXED: Super Admin and Astha Didi can edit */}
                         {userRole &&
-                          userRole.toLowerCase() === "astha didi" && (
+                          ["state super administrator", "astha didi"].includes(
+                            (userRole || "").toLowerCase(),
+                          ) && (
                             <button
                               onClick={() => openModal("edit", row)}
                               style={styles.actionBtn}
@@ -1270,9 +1272,12 @@ const AsthaMaaTable = ({ refreshTrigger, externalFilters }) => {
                             </button>
                           )}
 
+                        {/* ✅ FIXED: Super Admin and Astha Didi can approve */}
                         {Number(row.AsthaMaIsActive) !== 2 &&
                           userRole &&
-                          userRole.toLowerCase() === "astha didi" && (
+                          ["state super administrator", "astha didi"].includes(
+                            (userRole || "").toLowerCase(),
+                          ) && (
                             <button
                               onClick={() => openModal("approve", row)}
                               style={styles.actionBtn}
@@ -1280,6 +1285,8 @@ const AsthaMaaTable = ({ refreshTrigger, externalFilters }) => {
                               ✅
                             </button>
                           )}
+
+                        {/* ✅ FIXED: Super Admin can delete */}
                         {userRole === "State Super Administrator" && (
                           <button
                             onClick={() => openModal("delete", row)}

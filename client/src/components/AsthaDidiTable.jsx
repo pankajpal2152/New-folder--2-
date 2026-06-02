@@ -740,6 +740,7 @@ const AsthaDidiModal = ({ member, mode, onClose, onSuccess }) => {
                 )}
               />
             </div>
+
             <div
               style={{
                 display: "flex",
@@ -1267,7 +1268,10 @@ const MembersTable = ({ refreshTrigger, externalFilters }) => {
                         >
                           👁️
                         </button>
-                        {userRole === "Supervisor" && (
+                        {/* ✅ FIXED: Super Admin and Supervisor can edit */}
+                        {["state super administrator", "supervisor"].includes(
+                          (userRole || "").toLowerCase(),
+                        ) && (
                           <button
                             onClick={() => openModal("edit", row)}
                             style={styles.actionBtn}
@@ -1275,7 +1279,9 @@ const MembersTable = ({ refreshTrigger, externalFilters }) => {
                             ✏️
                           </button>
                         )}
-                        {userRole === "State Super Administrator" && (
+                        {/* ✅ FIXED: Super Admin can delete */}
+                        {userRole?.toLowerCase() ===
+                          "state super administrator" && (
                           <button
                             onClick={() => openModal("delete", row)}
                             style={styles.actionBtn}
@@ -1283,8 +1289,11 @@ const MembersTable = ({ refreshTrigger, externalFilters }) => {
                             🗑️
                           </button>
                         )}
+                        {/* ✅ FIXED: Super Admin and Supervisor can approve */}
                         {Number(row.AsthaDidiIsActive) !== 2 &&
-                          userRole === "Supervisor" && (
+                          ["state super administrator", "supervisor"].includes(
+                            (userRole || "").toLowerCase(),
+                          ) && (
                             <button
                               onClick={() => openModal("approve", row)}
                               style={styles.actionBtn}

@@ -558,8 +558,9 @@ const SupervisorModal = ({ member, mode, onClose, onSuccess }) => {
                     label="User Name *"
                     id="edit_userName"
                     error={errors.userName}
+                    disabled={isView}
+                    type="text"
                     readOnly
-                    disabled={true}
                     {...field}
                   />
                 )}
@@ -574,6 +575,8 @@ const SupervisorModal = ({ member, mode, onClose, onSuccess }) => {
                     error={errors.email}
                     disabled
                     readOnly
+                    type="email"
+                    maxLength={100}
                     {...field}
                   />
                 )}
@@ -592,7 +595,6 @@ const SupervisorModal = ({ member, mode, onClose, onSuccess }) => {
                 )}
               />
             </div>
-
             <h6 style={styles.sectionHeader}>Banking & Payment Details</h6>
             <div style={styles.formGrid}>
               <Controller
@@ -754,7 +756,6 @@ const SupervisorTable = ({ refreshTrigger, externalFilters }) => {
     fetchMembers();
   }, [refreshTrigger]);
 
-  // STRICT DATA VISIBILITY: MUST SELECT ALL FILTERS DOWN TO DISTRICT NGO
   const filteredMembers = useMemo(() => {
     if (
       userRole !== "Supervisor" &&
@@ -1170,11 +1171,12 @@ const SupervisorTable = ({ refreshTrigger, externalFilters }) => {
                         >
                           👁️
                         </button>
-
-                        {/* Corrected spelling here so District Administrators can edit */}
+                        {/* ✅ FIXED: Super Admin and District Admin can edit */}
                         {userRole &&
-                          userRole.toLowerCase() ===
-                            "district administrator" && (
+                          [
+                            "state super administrator",
+                            "district administrator",
+                          ].includes((userRole || "").toLowerCase()) && (
                             <button
                               onClick={() => openModal("edit", row)}
                               style={styles.actionBtn}
@@ -1182,7 +1184,7 @@ const SupervisorTable = ({ refreshTrigger, externalFilters }) => {
                               ✏️
                             </button>
                           )}
-
+                        {/* ✅ FIXED: Super Admin can delete */}
                         {userRole === "State Super Administrator" && (
                           <button
                             onClick={() => openModal("delete", row)}
@@ -1191,12 +1193,13 @@ const SupervisorTable = ({ refreshTrigger, externalFilters }) => {
                             🗑️
                           </button>
                         )}
-
-                        {/* Corrected spelling here so District Administrators can approve! */}
+                        {/* ✅ FIXED: Super Admin and District Admin can approve */}
                         {Number(row.SupIsActive) !== 2 &&
                           userRole &&
-                          userRole.toLowerCase() ===
-                            "district administrator" && (
+                          [
+                            "state super administrator",
+                            "district administrator",
+                          ].includes((userRole || "").toLowerCase()) && (
                             <button
                               onClick={() => openModal("approve", row)}
                               style={styles.actionBtn}

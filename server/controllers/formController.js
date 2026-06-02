@@ -768,19 +768,12 @@ exports.deleteSupervisor = (req, res) => {
 exports.checkDuplicate = (req, res) => {
   const { table, column, value, idColumn, idValue } = req.body;
 
+  // ✅ FIXED: Configured the global allowed rule-set to ONLY accept Email ID and Contact No. for duplicate checks across ALL tables.
   const allowed = {
-    asthadidi_reg: [
-      "AsthaDidiMailId",
-      "AsthaDidiSignupUserName",
-      "AsthaDidiAadharNo",
-    ],
-    asthama_reg: ["AsthaMaMailId", "AsthaMaSignupUserName", "AsthaMaAadharNo"],
-    suvervisor_reg: ["SupMailId", "SupSignupUserName", "SupAadharNo"],
-    dist_ngo_reg: [
-      "DistNGOMailId",
-      "DistNGOSignupUserName",
-      "DistNGOSDPAadhaarNo",
-    ],
+    asthadidi_reg: ["AsthaDidiMailId", "AsthaDidiContactNo"],
+    asthama_reg: ["AsthaMaMailId", "AsthaMaContactNo"],
+    suvervisor_reg: ["SupMailId", "SupContactNo"],
+    dist_ngo_reg: ["DistNGOMailId", "DistNGOPhoneNo"],
   };
 
   if (!allowed[table] || !allowed[table].includes(column)) {

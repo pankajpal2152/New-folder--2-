@@ -135,6 +135,7 @@ const AsthaMaaModal = ({ member, mode, onClose, onSuccess }) => {
   };
 
   const onSubmit = async (data) => {
+    // ✅ FIXED: Checks only Email ID and Contact Number for duplicates
     const checks = [
       {
         table: "asthama_reg",
@@ -146,24 +147,13 @@ const AsthaMaaModal = ({ member, mode, onClose, onSuccess }) => {
       },
       {
         table: "asthama_reg",
-        column: "AsthaMaSignupUserName",
-        value: data.userName,
+        column: "AsthaMaContactNo",
+        value: data.mobileNo,
         idColumn: "AsthaMaRegId",
         idValue: member.AsthaMaRegId,
-        label: "Username",
+        label: "Contact Number",
       },
     ];
-
-    if (data.aadharNo && data.aadharNo.trim() !== "") {
-      checks.push({
-        table: "asthama_reg",
-        column: "AsthaMaAadharNo",
-        value: data.aadharNo,
-        idColumn: "AsthaMaRegId",
-        idValue: member.AsthaMaRegId,
-        label: "Aadhar No",
-      });
-    }
 
     if (!(await validateUniqueFields(checks))) return;
 
@@ -600,7 +590,9 @@ const AsthaMaaModal = ({ member, mode, onClose, onSuccess }) => {
                 )}
               />
             </div>
-            <h6 style={styles.sectionHeader}>Banking & Payment Details</h6>
+
+            {/* ✅ SECURELY COMMENTED OUT: Banking & Payment Details Section inside Modal */}
+            {/* <h6 style={styles.sectionHeader}>Banking & Payment Details</h6>
             <div style={styles.formGrid}>
               <Controller
                 name="bankName"
@@ -686,7 +678,7 @@ const AsthaMaaModal = ({ member, mode, onClose, onSuccess }) => {
                   />
                 )}
               />
-            </div>
+            </div> */}
 
             <div
               style={{
@@ -1169,12 +1161,15 @@ const AsthaMaaTable = ({ refreshTrigger, externalFilters }) => {
                     {renderTh("Gram Panchayet", "AsthaMaGramPanchayet")}
                     {renderTh("Village", "AsthaMaVillage")}
                     {renderTh("Pin Code", "AsthaMaPincode")}
-                    {renderTh("Bank Name", "AsthaMaBankName")}
+
+                    {/* ✅ SECURELY COMMENTED OUT: Banking Columns in Main Table */}
+                    {/* {renderTh("Bank Name", "AsthaMaBankName")}
                     {renderTh("Branch Name", "AsthaMaBranchName")}
                     {renderTh("Account No", "AsthaMaBankAcctNo")}
                     {renderTh("IFS Code", "AsthaMaIFSCode")}
                     {renderTh("PAN No", "AsthaMaPanNo")}
-                    {renderTh("Aadhar No", "AsthaMaAadharNo")}
+                    {renderTh("Aadhar No", "AsthaMaAadharNo")} */}
+
                     {renderTh("Joining Amt", "AsthaMaJoiningAmt")}
                     {renderTh("Wallet Bal", "AsthaMaWalletBalance")}
                     {renderTh("Status", "AsthaMaIsActive")}
@@ -1222,12 +1217,15 @@ const AsthaMaaTable = ({ refreshTrigger, externalFilters }) => {
                       <td style={styles.td}>{row.AsthaMaGramPanchayet}</td>
                       <td style={styles.td}>{row.AsthaMaVillage}</td>
                       <td style={styles.td}>{row.AsthaMaPincode}</td>
-                      <td style={styles.td}>{row.AsthaMaBankName}</td>
+
+                      {/* ✅ SECURELY COMMENTED OUT: Banking Data in Main Table */}
+                      {/* <td style={styles.td}>{row.AsthaMaBankName}</td>
                       <td style={styles.td}>{row.AsthaMaBranchName}</td>
                       <td style={styles.td}>{row.AsthaMaBankAcctNo}</td>
                       <td style={styles.td}>{row.AsthaMaIFSCode}</td>
                       <td style={styles.td}>{row.AsthaMaPanNo}</td>
-                      <td style={styles.td}>{row.AsthaMaAadharNo}</td>
+                      <td style={styles.td}>{row.AsthaMaAadharNo}</td> */}
+
                       <td style={styles.td}>₹{row.AsthaMaJoiningAmt}</td>
                       <td style={styles.td}>₹{row.AsthaMaWalletBalance}</td>
                       <td
@@ -1259,7 +1257,6 @@ const AsthaMaaTable = ({ refreshTrigger, externalFilters }) => {
                           👁️
                         </button>
 
-                        {/* ✅ FIXED: Super Admin and Astha Didi can edit */}
                         {userRole &&
                           ["state super administrator", "astha didi"].includes(
                             (userRole || "").toLowerCase(),
@@ -1272,7 +1269,6 @@ const AsthaMaaTable = ({ refreshTrigger, externalFilters }) => {
                             </button>
                           )}
 
-                        {/* ✅ FIXED: Super Admin and Astha Didi can approve */}
                         {Number(row.AsthaMaIsActive) !== 2 &&
                           userRole &&
                           ["state super administrator", "astha didi"].includes(
@@ -1286,7 +1282,6 @@ const AsthaMaaTable = ({ refreshTrigger, externalFilters }) => {
                             </button>
                           )}
 
-                        {/* ✅ FIXED: Super Admin can delete */}
                         {userRole === "State Super Administrator" && (
                           <button
                             onClick={() => openModal("delete", row)}

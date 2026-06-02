@@ -215,29 +215,21 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
       return;
     }
 
+    // ✅ FIXED: Checks only Email ID and Contact Number for duplicates
     const checks = [
       {
         table: "asthama_reg",
         column: "AsthaMaMailId",
         value: data.email,
-        label: "Email",
+        label: "Email ID",
       },
       {
         table: "asthama_reg",
-        column: "AsthaMaSignupUserName",
-        value: data.userName,
-        label: "Username",
+        column: "AsthaMaContactNo",
+        value: data.mobileNo,
+        label: "Contact Number",
       },
     ];
-
-    if (data.aadharNo && data.aadharNo.trim() !== "") {
-      checks.push({
-        table: "asthama_reg",
-        column: "AsthaMaAadharNo",
-        value: data.aadharNo,
-        label: "Aadhar No",
-      });
-    }
 
     if (!(await validateUniqueFields(checks))) return;
 
@@ -765,7 +757,8 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
             />
           </div>
 
-          <h6 style={styles.sectionHeader}>Banking & Payment Details</h6>
+          {/* ✅ SECURELY COMMENTED OUT: Banking & Payment Details Section */}
+          {/* <h6 style={styles.sectionHeader}>Banking & Payment Details</h6>
           <div style={styles.formGrid}>
             <Controller
               name="bankName"
@@ -857,7 +850,7 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
                 />
               )}
             />
-          </div>
+          </div> */}
 
           <div
             style={{

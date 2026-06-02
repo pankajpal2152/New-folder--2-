@@ -56,7 +56,6 @@ export const asthaMaaSchema = z.object({
   accountNo: z.string().optional(),
   ifsCode: z.string().optional(),
   panNo: z.string().optional(),
-  // FIXED: Made Aadhar optional. It only validates length if a value is provided.
   aadharNo: z
     .string()
     .optional()
@@ -82,7 +81,10 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
   const [dbDistricts, setDbDistricts] = useState([]);
   const [profileImage, setProfileImage] = useState(DUMMY_AVATAR);
   const fileInputRef = useRef(null);
-  const [isAsthaDidi, setIsAsthaDidi] = useState(false);
+
+  // ✅ FIXED: Using inclusive hierarchy validation
+  const [isFormAllowed, setIsFormAllowed] = useState(false);
+  const [isStrictAsthaDidi, setIsStrictAsthaDidi] = useState(false);
 
   const {
     control,
@@ -96,7 +98,7 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
     mode: "onChange",
     defaultValues: {
       joiningAmount: "105",
-      walletBalance: "0", // Fixed: Changed from '27000' to '0'
+      walletBalance: "0",
       fullName: "",
       sdwOf: "",
       dob: "",
@@ -129,8 +131,22 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
   useEffect(() => {
     const loggedInUser = getSafeUser ? getSafeUser() : null;
     if (loggedInUser) {
-      const role = loggedInUser?.role || loggedInUser?.UserSignUpRole || "";
-      setIsAsthaDidi(role.toLowerCase() === "astha didi");
+      const role = (
+        loggedInUser?.role ||
+        loggedInUser?.UserSignUpRole ||
+        ""
+      ).toLowerCase();
+
+      setIsStrictAsthaDidi(role === "astha didi");
+
+      // ✅ FIXED: Allow State Super Admin and all intermediate roles
+      setIsFormAllowed(
+        role === "astha didi" ||
+          role === "supervisor" ||
+          role === "district administrator" ||
+          role === "state super administrator" ||
+          role === "developer",
+      );
     }
   }, []);
 
@@ -192,8 +208,10 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
   };
 
   const onSubmitAsthaMaa = async (data) => {
-    if (!isAsthaDidi) {
-      toast.error("Access Denied.");
+    if (!isFormAllowed) {
+      toast.error(
+        "Access Denied: You do not have permission to submit this form.",
+      );
       return;
     }
 
@@ -212,7 +230,6 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
       },
     ];
 
-    // FIXED: Only check for duplicate Aadhar if the user actually typed one in
     if (data.aadharNo && data.aadharNo.trim() !== "") {
       checks.push({
         table: "asthama_reg",
@@ -263,7 +280,12 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
       StateNGORegId: null,
       DistNGORegId: filterMotherNgo ? filterMotherNgo.value : null,
       SupRegId: filterSupervisor ? filterSupervisor.value : null,
-      AsthaDidiRegId: filterAsthaDidi ? filterAsthaDidi.value : null,
+      AsthaDidiRegId:
+        isStrictAsthaDidi && loggedInUser?.ProfileRegId
+          ? loggedInUser.ProfileRegId
+          : filterAsthaDidi
+            ? filterAsthaDidi.value
+            : null,
       AsthaMaIsActive: 1,
       AsthaMaAprovedBy: null,
       AsthaMaAprovalDate: null,
@@ -295,7 +317,9 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
     toast.error("Error: Please check the required red fields.");
   };
 
-  const isFormEnabled = isAsthaDidi && !!filterAsthaDidi;
+  // ✅ FIXED: Evaluates true for Super Admin as long as they pick an Astha Didi from the external filter
+  const isFormEnabled =
+    isFormAllowed && (isStrictAsthaDidi ? true : !!filterAsthaDidi);
 
   return (
     <div style={styles.card}>
@@ -303,7 +327,7 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
         <h5>Astha Maa Registration</h5>
       </div>
 
-      {!isAsthaDidi && (
+      {!isFormAllowed && (
         <div
           style={{
             padding: "12px 24px",
@@ -312,12 +336,13 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
             borderBottom: "1px solid #f5c6cb",
           }}
         >
-          <strong>Access Denied:</strong> Only a user with the role of{" "}
-          <strong>Astha Didi</strong> can submit this form.
+          <strong>Access Denied:</strong> Only a user with the correct
+          Administrative role can submit this form. Your current role does not
+          permit this action.
         </div>
       )}
 
-      {isAsthaDidi && !filterAsthaDidi && (
+      {isFormAllowed && !isStrictAsthaDidi && !filterAsthaDidi && (
         <div
           style={{
             padding: "12px 24px",
@@ -326,7 +351,7 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
             borderBottom: "1px solid #ffeeba",
           }}
         >
-          <strong>Notice:</strong> Please select an <strong>Astha Didi</strong>{" "}
+          <strong>Notice:</strong> Please select an <strong>ASTHA DIDI</strong>{" "}
           from the top filters before filling out this registration form.
         </div>
       )}
@@ -396,7 +421,6 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
                 />
               )}
             />
-            {/* Fixed: Added Wallet Balance field so it mirrors the Edit modal and is clearly visible to the user */}
             <Controller
               name="walletBalance"
               control={control}
@@ -726,7 +750,10 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
                 <PasswordInput
                   label={
                     <>
-                      Set Password <span style={{ color: "#ff3e1d" }}>*</span>
+                      Set New Password{" "}
+                      <span style={{ color: "#ff3e1d" }}>
+                        * (Don't forget it!)
+                      </span>
                     </>
                   }
                   id="password"
@@ -763,7 +790,7 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
                   label="Branch Name"
                   id="branchName"
                   error={errors.branchName}
-                  placeholder="Branch Name"
+                  placeholder="Bank Branch Name"
                   type="text"
                   maxLength={100}
                   {...field}

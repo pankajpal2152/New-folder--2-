@@ -52,7 +52,6 @@ export const accountSchema = z.object({
   accountNo: z.string().optional(),
   ifsCode: z.string().optional(),
   panNo: z.string().optional(),
-  // Updated: Made optional and validation only runs if length > 0
   aadharNo: z
     .string()
     .optional()
@@ -128,7 +127,9 @@ const AsthaDidiForm = ({ onSuccess, externalFilters }) => {
   const [profileImage, setProfileImage] = useState(DUMMY_AVATAR);
   const fileInputRef = useRef(null);
 
-  const [isSupervisor, setIsSupervisor] = useState(false);
+  // ✅ FIXED: Using inclusive hierarchy validation
+  const [isFormAllowed, setIsFormAllowed] = useState(false);
+  const [isStrictSupervisor, setIsStrictSupervisor] = useState(false);
 
   const {
     control,
@@ -178,17 +179,24 @@ const AsthaDidiForm = ({ onSuccess, externalFilters }) => {
     if (userStr) {
       try {
         const loggedInUser = JSON.parse(userStr);
-        const role = loggedInUser?.role || "";
-        const signUpRole = loggedInUser?.UserSignUpRole || "";
+        const role = (loggedInUser?.role || "").toLowerCase();
+        const signUpRole = (loggedInUser?.UserSignUpRole || "").toLowerCase();
 
-        if (
-          role.toLowerCase() === "supervisor" ||
-          signUpRole.toLowerCase() === "supervisor"
-        ) {
-          setIsSupervisor(true);
-        } else {
-          setIsSupervisor(false);
-        }
+        setIsStrictSupervisor(
+          role === "supervisor" || signUpRole === "supervisor",
+        );
+
+        // ✅ FIXED: Form is allowed for State Super Admin, Developer, District Admin, and Supervisor
+        setIsFormAllowed(
+          role === "supervisor" ||
+            signUpRole === "supervisor" ||
+            role === "district administrator" ||
+            signUpRole === "district administrator" ||
+            role === "state super administrator" ||
+            signUpRole === "state super administrator" ||
+            role === "developer" ||
+            signUpRole === "developer",
+        );
       } catch (e) {
         console.error("Error parsing loggedInUser from localStorage", e);
       }
@@ -254,10 +262,13 @@ const AsthaDidiForm = ({ onSuccess, externalFilters }) => {
   };
 
   const onSubmitAsthaDidi = async (data) => {
-    if (!isSupervisor) {
-      toast.error("Access Denied: Only a Supervisor can submit this form.", {
-        position: "top-right",
-      });
+    if (!isFormAllowed) {
+      toast.error(
+        "Access Denied: You do not have permission to submit this form.",
+        {
+          position: "top-right",
+        },
+      );
       return;
     }
 
@@ -279,7 +290,6 @@ const AsthaDidiForm = ({ onSuccess, externalFilters }) => {
         idValue: null,
       },
     ];
-    // Only check Aadhaar if user provided it
     if (data.aadharNo) {
       checks.push({
         table: "asthadidi_reg",
@@ -362,7 +372,7 @@ const AsthaDidiForm = ({ onSuccess, externalFilters }) => {
       AsthaDidiBankAcctNo: data.accountNo || "0",
       AsthaDidiIFSCode: data.ifsCode || "",
       AsthaDidiPanNo: data.panNo || "",
-      AsthaDidiAadharNo: data.aadharNo || null, // Allow null
+      AsthaDidiAadharNo: data.aadharNo || null,
       AsthaDidiJoiningAmt: parseInt(data.joiningAmount) || 5000,
       AsthaDidiWalletBalance: parseInt(data.walletBalance) || 0,
       AsthaDidiSignupUserName: data.userName,
@@ -372,7 +382,7 @@ const AsthaDidiForm = ({ onSuccess, externalFilters }) => {
       StateNGORegId: null,
       DistNGORegId: filterMotherNgo ? filterMotherNgo.value : null,
       SupRegId:
-        isSupervisor && currentUserProfileId
+        isStrictSupervisor && currentUserProfileId
           ? currentUserProfileId
           : filterSupervisor
             ? filterSupervisor.value
@@ -416,7 +426,9 @@ const AsthaDidiForm = ({ onSuccess, externalFilters }) => {
       position: "top-right",
     });
 
-  const isFormEnabled = isSupervisor;
+  // ✅ FIXED: Evaluates true for Super Admin as long as they pick a Supervisor from the external filter
+  const isFormEnabled =
+    isFormAllowed && (isStrictSupervisor ? true : !!filterSupervisor);
 
   return (
     <div style={styles.card}>
@@ -424,7 +436,7 @@ const AsthaDidiForm = ({ onSuccess, externalFilters }) => {
         <h5>Astha Didi Registration</h5>
       </div>
 
-      {!isSupervisor && (
+      {!isFormAllowed && (
         <div
           style={{
             padding: "12px 24px",
@@ -433,9 +445,23 @@ const AsthaDidiForm = ({ onSuccess, externalFilters }) => {
             borderBottom: "1px solid #f5c6cb",
           }}
         >
-          <strong>Access Denied:</strong> Only a user with the role of{" "}
-          <strong>Supervisor</strong> can submit this form. Your current role
-          does not permit this action.
+          <strong>Access Denied:</strong> Only a user with the correct
+          Administrative role can submit this form. Your current role does not
+          permit this action.
+        </div>
+      )}
+
+      {isFormAllowed && !isStrictSupervisor && !filterSupervisor && (
+        <div
+          style={{
+            padding: "12px 24px",
+            backgroundColor: "#fff3cd",
+            color: "#856404",
+            borderBottom: "1px solid #ffeeba",
+          }}
+        >
+          <strong>Notice:</strong> Please select a <strong>SUPERVISOR</strong>{" "}
+          from the top filters before filling out this registration form.
         </div>
       )}
 
@@ -871,7 +897,7 @@ const AsthaDidiForm = ({ onSuccess, externalFilters }) => {
                   label="Branch Name"
                   id="branchName"
                   error={errors.branchName}
-                  placeholder="Branch Name"
+                  placeholder="Bank Branch Name"
                   type="text"
                   maxLength={100}
                   {...field}
@@ -916,7 +942,7 @@ const AsthaDidiForm = ({ onSuccess, externalFilters }) => {
                   label="PAN No"
                   id="panNo"
                   error={errors.panNo}
-                  placeholder="PAN No"
+                  placeholder="Pan No"
                   type="text"
                   maxLength={10}
                   {...field}
@@ -928,7 +954,7 @@ const AsthaDidiForm = ({ onSuccess, externalFilters }) => {
               control={control}
               render={({ field }) => (
                 <FormInput
-                  label="Aadhar No."
+                  label={<>Aadhar No.</>}
                   id="aadharNo"
                   error={errors.aadharNo}
                   placeholder="Aadhar No"

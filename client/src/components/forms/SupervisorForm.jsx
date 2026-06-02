@@ -12,7 +12,6 @@ import {
   styles,
   FormInput,
 } from "../../config/constants";
-// IMPORT FIXED: Using the shared one from utils
 import {
   getSafeUser,
   PasswordInput,
@@ -71,7 +70,9 @@ const SupervisorForm = ({ onSuccess, externalFilters }) => {
   const [dbDistricts, setDbDistricts] = useState([]);
   const [profileImage, setProfileImage] = useState(DUMMY_AVATAR);
   const fileInputRef = useRef(null);
-  const [isDistrictAdmin, setIsDistrictAdmin] = useState(false);
+
+  // ✅ FIXED: Using inclusive hierarchy validation
+  const [isFormAllowed, setIsFormAllowed] = useState(false);
 
   const {
     control,
@@ -118,8 +119,17 @@ const SupervisorForm = ({ onSuccess, externalFilters }) => {
   useEffect(() => {
     const loggedInUser = getSafeUser ? getSafeUser() : null;
     if (loggedInUser) {
-      const role = loggedInUser?.role || loggedInUser?.UserSignUpRole || "";
-      setIsDistrictAdmin(role.toLowerCase() === "district administrator");
+      const role = (
+        loggedInUser?.role ||
+        loggedInUser?.UserSignUpRole ||
+        ""
+      ).toLowerCase();
+      // ✅ FIXED: Allow State Super Admin and Developer to fill this form
+      setIsFormAllowed(
+        role === "district administrator" ||
+          role === "state super administrator" ||
+          role === "developer",
+      );
     }
   }, []);
 
@@ -181,7 +191,7 @@ const SupervisorForm = ({ onSuccess, externalFilters }) => {
   };
 
   const onSubmitSupervisor = async (data) => {
-    if (!isDistrictAdmin) {
+    if (!isFormAllowed) {
       toast.error("Access Denied.");
       return;
     }
@@ -284,7 +294,9 @@ const SupervisorForm = ({ onSuccess, externalFilters }) => {
     toast.error("Error: Please check the red fields.", {
       position: "top-right",
     });
-  const isFormEnabled = isDistrictAdmin && !!filterMotherNgo;
+
+  // ✅ FIXED: Form enables automatically when Super Admin chooses an NGO
+  const isFormEnabled = isFormAllowed && !!filterMotherNgo;
 
   return (
     <div style={styles.card}>
@@ -292,8 +304,7 @@ const SupervisorForm = ({ onSuccess, externalFilters }) => {
         <h5>Supervisor Registration:-</h5>
       </div>
 
-      {/* 👇 Show error banner if the logged-in user is NOT a District Admin */}
-      {!isDistrictAdmin && (
+      {!isFormAllowed && (
         <div
           style={{
             padding: "12px 24px",
@@ -302,14 +313,12 @@ const SupervisorForm = ({ onSuccess, externalFilters }) => {
             borderBottom: "1px solid #f5c6cb",
           }}
         >
-          <strong>Access Denied:</strong> Only a user with the role of{" "}
-          <strong>District Administrator</strong> can submit this form. Your
-          current role does not permit this action.
+          <strong>Access Denied:</strong> Only a user with the correct
+          Administrative role can submit this form.
         </div>
       )}
 
-      {/* Show notice if they ARE a District Admin, but haven't picked a NGO in the filter dropdown yet */}
-      {isDistrictAdmin && !filterMotherNgo && (
+      {isFormAllowed && !filterMotherNgo && (
         <div
           style={{
             padding: "12px 24px",
@@ -323,7 +332,6 @@ const SupervisorForm = ({ onSuccess, externalFilters }) => {
         </div>
       )}
 
-      {/* 👇 Form elements disabled using the combined 'isFormEnabled' check */}
       <div
         style={{
           ...styles.cardBody,
@@ -363,7 +371,6 @@ const SupervisorForm = ({ onSuccess, externalFilters }) => {
           </div>
         </div>
 
-        {/* Added autoComplete="off" here */}
         <form
           onSubmit={handleSubmit(onSubmitSupervisor, onErrorForm)}
           autoComplete="off"
@@ -654,8 +661,6 @@ const SupervisorForm = ({ onSuccess, externalFilters }) => {
                 />
               )}
             />
-
-            {/* Added autoComplete="off" here */}
             <Controller
               name="email"
               control={control}
@@ -677,8 +682,6 @@ const SupervisorForm = ({ onSuccess, externalFilters }) => {
                 />
               )}
             />
-
-            {/* Added autoComplete="new-password" here */}
             <Controller
               name="password"
               control={control}
@@ -811,7 +814,6 @@ const SupervisorForm = ({ onSuccess, externalFilters }) => {
             >
               Cancel
             </button>
-            {/* 👇 Submit button is disabled if isFormEnabled is false */}
             <button
               type="submit"
               style={{

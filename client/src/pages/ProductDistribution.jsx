@@ -405,7 +405,7 @@ export default function ProductDistribution() {
         </div>
         <div className="card-body">
           <form onSubmit={handleSubmit}>
-            <p className="PerInfo">Sender Information:</p>
+            <p className="PerInfo">Transfer Information:</p>
             <div className="row">
               <div className="col-md-4 mb-2">
                 <label className="form-label-custom">Account Head</label>
@@ -546,7 +546,7 @@ export default function ProductDistribution() {
               </div>
             </div>
 
-            <p className="AddInfo">Receiver Information:</p>
+            <p className="AddInfo">Transfer Information:</p>
             <div className="row">
               <div className="col-md-6 mb-3">
                 <label className="form-label-custom">Account Head</label>

@@ -370,6 +370,51 @@ const AccountTab = () => {
   );
   const isAsthaDidiVisible = ["Astha Maa"].includes(adminActiveView);
 
+  // ✅ FIXED: Advanced layout rules for seamless, unbroken text in react-select
+  const baseSelectStyles = styles.selectStyles(false);
+  const customSelectStyles = {
+    ...baseSelectStyles,
+    menuPortal: (base, props) => ({
+      ...(baseSelectStyles.menuPortal
+        ? baseSelectStyles.menuPortal(base, props)
+        : base),
+      zIndex: 99999,
+    }),
+    menu: (base, props) => ({
+      ...(baseSelectStyles.menu ? baseSelectStyles.menu(base, props) : base),
+      zIndex: 99999,
+      width: "max-content", // Allow dropdown options to expand as far as they need
+      minWidth: "100%",
+    }),
+    control: (base, props) => ({
+      ...(baseSelectStyles.control
+        ? baseSelectStyles.control(base, props)
+        : base),
+      minWidth: "100%",
+      width: "max-content", // Allow input box to stretch to fully display selected text
+    }),
+    option: (base, props) => ({
+      ...(baseSelectStyles.option
+        ? baseSelectStyles.option(base, props)
+        : base),
+      whiteSpace: "nowrap", // Strictly prevent text breaking across lines in the dropdown
+    }),
+    singleValue: (base, props) => ({
+      ...(baseSelectStyles.singleValue
+        ? baseSelectStyles.singleValue(base, props)
+        : base),
+      whiteSpace: "nowrap", // Prevent selected value breaking in the input box
+      overflow: "visible", // Ensure visibility
+    }),
+    valueContainer: (base, props) => ({
+      ...(baseSelectStyles.valueContainer
+        ? baseSelectStyles.valueContainer(base, props)
+        : base),
+      flexWrap: "nowrap",
+      whiteSpace: "nowrap",
+    }),
+  };
+
   return (
     <>
       <ToastContainer autoClose={3000} pauseOnHover={false} />
@@ -385,7 +430,8 @@ const AccountTab = () => {
           alignItems: "flex-end",
         }}
       >
-        <div style={{ width: "100%", maxWidth: "250px" }}>
+        {/* ✅ FIXED: Removed maxWidth to let inputs naturally grow */}
+        <div style={{ flex: "1 1 auto", minWidth: "200px" }}>
           <label
             style={{ ...styles.label, marginBottom: "8px", display: "block" }}
           >
@@ -398,10 +444,7 @@ const AccountTab = () => {
               setAdminActiveView(s.value);
               handleReset(0);
             }}
-            styles={{
-              ...styles.selectStyles(false),
-              menuPortal: (base) => ({ ...base, zIndex: 99999 }),
-            }}
+            styles={customSelectStyles}
             menuPortalTarget={document.body}
             menuPosition="fixed"
             isSearchable={false}
@@ -409,7 +452,7 @@ const AccountTab = () => {
         </div>
 
         {isMotherNgoVisible && (
-          <div style={{ width: "100%", maxWidth: "200px" }}>
+          <div style={{ flex: "1 1 auto", minWidth: "250px" }}>
             <label
               style={{ ...styles.label, marginBottom: "8px", display: "block" }}
             >
@@ -425,17 +468,14 @@ const AccountTab = () => {
               isDisabled={isLockedRole || appUserRole === "Astha Didi"}
               isClearable={!isLockedRole && appUserRole !== "Astha Didi"}
               placeholder="Select NGO"
-              styles={{
-                ...styles.selectStyles(false),
-                menuPortal: (base) => ({ ...base, zIndex: 99999 }),
-              }}
+              styles={customSelectStyles}
               menuPortalTarget={document.body}
               menuPosition="fixed"
             />
           </div>
         )}
 
-        <div style={{ width: "100%", maxWidth: "150px" }}>
+        <div style={{ flex: "1 1 auto", minWidth: "150px" }}>
           <label
             style={{ ...styles.label, marginBottom: "8px", display: "block" }}
           >
@@ -453,16 +493,13 @@ const AccountTab = () => {
             }
             isClearable={!isLockedRole && appUserRole !== "Astha Didi"}
             placeholder="State"
-            styles={{
-              ...styles.selectStyles(false),
-              menuPortal: (base) => ({ ...base, zIndex: 99999 }),
-            }}
+            styles={customSelectStyles}
             menuPortalTarget={document.body}
             menuPosition="fixed"
           />
         </div>
 
-        <div style={{ width: "100%", maxWidth: "150px" }}>
+        <div style={{ flex: "1 1 auto", minWidth: "150px" }}>
           <label
             style={{ ...styles.label, marginBottom: "8px", display: "block" }}
           >
@@ -480,17 +517,14 @@ const AccountTab = () => {
             }
             isClearable={!isLockedRole && appUserRole !== "Astha Didi"}
             placeholder="District"
-            styles={{
-              ...styles.selectStyles(false),
-              menuPortal: (base) => ({ ...base, zIndex: 99999 }),
-            }}
+            styles={customSelectStyles}
             menuPortalTarget={document.body}
             menuPosition="fixed"
           />
         </div>
 
         {isSupervisorVisible && (
-          <div style={{ width: "100%", maxWidth: "200px" }}>
+          <div style={{ flex: "1 1 auto", minWidth: "200px" }}>
             <label
               style={{ ...styles.label, marginBottom: "8px", display: "block" }}
             >
@@ -506,10 +540,7 @@ const AccountTab = () => {
               isDisabled={!filterDistrict || appUserRole === "Astha Didi"}
               isClearable={appUserRole !== "Astha Didi"}
               placeholder="Supervisor"
-              styles={{
-                ...styles.selectStyles(false),
-                menuPortal: (base) => ({ ...base, zIndex: 99999 }),
-              }}
+              styles={customSelectStyles}
               menuPortalTarget={document.body}
               menuPosition="fixed"
             />
@@ -517,7 +548,7 @@ const AccountTab = () => {
         )}
 
         {isAsthaDidiVisible && (
-          <div style={{ width: "100%", maxWidth: "200px" }}>
+          <div style={{ flex: "1 1 auto", minWidth: "200px" }}>
             <label
               style={{ ...styles.label, marginBottom: "8px", display: "block" }}
             >
@@ -536,10 +567,7 @@ const AccountTab = () => {
               }
               isClearable={appUserRole !== "Astha Didi"}
               placeholder="Astha Didi"
-              styles={{
-                ...styles.selectStyles(false),
-                menuPortal: (base) => ({ ...base, zIndex: 99999 }),
-              }}
+              styles={customSelectStyles}
               menuPortalTarget={document.body}
               menuPosition="fixed"
             />

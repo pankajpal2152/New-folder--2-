@@ -723,11 +723,11 @@ export default function ProductDistribution() {
               <thead>
                 <tr style={{ backgroundColor: "#696cff", color: "white" }}>
                   <th style={{ whiteSpace: "nowrap" }}>Date</th>
-                  <th>Sender</th>
+                  <th>Transaction account name</th>
                   <th>S-Bal</th>
                   <th>Product</th>
                   <th>Transferred</th>
-                  <th>Receiver</th>
+                  <th>Transaction account name</th>
                   <th>R-Bal</th>
                   <th>Mode</th>
                   <th>Remarks</th>

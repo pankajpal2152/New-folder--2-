@@ -1500,7 +1500,52 @@ export default function ProductDistribution() {
               borderRadius: "8px",
             }}
           >
-            {/* ✅ NEW UI LAYOUT: Exact match to the whiteboard image requirements */}
+            {/* ✅ NEW: Extracted Table Columns to Header Labels */}
+            <div className="row mb-3">
+              <div className="col-md-2">
+                <label className="form-label-custom">AcctHead</label>
+                <input
+                  className="form-control form-control-sm bg-white"
+                  type="text"
+                  value={
+                    history.length > 0
+                      ? history[0].SenderHead
+                      : formData.senderAcctHead
+                  }
+                  readOnly
+                  disabled
+                />
+              </div>
+              <div className="col-md-6">
+                <label className="form-label-custom">Name</label>
+                <input
+                  className="form-control form-control-sm bg-white"
+                  type="text"
+                  value={
+                    history.length > 0
+                      ? history[0].SenderAcctName
+                      : formData.senderAcctNameDisplay
+                  }
+                  readOnly
+                  disabled
+                />
+              </div>
+              <div className="col-md-4">
+                <label className="form-label-custom">ProName</label>
+                <input
+                  className="form-control form-control-sm bg-white"
+                  type="text"
+                  value={
+                    formData.productName ||
+                    (history.length > 0 ? history[0].ProductName : "")
+                  }
+                  readOnly
+                  disabled
+                />
+              </div>
+            </div>
+
+            {/* Checkbox Filters and Dates */}
             <div className="row align-items-end mb-3">
               <div className="col-md-2">
                 <label className="form-label-custom">From Date</label>
@@ -1569,6 +1614,7 @@ export default function ProductDistribution() {
               </div>
             </div>
 
+            {/* Search Ledger */}
             <div className="row align-items-end">
               <div className="col-md-10">
                 <label className="form-label-custom">Search Ledger</label>
@@ -1601,9 +1647,7 @@ export default function ProductDistribution() {
               <thead>
                 <tr style={{ backgroundColor: "#696cff", color: "white" }}>
                   <th style={{ whiteSpace: "nowrap" }}>Date</th>
-                  <th>AcctHead</th>
-                  <th>Name</th>
-                  <th>ProName</th>
+                  {/* Removed AcctHead, Name, ProName from here */}
                   <th>Qty</th>
                   <th>Remarks</th>
                   <th>TrnType</th>
@@ -1618,9 +1662,7 @@ export default function ProductDistribution() {
                       <td style={{ whiteSpace: "nowrap" }}>
                         {h.TransactionDate}
                       </td>
-                      <td>{h.SenderHead}</td>
-                      <td>{h.SenderAcctName}</td>
-                      <td>{h.ProductName}</td>
+                      {/* Removed AcctHead, Name, ProName data cells from here */}
                       <td
                         style={{
                           color: isReceived ? "green" : "red",
@@ -1634,6 +1676,13 @@ export default function ProductDistribution() {
                     </tr>
                   );
                 })}
+                {currentItems.length === 0 && (
+                  <tr>
+                    <td colSpan="4" className="text-center py-3 text-muted">
+                      No transactions found.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
             <div className="d-flex justify-content-between align-items-center mt-3">

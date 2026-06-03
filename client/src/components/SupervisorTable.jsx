@@ -1095,7 +1095,7 @@ const SupervisorTable = ({ refreshTrigger, externalFilters }) => {
                     {renderTh("PAN No", "SupPanNo")}
                     {renderTh("Aadhar No", "SupAadharNo")}
                     {renderTh("Joining Amt", "SupJoiningAmt")}
-                    {renderTh("Wallet Bal", "SupWalletBalance")}
+                    {/* {renderTh("Wallet Bal", "SupWalletBalance")} */}
                     {renderTh("Status", "SupIsActive")}
                     {renderTh("Approved By", "ApproverDisplayName")}
                     {renderTh("Approval Date", "SupAprovedDate")}
@@ -1146,7 +1146,7 @@ const SupervisorTable = ({ refreshTrigger, externalFilters }) => {
                       <td style={styles.td}>{row.SupPanNo}</td>
                       <td style={styles.td}>{row.SupAadharNo}</td>
                       <td style={styles.td}>₹{row.SupJoiningAmt}</td>
-                      <td style={styles.td}>₹{row.SupWalletBalance}</td>
+                      {/* <td style={styles.td}>₹{row.SupWalletBalance}</td> */}
                       <td
                         style={{
                           ...styles.td,
@@ -1213,7 +1213,7 @@ const SupervisorTable = ({ refreshTrigger, externalFilters }) => {
                   {currentMembers.length === 0 && (
                     <tr>
                       <td
-                        colSpan="31"
+                        colSpan="30"
                         style={{ ...styles.td, textAlign: "center" }}
                       >
                         {userRole !== "Supervisor" &&

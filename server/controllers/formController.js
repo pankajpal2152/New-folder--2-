@@ -798,7 +798,7 @@ exports.checkDuplicate = (req, res) => {
 };
 
 // ==========================================
-// NEW: PRODUCT DISTRIBUTION MODULE
+// NEW: PRODUCT DISTRIBUTION MODULE (UPDATED)
 // ==========================================
 
 exports.getAccountHeads = (req, res) => {
@@ -811,7 +811,6 @@ exports.getAccountHeads = (req, res) => {
   );
 };
 
-// ✅ FIXED: Select all columns so the frontend can properly match hierarchical links (SNGOAcctNo, DNGOAcctNo, etc.)
 exports.getAccountsMapping = (req, res) => {
   db.query(
     "SELECT *, CONCAT(AcctNo, ' - ', AcctName) AS DisplayName FROM accounts",
@@ -846,7 +845,7 @@ exports.getProductStock = (req, res) => {
   const { acctHead, acctNo, proId } = req.query;
   const query = `
     SELECT SUM(Deposit) - SUM(Withdraw) AS AvailableQty
-    FROM transaction
+    FROM ProTran
     WHERE AcctHead = ? AND AcctNo = ? AND ProId = ?
   `;
   db.query(query, [acctHead, acctNo, proId], (err, results) => {
@@ -920,7 +919,6 @@ exports.distributeProduct = (req, res) => {
   const rModeParsed = ReceiverMode ? ReceiverMode.split(" - ")[1] : "RECEIVED";
   const rDrCr = ReceiverMode ? ReceiverMode.split(" - ")[0] : "Cr";
 
-  // ✅ DYNAMIC DR/CR ASSIGNMENTS FOR DOUBLE-ENTRY ACCOUNTING
   const sDeposit = sDrCr === "Cr" ? DistributedQty : 0;
   const sWithdraw = sDrCr === "Dr" ? DistributedQty : 0;
 
@@ -929,7 +927,7 @@ exports.distributeProduct = (req, res) => {
 
   // Record transaction for Sender
   db.query(
-    "INSERT INTO transaction (TrnDate, AcctNo, AcctHead, ProId, Deposit, Withdraw, DrCr, TrnType, Remerks, UserName) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    "INSERT INTO ProTran (TrnDate, AcctNo, AcctHead, ProId, Deposit, Withdraw, DrCr, TrnType, Remerks, UserName) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     [
       trnDate,
       SenderId,
@@ -947,7 +945,7 @@ exports.distributeProduct = (req, res) => {
 
       // Record transaction for Receiver
       db.query(
-        "INSERT INTO transaction (TrnDate, AcctNo, AcctHead, ProId, Deposit, Withdraw, DrCr, TrnType, Remerks, UserName) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO ProTran (TrnDate, AcctNo, AcctHead, ProId, Deposit, Withdraw, DrCr, TrnType, Remerks, UserName) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         [
           trnDate,
           ReceiverId,
@@ -982,7 +980,7 @@ exports.getDistributionHistory = (req, res) => {
       t1.TrnType AS SenderMode,
       p.ProName AS ProductName,
       (t1.Deposit + t1.Withdraw) AS TransferQty,
-      (SELECT SUM(Deposit - Withdraw) FROM transaction WHERE AcctNo = t1.AcctNo AND AcctHead = t1.AcctHead AND ProId = t1.ProId AND TrnId <= t1.TrnId) AS SenderAvailableQty,
+      (SELECT SUM(Deposit - Withdraw) FROM ProTran WHERE AcctNo = t1.AcctNo AND AcctHead = t1.AcctHead AND ProId = t1.ProId AND TrnId <= t1.TrnId) AS SenderAvailableQty,
       
       SUBSTRING_INDEX(t1.UserName, ' - ', 1) AS ReceiverHead,
       ah2.AcctHeadName AS ReceiverHeadName,
@@ -990,10 +988,10 @@ exports.getDistributionHistory = (req, res) => {
       acc2.AcctName AS ReceiverAcctName,
       (t1.Deposit + t1.Withdraw) AS ReceiveQty,
       
-      (SELECT SUM(Deposit - Withdraw) FROM transaction WHERE AcctNo = SUBSTRING_INDEX(t1.UserName, ' - ', -1) AND AcctHead = SUBSTRING_INDEX(t1.UserName, ' - ', 1) AND ProId = t1.ProId AND TrnId <= (t1.TrnId + 1)) AS ReceiverAvailableQty,
+      (SELECT SUM(Deposit - Withdraw) FROM ProTran WHERE AcctNo = SUBSTRING_INDEX(t1.UserName, ' - ', -1) AND AcctHead = SUBSTRING_INDEX(t1.UserName, ' - ', 1) AND ProId = t1.ProId AND TrnId <= (t1.TrnId + 1)) AS ReceiverAvailableQty,
       
       t1.Remerks AS Remarks
-    FROM transaction t1
+    FROM ProTran t1
     LEFT JOIN accthead ah1 ON t1.AcctHead = ah1.AcctHead
     LEFT JOIN accounts acc1 ON t1.AcctNo = acc1.AcctNo AND t1.AcctHead = acc1.AcctHead
     LEFT JOIN product p ON t1.ProId = p.ProId

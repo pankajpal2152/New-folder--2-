@@ -29,6 +29,53 @@ exports.signup = async (req, res) => {
 exports.login = (req, res) => {
     const { role, email, password } = req.body;
 
+    if (role === "National NGO") {
+        const nationalNgoQuery = `
+            SELECT * FROM nngo
+            WHERE TRIM(SignupEmail) = TRIM(?)
+              AND (IsActive = 'T' OR IsActive = '1' OR IsActive = 1)
+            LIMIT 1
+        `;
+
+        db.query(nationalNgoQuery, [email], (err, results) => {
+            if (err) {
+                console.error("❌ CRITICAL DB ERROR (National NGO Login):", err);
+                return res.status(500).json({ error: 'Database error', details: err.message, code: err.code });
+            }
+
+            if (results.length === 0) {
+                return res.status(400).json({ error: 'User not found or role mismatch' });
+            }
+
+            const user = results[0];
+            if (String(password).trim() !== String(user.SignupPassword || "").trim()) {
+                return res.status(400).json({ error: 'Incorrect password' });
+            }
+
+            res.status(200).json({
+                message: 'Login successful',
+                user: {
+                    id: user.AcctId,
+                    role: "National NGO",
+                    username: user.AcctName || String(user.SignupEmail || "").split('@')[0],
+                    email: String(user.SignupEmail || "").trim(),
+                    UserSignUpId: user.AcctId,
+                    UserSignUpRole: "National NGO",
+                    UserSignUpEmail: String(user.SignupEmail || "").trim(),
+                    UserSignUpPassword: user.SignupPassword,
+                    ProfileRegId: user.AcctId,
+                    UserAtuorizedRegId: user.ParentAcctNo,
+                    UserSignIsActive: user.IsActive,
+                    SignupUserName: user.AcctName,
+                    AcctId: user.AcctId,
+                    AcctNo: user.AcctNo,
+                    AcctHead: user.AcctHead
+                }
+            });
+        });
+        return;
+    }
+
     db.query('SELECT * FROM userssignup WHERE UserSignUpEmail = ? AND UserSignUpRole = ?', [email, role], async (err, results) => {
         if (err) {
             // ✅ This will print the EXACT reason to your Render logs
@@ -76,7 +123,14 @@ exports.getUserInfo = (req, res) => {
             console.error("❌ DB ERROR (Get User Info):", err);
             return res.status(500).json({ error: 'Database error while fetching roles', details: err.message, code: err.code });
         }
-        res.json(results);
+        const nationalNgoRole = {
+            UserInfoId: 0,
+            UserType: "National NGO",
+            UserRole: "Superadmin",
+            ActStatus: 1
+        };
+        const hasNationalNgo = results.some((role) => role.UserType === nationalNgoRole.UserType);
+        res.json(hasNationalNgo ? results : [nationalNgoRole, ...results]);
     });
 };
 

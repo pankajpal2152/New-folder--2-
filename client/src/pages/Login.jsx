@@ -126,7 +126,7 @@ const styles = {
 // ==========================================
 // LOGIN FORM COMPONENT
 // ==========================================
-const LoginForm = ({ onLogin, onToggleView }) => {
+const LoginForm = ({ onLogin }) => {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
 
@@ -285,7 +285,9 @@ const SignupForm = ({ onToggleView }) => {
         if (!res.ok) throw new Error("Failed to fetch roles");
         return res.json();
       })
-      .then((data) => setRoles(data))
+      .then((data) =>
+        setRoles(data.filter((role) => role.UserType !== "National NGO")),
+      )
       .catch((err) => console.error("Error fetching roles: ", err));
   }, []);
 
@@ -441,10 +443,7 @@ const Login = ({ onLogin }) => {
   return (
     <div style={styles.container}>
       {isLoginView ? (
-        <LoginForm
-          onLogin={handleLogin}
-          onToggleView={() => setIsLoginView(false)}
-        />
+        <LoginForm onLogin={handleLogin} />
       ) : (
         <SignupForm onToggleView={() => setIsLoginView(true)} />
       )}

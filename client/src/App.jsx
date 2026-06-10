@@ -18,6 +18,17 @@ const App = () => {
     return localStorage.getItem("loggedInUser") !== null;
   });
 
+  const getLoggedInRole = () => {
+    try {
+      const userStr = localStorage.getItem("loggedInUser");
+      if (!userStr) return "";
+      const user = JSON.parse(userStr);
+      return (user.role || user.UserSignUpRole || "").toLowerCase();
+    } catch {
+      return "";
+    }
+  };
+
   const styles = {
     appContainer: {
       display: "flex",
@@ -72,7 +83,13 @@ const App = () => {
                       />
                       <Route
                         path="/product-distribution"
-                        element={<ProductDistribution />}
+                        element={
+                          getLoggedInRole() === "national ngo" ? (
+                            <Navigate to="/account-settings/account" replace />
+                          ) : (
+                            <ProductDistribution />
+                          )
+                        }
                       />
                       <Route
                         path="/layouts"

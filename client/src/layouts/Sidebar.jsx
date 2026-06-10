@@ -26,6 +26,7 @@ const Sidebar = () => {
   // Check roles (case-insensitive for safety)
   const isDeveloper = userRole.toLowerCase() === "developer";
   const isAsthaMaa = userRole.toLowerCase() === "astha maa"; // ✅ ADDED: Identify if user is Astha Maa
+  const isNationalNgo = userRole.toLowerCase() === "national ngo";
 
   const styles = {
     sidebar: {
@@ -149,7 +150,7 @@ const Sidebar = () => {
 
         {/* --- 2. PRODUCT DISTRIBUTION (MAIN MENU) --- */}
         {/* ✅ FIXED: Hide this menu item entirely if the user is an Astha Maa */}
-        {!isAsthaMaa && (
+        {!isAsthaMaa && !isNationalNgo && (
           <NavLink to="/product-distribution" style={styles.link}>
             {({ isActive }) => (
               <li style={styles.menuItem(isActive)}>

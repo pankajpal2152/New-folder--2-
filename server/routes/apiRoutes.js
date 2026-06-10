@@ -17,8 +17,14 @@ router.get("/states", formController.getStates);
 router.get("/districts/:stateId", formController.getDistricts);
 router.get("/filter/states", formController.getFilterStates);
 router.get("/filter/districts/:stateId", formController.getFilterDistricts);
+router.get("/nationalngo", formController.getNationalNgos);
 
 // --- REGISTRATION ROUTES ---
+router.get("/statengo", formController.getStateNgo);
+router.post("/statengo", formController.createStateNgo);
+router.put("/statengo/:id", formController.updateStateNgo);
+router.delete("/statengo/:id", formController.deleteStateNgo);
+
 router.get("/asthadidi", formController.getAsthaDidi);
 router.post("/asthadidi", formController.createAsthaDidi);
 router.put("/asthadidi/:id", formController.updateAsthaDidi);

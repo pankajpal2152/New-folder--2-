@@ -7,12 +7,14 @@ import { styles, API_BASE_URL } from "../config/constants";
 import { getSafeUser } from "./AccountSharedUtils";
 
 // Import Forms
+import StateSuperAdminForm from "./forms/StateSuperAdminForm";
 import DistrictAdminForm from "./forms/DistrictAdminForm";
 import SupervisorForm from "./forms/SupervisorForm";
 import AsthaMaaForm from "./forms/AsthaMaaForm";
 import AsthaDidiForm from "./forms/AsthaDidiForm";
 
 // Import Split Tables
+import StateSuperAdminTable from "./StateSuperAdminTable";
 import DistrictAdminTable from "./DistrictAdminTable";
 import SupervisorTable from "./SupervisorTable";
 import AsthaMaaTable from "./AsthaMaaTable";
@@ -24,12 +26,14 @@ const AccountTab = () => {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [adminActiveView, setAdminActiveView] = useState("");
 
+  const [filterNationalNgo, setFilterNationalNgo] = useState(null);
   const [filterMotherNgo, setFilterMotherNgo] = useState(null);
   const [filterState, setFilterState] = useState(null);
   const [filterDistrict, setFilterDistrict] = useState(null);
   const [filterSupervisor, setFilterSupervisor] = useState(null);
   const [filterAsthaDidi, setFilterAsthaDidi] = useState(null);
 
+  const [dbNationalNgos, setDbNationalNgos] = useState([]);
   const [dbMotherNgos, setDbMotherNgos] = useState([]);
   const [dbStates, setDbStates] = useState([]);
   const [dbDistricts, setDbDistricts] = useState([]);
@@ -41,12 +45,33 @@ const AccountTab = () => {
 
   useEffect(() => {
     const user = getSafeUser();
+    let currentRole = "";
+    let currentNationalNgoOption = null;
+
     if (user) {
       const role = user.role || user.UserSignUpRole || "";
+      currentRole = role;
       setAppUserRole(role);
       setLoggedInProfileId(user.ProfileRegId);
 
-      if (
+      if (role === "National NGO") {
+        currentNationalNgoOption = {
+          value: user.AcctId || user.ProfileRegId || user.id,
+          label:
+            user.SignupUserName ||
+            user.username ||
+            user.UserSignUpEmail ||
+            "National NGO",
+        };
+        if (currentNationalNgoOption.value) {
+          setDbNationalNgos([currentNationalNgoOption]);
+          setFilterNationalNgo(currentNationalNgoOption);
+        }
+      }
+
+      if (role === "National NGO") {
+        setAdminActiveView("State Super Administrator");
+      } else if (
         role === "State Super Administrator" ||
         role.toLowerCase() === "developer"
       ) {
@@ -66,6 +91,39 @@ const AccountTab = () => {
       setAppUserRole("Guest");
       setAdminActiveView("Guest");
     }
+
+    fetch(`${API_BASE_URL}/nationalngo`)
+      .then((res) => res.json())
+      .then((data) => {
+        const options = data.map((ngo) => ({
+          value: ngo.AcctId,
+          label: ngo.DisplayName || ngo.AcctName || ngo.SignupEmail,
+          acctHead: ngo.AcctHead,
+          acctNo: ngo.AcctNo,
+        }));
+
+        if (currentRole === "National NGO") {
+          const lockedOption =
+            options.find(
+              (option) =>
+                String(option.value) ===
+                String(currentNationalNgoOption?.value),
+            ) || currentNationalNgoOption;
+          if (lockedOption) {
+            setDbNationalNgos([lockedOption]);
+            setFilterNationalNgo(lockedOption);
+          }
+          return;
+        }
+
+        setDbNationalNgos(options);
+      })
+      .catch(() => {
+        if (currentNationalNgoOption) {
+          setDbNationalNgos([currentNationalNgoOption]);
+          setFilterNationalNgo(currentNationalNgoOption);
+        }
+      });
 
     fetch(`${API_BASE_URL}/states`)
       .then((res) => res.json())
@@ -346,11 +404,15 @@ const AccountTab = () => {
     return <div style={{ padding: "24px" }}>Loading Interface...</div>;
 
   const adminOptions = [
+    { value: "State Super Administrator", label: "State Super Administrator" },
     { value: "District Administrator", label: "District Administrator" },
     { value: "Supervisor", label: "Supervisor" },
     { value: "Astha Didi", label: "Astha Didi" },
     { value: "Astha Maa", label: "Astha Maa" },
   ].filter((o) => {
+    if (appUserRole === "National NGO")
+      return o.value === "State Super Administrator";
+    if (o.value === "State Super Administrator") return false;
     if (appUserRole === "District Administrator")
       return ["Supervisor", "Astha Didi", "Astha Maa"].includes(o.value);
     if (appUserRole === "Supervisor")
@@ -365,6 +427,7 @@ const AccountTab = () => {
     "Astha Didi",
     "District Administrator",
   ].includes(adminActiveView);
+  const isNationalNgoVisible = adminActiveView === "State Super Administrator";
   const isSupervisorVisible = ["Astha Maa", "Astha Didi"].includes(
     adminActiveView,
   );
@@ -451,6 +514,27 @@ const AccountTab = () => {
           />
         </div>
 
+        {isNationalNgoVisible && (
+          <div style={{ flex: "1 1 auto", minWidth: "250px" }}>
+            <label
+              style={{ ...styles.label, marginBottom: "8px", display: "block" }}
+            >
+              NATIONAL NGO
+            </label>
+            <Select
+              options={dbNationalNgos}
+              value={filterNationalNgo}
+              onChange={setFilterNationalNgo}
+              isDisabled={appUserRole === "National NGO"}
+              isClearable={appUserRole !== "National NGO"}
+              placeholder="Select National NGO"
+              styles={customSelectStyles}
+              menuPortalTarget={document.body}
+              menuPosition="fixed"
+            />
+          </div>
+        )}
+
         {isMotherNgoVisible && (
           <div style={{ flex: "1 1 auto", minWidth: "250px" }}>
             <label
@@ -475,53 +559,67 @@ const AccountTab = () => {
           </div>
         )}
 
-        <div style={{ flex: "1 1 auto", minWidth: "150px" }}>
-          <label
-            style={{ ...styles.label, marginBottom: "8px", display: "block" }}
-          >
-            State
-          </label>
-          <Select
-            options={filteredStateOptions}
-            value={filterState}
-            onChange={(s) => {
-              setFilterState(s);
-              handleReset(2);
-            }}
-            isDisabled={
-              !filterMotherNgo || isLockedRole || appUserRole === "Astha Didi"
-            }
-            isClearable={!isLockedRole && appUserRole !== "Astha Didi"}
-            placeholder="State"
-            styles={customSelectStyles}
-            menuPortalTarget={document.body}
-            menuPosition="fixed"
-          />
-        </div>
+        {!isNationalNgoVisible && (
+          <>
+            <div style={{ flex: "1 1 auto", minWidth: "150px" }}>
+              <label
+                style={{
+                  ...styles.label,
+                  marginBottom: "8px",
+                  display: "block",
+                }}
+              >
+                State
+              </label>
+              <Select
+                options={filteredStateOptions}
+                value={filterState}
+                onChange={(s) => {
+                  setFilterState(s);
+                  handleReset(2);
+                }}
+                isDisabled={
+                  !filterMotherNgo ||
+                  isLockedRole ||
+                  appUserRole === "Astha Didi"
+                }
+                isClearable={!isLockedRole && appUserRole !== "Astha Didi"}
+                placeholder="State"
+                styles={customSelectStyles}
+                menuPortalTarget={document.body}
+                menuPosition="fixed"
+              />
+            </div>
 
-        <div style={{ flex: "1 1 auto", minWidth: "150px" }}>
-          <label
-            style={{ ...styles.label, marginBottom: "8px", display: "block" }}
-          >
-            District
-          </label>
-          <Select
-            options={filteredDistrictOptions}
-            value={filterDistrict}
-            onChange={(s) => {
-              setFilterDistrict(s);
-              handleReset(3);
-            }}
-            isDisabled={
-              !filterState || isLockedRole || appUserRole === "Astha Didi"
-            }
-            isClearable={!isLockedRole && appUserRole !== "Astha Didi"}
-            placeholder="District"
-            styles={customSelectStyles}
-            menuPortalTarget={document.body}
-            menuPosition="fixed"
-          />
-        </div>
+            <div style={{ flex: "1 1 auto", minWidth: "150px" }}>
+              <label
+                style={{
+                  ...styles.label,
+                  marginBottom: "8px",
+                  display: "block",
+                }}
+              >
+                District
+              </label>
+              <Select
+                options={filteredDistrictOptions}
+                value={filterDistrict}
+                onChange={(s) => {
+                  setFilterDistrict(s);
+                  handleReset(3);
+                }}
+                isDisabled={
+                  !filterState || isLockedRole || appUserRole === "Astha Didi"
+                }
+                isClearable={!isLockedRole && appUserRole !== "Astha Didi"}
+                placeholder="District"
+                styles={customSelectStyles}
+                menuPortalTarget={document.body}
+                menuPosition="fixed"
+              />
+            </div>
+          </>
+        )}
 
         {isSupervisorVisible && (
           <div style={{ flex: "1 1 auto", minWidth: "200px" }}>
@@ -575,7 +673,18 @@ const AccountTab = () => {
         )}
       </div>
 
-      {adminActiveView === "District Administrator" ? (
+      {adminActiveView === "State Super Administrator" ? (
+        <>
+          <StateSuperAdminForm
+            onSuccess={handleFormSuccess}
+            externalFilters={{ filterNationalNgo }}
+          />
+          <StateSuperAdminTable
+            refreshTrigger={refreshTrigger}
+            externalFilters={{ filterNationalNgo }}
+          />
+        </>
+      ) : adminActiveView === "District Administrator" ? (
         <>
           <DistrictAdminForm
             onSuccess={handleFormSuccess}

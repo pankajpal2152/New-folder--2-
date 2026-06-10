@@ -1084,6 +1084,241 @@ exports.getFilterDistricts = (req, res) => {
 };
 
 // ==========================================
+// NATIONAL NGO & STATE SUPER ADMINISTRATION
+// ==========================================
+
+exports.getNationalNgos = (req, res) => {
+  const query = `
+    SELECT
+      AcctId,
+      AcctNo,
+      AcctHead,
+      AcctName,
+      SignupEmail,
+      CONCAT(AcctName, ' (', TRIM(SignupEmail), ')') AS DisplayName
+    FROM nngo
+    WHERE IsActive = 'T' OR IsActive = '1' OR IsActive = 1
+    ORDER BY AcctName ASC
+  `;
+
+  db.query(query, (err, results) => {
+    if (err) {
+      console.error("getNationalNgos DB Error:", err.message);
+      return res.status(500).json({ error: err.message });
+    }
+    res.json(results);
+  });
+};
+
+exports.getStateNgo = (req, res) => {
+  const query = `
+    SELECT
+      a.*,
+      DATE_FORMAT(a.StateNGORegDate, '%Y-%m-%d') AS StateNGORegDateRaw,
+      DATE_FORMAT(a.StateNGOAprovedDate, '%Y-%m-%d') AS StateNGOAprovedDateRaw,
+      s.StateName AS StateNGOStateName,
+      d.DistName AS StateNGODistName,
+      n.AcctName AS NationalNgoName,
+      n.SignupEmail AS NationalNgoEmail,
+      approverNngo.AcctName AS NationalApproverName,
+      approverUser.SignupUserName AS UserApproverName,
+      approverUser.UserSignUpEmail AS UserApproverEmail
+    FROM state_ngo_reg a
+    LEFT JOIN state s ON a.StateNGOStateId = s.StateId
+    LEFT JOIN dist d ON a.StateNGODistId = d.DistId
+    LEFT JOIN nngo n ON a.AcctId = n.AcctId
+    LEFT JOIN nngo approverNngo ON a.StateNGOAprovedBy = approverNngo.AcctId
+    LEFT JOIN userssignup approverUser ON a.StateNGOAprovedBy = approverUser.UserSignUpId
+    ORDER BY a.StateNGORegId DESC
+  `;
+
+  db.query(query, (err, results) => {
+    if (err) {
+      console.error("getStateNgo DB Error:", err.message);
+      return res.status(500).json({ error: err.message });
+    }
+    res.json(
+      results.map((row) => ({
+        ...row,
+        ApproverDisplayName:
+          row.NationalApproverName ||
+          row.UserApproverName ||
+          (row.UserApproverEmail
+            ? row.UserApproverEmail.split("@")[0]
+            : row.StateNGOAprovedBy),
+        StateNGORegDate: row.StateNGORegDateRaw || row.StateNGORegDate,
+        StateNGOAprovedDate:
+          row.StateNGOAprovedDateRaw || row.StateNGOAprovedDate,
+      })),
+    );
+  });
+};
+
+exports.createStateNgo = (req, res) => {
+  const data = req.body;
+  const activeValue =
+    data.StateNGOIsActive === undefined || data.StateNGOIsActive === null
+      ? 1
+      : data.StateNGOIsActive;
+
+  const insertQuery = `
+    INSERT INTO state_ngo_reg (
+      StateNGOName, StateNGORegNo, StateNGORegDate, StateNGOSDPName,
+      StateNGOMailId, StateNGOPhoneNo, StateNGOStateId, StateNGODistId,
+      StateNGOBlockName, StateNGOBankName, StateNGOAcctNo, StateNGOIFSCode,
+      StateNGOBankAdd, StateNGOAcctHoldeName, StateNGOBankAcctType,
+      StateNGOSignupUserName, StateNGOSignupEmail, StateNGOSignupPassword,
+      StateNGOIsActive, StateNGOAprovedBy, StateNGOAprovedDate,
+      AcctHead, AcctId
+    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+  `;
+
+  const values = [
+    data.StateNGOName,
+    data.StateNGORegNo,
+    data.StateNGORegDate,
+    data.StateNGOSDPName,
+    data.StateNGOMailId,
+    data.StateNGOPhoneNo,
+    data.StateNGOStateId || null,
+    data.StateNGODistId || null,
+    data.StateNGOBlockName,
+    data.StateNGOBankName,
+    data.StateNGOAcctNo,
+    data.StateNGOIFSCode,
+    data.StateNGOBankAdd,
+    data.StateNGOAcctHoldeName,
+    data.StateNGOBankAcctType,
+    data.StateNGOSignupUserName,
+    data.StateNGOSignupEmail,
+    data.StateNGOSignupPassword,
+    activeValue,
+    data.StateNGOAprovedBy || null,
+    data.StateNGOAprovedDate || null,
+    data.AcctHead || "SN",
+    data.AcctId || null,
+  ];
+
+  db.query(insertQuery, values, (err, result) => {
+    if (err) {
+      console.error("createStateNgo DB Error:", err.message);
+      return res.status(500).json({ error: err.message });
+    }
+
+    const newId = result.insertId;
+    if (data.StateNGOSignupUserName && data.StateNGOSignupEmail) {
+      const signupQuery = `
+        INSERT INTO userssignup (
+          UserSignUpRole, SignupUserName, UserSignUpEmail, UserSignUpPassword,
+          UserSignIsActive, UserAtuorizedRegId, ProfileRegId
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)
+      `;
+      db.query(
+        signupQuery,
+        [
+          "State Super Administrator",
+          data.StateNGOSignupUserName,
+          data.StateNGOSignupEmail,
+          data.StateNGOSignupPassword,
+          activeValue,
+          data.AcctId || null,
+          newId,
+        ],
+        () => {},
+      );
+    }
+
+    res.json({ message: "State Super Administrator added successfully", id: newId });
+  });
+};
+
+exports.updateStateNgo = (req, res) => {
+  const { id } = req.params;
+  const data = req.body;
+  const activeValue =
+    data.StateNGOIsActive === undefined || data.StateNGOIsActive === null
+      ? 1
+      : data.StateNGOIsActive;
+
+  const query = `
+    UPDATE state_ngo_reg SET
+      StateNGOName=?, StateNGORegNo=?, StateNGORegDate=?, StateNGOSDPName=?,
+      StateNGOMailId=?, StateNGOPhoneNo=?, StateNGOStateId=?, StateNGODistId=?,
+      StateNGOBlockName=?, StateNGOBankName=?, StateNGOAcctNo=?, StateNGOIFSCode=?,
+      StateNGOBankAdd=?, StateNGOAcctHoldeName=?, StateNGOBankAcctType=?,
+      StateNGOSignupUserName=?, StateNGOSignupEmail=?, StateNGOSignupPassword=?,
+      StateNGOIsActive=?, StateNGOAprovedBy=?, StateNGOAprovedDate=?,
+      AcctHead=?, AcctId=?
+    WHERE StateNGORegId=?
+  `;
+
+  const values = [
+    data.StateNGOName,
+    data.StateNGORegNo,
+    data.StateNGORegDate,
+    data.StateNGOSDPName,
+    data.StateNGOMailId,
+    data.StateNGOPhoneNo,
+    data.StateNGOStateId || null,
+    data.StateNGODistId || null,
+    data.StateNGOBlockName,
+    data.StateNGOBankName,
+    data.StateNGOAcctNo,
+    data.StateNGOIFSCode,
+    data.StateNGOBankAdd,
+    data.StateNGOAcctHoldeName,
+    data.StateNGOBankAcctType,
+    data.StateNGOSignupUserName,
+    data.StateNGOSignupEmail,
+    data.StateNGOSignupPassword,
+    activeValue,
+    data.StateNGOAprovedBy || null,
+    data.StateNGOAprovedDate || null,
+    data.AcctHead || "SN",
+    data.AcctId || null,
+    id,
+  ];
+
+  db.query(query, values, (err) => {
+    if (err) {
+      console.error("updateStateNgo DB Error:", err.message);
+      return res.status(500).json({ error: err.message });
+    }
+
+    if (data.StateNGOSignupEmail) {
+      db.query(
+        `UPDATE userssignup
+         SET SignupUserName=?, UserSignUpEmail=?, UserSignUpPassword=?,
+             UserSignIsActive=?, UserAtuorizedRegId=?
+         WHERE UserSignUpRole='State Super Administrator' AND ProfileRegId=?`,
+        [
+          data.StateNGOSignupUserName,
+          data.StateNGOSignupEmail,
+          data.StateNGOSignupPassword,
+          activeValue,
+          data.AcctId || null,
+          id,
+        ],
+        () => {},
+      );
+    }
+
+    res.json({ message: "State Super Administrator updated successfully" });
+  });
+};
+
+exports.deleteStateNgo = (req, res) => {
+  db.query(
+    "DELETE FROM state_ngo_reg WHERE StateNGORegId = ?",
+    [req.params.id],
+    (err) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ message: "State Super Administrator deleted successfully" });
+    },
+  );
+};
+
+// ==========================================
 // ASTHA DIDI REGISTRATION
 // ==========================================
 
@@ -1789,6 +2024,12 @@ exports.checkDuplicate = (req, res) => {
     asthama_reg: ["AsthaMaMailId", "AsthaMaContactNo"],
     suvervisor_reg: ["SupMailId", "SupContactNo"],
     dist_ngo_reg: ["DistNGOMailId", "DistNGOPhoneNo"],
+    state_ngo_reg: [
+      "StateNGOMailId",
+      "StateNGOPhoneNo",
+      "StateNGOSignupEmail",
+      "StateNGOSignupUserName",
+    ],
   };
 
   if (!allowed[table] || !allowed[table].includes(column)) {

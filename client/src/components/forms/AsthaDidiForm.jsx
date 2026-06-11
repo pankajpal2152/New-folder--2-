@@ -12,7 +12,7 @@ import {
   styles,
   FormInput,
 } from "../../config/constants";
-import { validateUniqueFields } from "../AccountSharedUtils";
+import { getSafeUser, validateUniqueFields } from "../AccountSharedUtils";
 
 export const accountSchema = z.object({
   joiningAmount: z.string().min(1, "Joining Amount is required"),
@@ -127,8 +127,13 @@ const PasswordInput = ({
 };
 
 const AsthaDidiForm = ({ onSuccess, externalFilters }) => {
-  const { filterMotherNgo, filterState, filterDistrict, filterSupervisor } =
-    externalFilters || {};
+  const {
+    filterStateNgo,
+    filterMotherNgo,
+    filterState,
+    filterDistrict,
+    filterSupervisor,
+  } = externalFilters || {};
 
   const [dbStates, setDbStates] = useState([]);
   const [dbDistricts, setDbDistricts] = useState([]);
@@ -200,6 +205,8 @@ const AsthaDidiForm = ({ onSuccess, externalFilters }) => {
             signUpRole === "supervisor" ||
             role === "district administrator" ||
             signUpRole === "district administrator" ||
+            role === "national ngo" ||
+            signUpRole === "national ngo" ||
             role === "state super administrator" ||
             signUpRole === "state super administrator" ||
             role === "developer" ||
@@ -276,6 +283,24 @@ const AsthaDidiForm = ({ onSuccess, externalFilters }) => {
         {
           position: "top-right",
         },
+      );
+      return;
+    }
+
+    const userForHierarchy = getSafeUser();
+    const currentUserRole = (
+      userForHierarchy?.role ||
+      userForHierarchy?.UserSignUpRole ||
+      ""
+    ).toLowerCase();
+
+    if (
+      currentUserRole === "national ngo" &&
+      (!filterStateNgo || !filterMotherNgo || !filterSupervisor)
+    ) {
+      toast.error(
+        "Please select State Super Administrator, District Administrator, and Supervisor first.",
+        { position: "top-right" },
       );
       return;
     }
@@ -387,7 +412,7 @@ const AsthaDidiForm = ({ onSuccess, externalFilters }) => {
       AsthaDidiSignupEmail: data.email,
       AsthaDidiSignupPassword: data.password,
       AsthaDidiCreatedByAuthRegId: currentUserId,
-      StateNGORegId: null,
+      StateNGORegId: filterStateNgo ? filterStateNgo.value : null,
       DistNGORegId: filterMotherNgo ? filterMotherNgo.value : null,
       SupRegId:
         isStrictSupervisor && currentUserProfileId

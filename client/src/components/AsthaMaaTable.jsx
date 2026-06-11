@@ -778,6 +778,7 @@ const AsthaMaaTable = ({ refreshTrigger, externalFilters }) => {
 
   const filteredMembers = useMemo(() => {
     if (
+      userRole === "National NGO" ||
       userRole === "State Super Administrator" ||
       userRole === "District Administrator"
     ) {
@@ -834,28 +835,37 @@ const AsthaMaaTable = ({ refreshTrigger, externalFilters }) => {
 
       let matchesMotherNgo = true;
       if (externalFilters?.filterMotherNgo) {
-        const dbDist = member.AsthaMaDistName
-          ? String(member.AsthaMaDistName).trim().toLowerCase()
-          : "";
-        const ngoDist = externalFilters.filterMotherNgo.districtName
-          ? String(externalFilters.filterMotherNgo.districtName)
-              .trim()
-              .toLowerCase()
-          : "";
-        matchesMotherNgo =
-          String(member.DistNGORegId) ===
-            String(externalFilters.filterMotherNgo.value) || dbDist === ngoDist;
+        if (externalFilters.filterMotherNgo.value != null) {
+          matchesMotherNgo =
+            String(member.DistNGORegId) ===
+            String(externalFilters.filterMotherNgo.value);
+        } else {
+          const dbDist = member.AsthaMaDistName
+            ? String(member.AsthaMaDistName).trim().toLowerCase()
+            : "";
+          const ngoDist = externalFilters.filterMotherNgo.districtName
+            ? String(externalFilters.filterMotherNgo.districtName)
+                .trim()
+                .toLowerCase()
+            : "";
+          matchesMotherNgo = dbDist === ngoDist;
+        }
       }
 
       let matchesSupervisor = true;
       if (userRole === "Supervisor") {
         matchesSupervisor = true;
       } else if (externalFilters?.filterSupervisor) {
-        matchesSupervisor =
-          String(member.AsthaMaCreatedByAuthRegId) ===
-            String(externalFilters.filterSupervisor.userSignUpId) ||
-          String(member.SupRegId) ===
-            String(externalFilters.filterSupervisor.value);
+        const hasSupRegId =
+          member.SupRegId !== null &&
+          member.SupRegId !== undefined &&
+          member.SupRegId !== "";
+        matchesSupervisor = hasSupRegId
+          ? String(member.SupRegId) ===
+            String(externalFilters.filterSupervisor.value)
+          : externalFilters.filterSupervisor.userSignUpId != null &&
+            String(member.AsthaMaCreatedByAuthRegId) ===
+              String(externalFilters.filterSupervisor.userSignUpId);
       }
 
       let matchesAsthaDidi = true;
@@ -863,6 +873,15 @@ const AsthaMaaTable = ({ refreshTrigger, externalFilters }) => {
         matchesAsthaDidi =
           String(member.AsthaDidiRegId) ===
           String(externalFilters.filterAsthaDidi.value);
+      }
+
+      let matchesStateNgo = true;
+      if (externalFilters?.filterStateNgo) {
+        const memberStateNgoId =
+          member.ResolvedStateNGORegId || member.StateNGORegId;
+        matchesStateNgo =
+          String(memberStateNgoId) ===
+          String(externalFilters.filterStateNgo.value);
       }
 
       const statusStr =
@@ -878,6 +897,7 @@ const AsthaMaaTable = ({ refreshTrigger, externalFilters }) => {
         matchesMotherNgo &&
         matchesSupervisor &&
         matchesAsthaDidi &&
+        matchesStateNgo &&
         matchesStatus
       );
     });
@@ -1260,6 +1280,7 @@ const AsthaMaaTable = ({ refreshTrigger, externalFilters }) => {
                         {/* ✅ FIXED: Allowed District Administrator to edit Astha Maa */}
                         {userRole &&
                           [
+                            "national ngo",
                             "state super administrator",
                             "district administrator",
                             "astha didi",
@@ -1276,6 +1297,7 @@ const AsthaMaaTable = ({ refreshTrigger, externalFilters }) => {
                         {Number(row.AsthaMaIsActive) !== 2 &&
                           userRole &&
                           [
+                            "national ngo",
                             "state super administrator",
                             "district administrator",
                             "supervisor",
@@ -1289,7 +1311,10 @@ const AsthaMaaTable = ({ refreshTrigger, externalFilters }) => {
                             </button>
                           )}
 
-                        {userRole === "State Super Administrator" && (
+                        {[
+                          "national ngo",
+                          "state super administrator",
+                        ].includes((userRole || "").toLowerCase()) && (
                           <button
                             onClick={() => openModal("delete", row)}
                             style={styles.actionBtn}
@@ -1306,14 +1331,17 @@ const AsthaMaaTable = ({ refreshTrigger, externalFilters }) => {
                         colSpan="30"
                         style={{ ...styles.td, textAlign: "center" }}
                       >
-                        {(userRole === "State Super Administrator" ||
+                        {(userRole === "National NGO" ||
+                          userRole === "State Super Administrator" ||
                           userRole === "District Administrator") &&
                         (!externalFilters?.filterMotherNgo ||
                           !externalFilters?.filterState ||
                           !externalFilters?.filterDistrict ||
                           !externalFilters?.filterSupervisor ||
                           !externalFilters?.filterAsthaDidi)
-                          ? "Please select all filters above (DISTRICT NGO, State, District, Supervisor, and Astha Didi) to view data."
+                          ? userRole === "National NGO"
+                            ? "Please select all filters above (State Super Administrator, DISTRICT NGO, State, District, Supervisor, and Astha Didi) to view data."
+                            : "Please select all filters above (DISTRICT NGO, State, District, Supervisor, and Astha Didi) to view data."
                           : userRole === "Supervisor" &&
                               (!externalFilters?.filterMotherNgo ||
                                 !externalFilters?.filterState ||

@@ -78,6 +78,7 @@ export const asthaMaaSchema = z.object({
 
 const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
   const {
+    filterStateNgo,
     filterMotherNgo,
     filterState,
     filterDistrict,
@@ -151,6 +152,7 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
         role === "astha didi" ||
           role === "supervisor" ||
           role === "district administrator" ||
+          role === "national ngo" ||
           role === "state super administrator" ||
           role === "developer",
       );
@@ -222,6 +224,26 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
       return;
     }
 
+    const loggedInUser = getSafeUser ? getSafeUser() : null;
+    const currentUserRole = (
+      loggedInUser?.role ||
+      loggedInUser?.UserSignUpRole ||
+      ""
+    ).toLowerCase();
+
+    if (
+      currentUserRole === "national ngo" &&
+      (!filterStateNgo ||
+        !filterMotherNgo ||
+        !filterSupervisor ||
+        !filterAsthaDidi)
+    ) {
+      toast.error(
+        "Please select State Super Administrator, District Administrator, Supervisor, and Astha Didi first.",
+      );
+      return;
+    }
+
     // ✅ FIXED: Checks only Email ID and Contact Number for duplicates
     const checks = [
       {
@@ -242,7 +264,6 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
 
     const stateName = data.state ? data.state.label : "";
     const districtName = data.district ? data.district.label : "";
-    const loggedInUser = getSafeUser ? getSafeUser() : null;
     const currentUserId = loggedInUser
       ? loggedInUser.UserSignUpId || loggedInUser.id
       : null;
@@ -276,7 +297,7 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
       AsthaMaAadharNo: data.aadharNo || "",
       AsthaMaJoiningAmt: parseInt(data.joiningAmount) || 105,
       AsthaMaWalletBalance: parseInt(data.walletBalance) || 0,
-      StateNGORegId: null,
+      StateNGORegId: filterStateNgo ? filterStateNgo.value : null,
       DistNGORegId: filterMotherNgo ? filterMotherNgo.value : null,
       SupRegId: filterSupervisor ? filterSupervisor.value : null,
       AsthaDidiRegId:

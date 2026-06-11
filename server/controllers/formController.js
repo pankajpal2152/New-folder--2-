@@ -1327,11 +1327,9 @@ exports.getAsthaDidi = (req, res) => {
         SELECT a.*, 
                DATE_FORMAT(a.AsthaDidiAprovalDate, '%Y-%m-%d') AS AsthaDidiAprovalDateRaw,
                DATE_FORMAT(a.AsthaDidiDOB, '%Y-%m-%d') AS AsthaDidiDOBRaw,
-               u.SignupUserName AS ApproverName, u.UserSignUpEmail AS ApproverEmail,
-               COALESCE(a.StateNGORegId, dngo.StateNGORegId) AS ResolvedStateNGORegId
+               u.SignupUserName AS ApproverName, u.UserSignUpEmail AS ApproverEmail 
         FROM \`asthadidi_reg\` a 
         LEFT JOIN userssignup u ON a.AsthaDidiAprovedBy = CAST(u.UserSignUpId AS CHAR)
-        LEFT JOIN dist_ngo_reg dngo ON a.DistNGORegId = dngo.DistNGORegId
         ORDER BY a.AsthaDidiRegId DESC
     `;
   db.query(query, (err, results) => {
@@ -1371,8 +1369,7 @@ exports.createAsthaDidi = (req, res) => {
           .status(500)
           .json({ error: "Database error while resolving State ID." });
       const mappedStateNGORegId =
-        data.StateNGORegId ||
-        (mappingResult.length > 0 ? mappingResult[0].StateNGORegId : null);
+        mappingResult.length > 0 ? mappingResult[0].StateNGORegId : null;
 
       const insertQuery = `INSERT INTO \`asthadidi_reg\` (
             AsthaDidiUserName, AsthaDidiGuardianName, AsthaDidiDOB, AsthaDidiGuardianContactNo, 
@@ -1541,19 +1538,7 @@ exports.deleteAsthaDidi = (req, res) => {
 // ==========================================
 
 exports.getAsthaMaa = (req, res) => {
-  const query = `
-    SELECT a.*,
-           DATE_FORMAT(a.AsthaMaAprovalDate, '%Y-%m-%d') AS AsthaMaAprovalDateRaw,
-           DATE_FORMAT(a.AsthaMaDOB, '%Y-%m-%d') AS AsthaMaDOBRaw,
-           u.SignupUserName AS ApproverName,
-           u.UserSignUpEmail AS ApproverEmail,
-           COALESCE(a.StateNGORegId, dngo.StateNGORegId, ad.StateNGORegId) AS ResolvedStateNGORegId
-    FROM \`asthama_reg\` a
-    LEFT JOIN userssignup u ON a.AsthaMaAprovedBy = CAST(u.UserSignUpId AS CHAR)
-    LEFT JOIN dist_ngo_reg dngo ON a.DistNGORegId = dngo.DistNGORegId
-    LEFT JOIN asthadidi_reg ad ON a.AsthaDidiRegId = ad.AsthaDidiRegId
-    ORDER BY a.AsthaMaRegId DESC
-  `;
+  const query = `SELECT a.*, DATE_FORMAT(a.AsthaMaAprovalDate, '%Y-%m-%d') AS AsthaMaAprovalDateRaw, DATE_FORMAT(a.AsthaMaDOB, '%Y-%m-%d') AS AsthaMaDOBRaw, u.SignupUserName AS ApproverName, u.UserSignUpEmail AS ApproverEmail FROM \`asthama_reg\` a LEFT JOIN userssignup u ON a.AsthaMaAprovedBy = CAST(u.UserSignUpId AS CHAR) ORDER BY a.AsthaMaRegId DESC`;
   db.query(query, (err, results) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json(
@@ -1926,18 +1911,7 @@ exports.deleteDistrictAdmin = (req, res) => {
 // ==========================================
 
 exports.getSupervisor = (req, res) => {
-  const query = `
-    SELECT a.*,
-           DATE_FORMAT(a.SupAprovedDate, '%Y-%m-%d') AS SupAprovedDateRaw,
-           DATE_FORMAT(a.SupDOB, '%Y-%m-%d') AS SupDOBRaw,
-           u.SignupUserName AS ApproverName,
-           u.UserSignUpEmail AS ApproverEmail,
-           dngo.StateNGORegId AS ParentStateNGORegId
-    FROM \`suvervisor_reg\` a
-    LEFT JOIN userssignup u ON a.SupAprovedBy = CAST(u.UserSignUpId AS CHAR)
-    LEFT JOIN dist_ngo_reg dngo ON a.DistNGORegId = dngo.DistNGORegId
-    ORDER BY a.SupRegId DESC
-  `;
+  const query = `SELECT a.*, DATE_FORMAT(a.SupAprovedDate, '%Y-%m-%d') AS SupAprovedDateRaw, DATE_FORMAT(a.SupDOB, '%Y-%m-%d') AS SupDOBRaw, u.SignupUserName AS ApproverName, u.UserSignUpEmail AS ApproverEmail FROM \`suvervisor_reg\` a LEFT JOIN userssignup u ON a.SupAprovedBy = CAST(u.UserSignUpId AS CHAR) ORDER BY a.SupRegId DESC`;
   db.query(query, (err, results) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json(

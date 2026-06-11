@@ -121,12 +121,7 @@ const PasswordInput = ({
   );
 };
 
-const DistrictAdminForm = ({
-  onSuccess,
-  defaultState,
-  defaultDistrict,
-  filterStateNgo,
-}) => {
+const DistrictAdminForm = ({ onSuccess, defaultState, defaultDistrict }) => {
   const [dbStates, setDbStates] = useState([]);
   const [dbDistricts, setDbDistricts] = useState([]);
 
@@ -234,20 +229,6 @@ const DistrictAdminForm = ({
   };
 
   const onSubmitDistrictAdmin = async (data) => {
-    const loggedInUser = getSafeUser ? getSafeUser() : null;
-    const currentUserRole = (
-      loggedInUser?.role ||
-      loggedInUser?.UserSignUpRole ||
-      ""
-    ).toLowerCase();
-
-    if (currentUserRole === "national ngo" && !filterStateNgo) {
-      toast.error("Please select State Super Administrator first.", {
-        position: "top-right",
-      });
-      return;
-    }
-
     // Made Darpan PDF optional here
     if (!regCertPdf || !panPdf) {
       toast.error(
@@ -272,6 +253,7 @@ const DistrictAdminForm = ({
     ];
     if (!(await validateUniqueFields(checks))) return;
 
+    const loggedInUser = getSafeUser ? getSafeUser() : null;
     const currentUserId = loggedInUser
       ? loggedInUser.UserSignUpId || loggedInUser.id
       : null;
@@ -306,7 +288,7 @@ const DistrictAdminForm = ({
       DistNGOSignupPassword: data.password,
       DistNGOCreatedByAuthRegId: currentUserId,
       DistNGOIsActive: 1,
-      StateNGORegId: filterStateNgo ? filterStateNgo.value : null,
+      StateNGORegId: null,
       DistNGOAprovedBy: null,
       DistNGOAprovedDate: null,
       DistNGOGenRegNo: null,

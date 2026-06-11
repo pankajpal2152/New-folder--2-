@@ -804,38 +804,22 @@ const SupervisorTable = ({ refreshTrigger, externalFilters }) => {
 
       let matchesMotherNgo = true;
       if (externalFilters?.filterMotherNgo) {
-        if (externalFilters.filterMotherNgo.value != null) {
-          matchesMotherNgo =
-            String(member.DistNGORegId) ===
-            String(externalFilters.filterMotherNgo.value);
-        } else {
-          const dbDist = member.SupDistName
-            ? String(member.SupDistName).trim().toLowerCase()
-            : "";
-          const ngoDist = externalFilters.filterMotherNgo.districtName
-            ? String(externalFilters.filterMotherNgo.districtName)
-                .trim()
-                .toLowerCase()
-            : "";
-          matchesMotherNgo = dbDist === ngoDist;
-        }
-      }
+        const dbDist = member.SupDistName
+          ? String(member.SupDistName).trim().toLowerCase()
+          : "";
+        const ngoDist = externalFilters.filterMotherNgo.districtName
+          ? String(externalFilters.filterMotherNgo.districtName)
+              .trim()
+              .toLowerCase()
+          : "";
 
-      let matchesStateNgo = true;
-      if (externalFilters?.filterStateNgo) {
-        const memberStateNgoId =
-          member.StateNGORegId || member.ParentStateNGORegId;
-        matchesStateNgo =
-          String(memberStateNgoId) ===
-          String(externalFilters.filterStateNgo.value);
+        matchesMotherNgo =
+          String(member.DistNGORegId) ===
+            String(externalFilters.filterMotherNgo.value) || dbDist === ngoDist;
       }
 
       return (
-        matchesSearch &&
-        matchesState &&
-        matchesDistrict &&
-        matchesMotherNgo &&
-        matchesStateNgo
+        matchesSearch && matchesState && matchesDistrict && matchesMotherNgo
       );
     });
   }, [members, globalSearch, externalFilters, userRole]);
@@ -1190,7 +1174,6 @@ const SupervisorTable = ({ refreshTrigger, externalFilters }) => {
                         {/* ✅ FIXED: Super Admin and District Admin can edit */}
                         {userRole &&
                           [
-                            "national ngo",
                             "state super administrator",
                             "district administrator",
                           ].includes((userRole || "").toLowerCase()) && (
@@ -1202,10 +1185,7 @@ const SupervisorTable = ({ refreshTrigger, externalFilters }) => {
                             </button>
                           )}
                         {/* ✅ FIXED: Super Admin can delete */}
-                        {[
-                          "national ngo",
-                          "state super administrator",
-                        ].includes((userRole || "").toLowerCase()) && (
+                        {userRole === "State Super Administrator" && (
                           <button
                             onClick={() => openModal("delete", row)}
                             style={styles.actionBtn}
@@ -1217,7 +1197,6 @@ const SupervisorTable = ({ refreshTrigger, externalFilters }) => {
                         {Number(row.SupIsActive) !== 2 &&
                           userRole &&
                           [
-                            "national ngo",
                             "state super administrator",
                             "district administrator",
                           ].includes((userRole || "").toLowerCase()) && (
@@ -1243,9 +1222,7 @@ const SupervisorTable = ({ refreshTrigger, externalFilters }) => {
                         (!externalFilters?.filterMotherNgo ||
                           !externalFilters?.filterState ||
                           !externalFilters?.filterDistrict)
-                          ? userRole === "National NGO"
-                            ? "Please select all filters above (State Super Administrator, DISTRICT NGO, State, and District) to view data."
-                            : "Please select all filters above (DISTRICT NGO, State, and District) to view data."
+                          ? "Please select all filters above (DISTRICT NGO, State, and District) to view data."
                           : "No members found in database."}
                       </td>
                     </tr>

@@ -887,6 +887,7 @@ const DistrictAdminTable = ({ refreshTrigger, externalFilters }) => {
 
   const filteredMembers = useMemo(() => {
     const isFiltersSelected =
+      externalFilters?.filterMotherNgo &&
       externalFilters?.filterState &&
       externalFilters?.filterDistrict;
     if (!isFiltersSelected) return [];
@@ -922,27 +923,7 @@ const DistrictAdminTable = ({ refreshTrigger, externalFilters }) => {
         matchesDistrict = dbDist === filterDist;
       }
 
-      let matchesStateNgo = true;
-      if (externalFilters?.filterStateNgo) {
-        matchesStateNgo =
-          String(member.StateNGORegId) ===
-          String(externalFilters.filterStateNgo.value);
-      }
-
-      let matchesMotherNgo = true;
-      if (externalFilters?.filterMotherNgo) {
-        matchesMotherNgo =
-          String(member.DistNGORegId) ===
-          String(externalFilters.filterMotherNgo.value);
-      }
-
-      return (
-        matchesSearch &&
-        matchesState &&
-        matchesDistrict &&
-        matchesStateNgo &&
-        matchesMotherNgo
-      );
+      return matchesSearch && matchesState && matchesDistrict;
     });
   }, [members, globalSearch, externalFilters]);
 
@@ -1234,10 +1215,7 @@ const DistrictAdminTable = ({ refreshTrigger, externalFilters }) => {
                       >
                         ✏️
                       </button>
-                      {[
-                        "national ngo",
-                        "state super administrator",
-                      ].includes((userRole || "").toLowerCase()) && (
+                      {userRole === "State Super Administrator" && (
                         <button
                           onClick={() => openModal("delete", row)}
                           style={styles.actionBtn}
@@ -1246,10 +1224,8 @@ const DistrictAdminTable = ({ refreshTrigger, externalFilters }) => {
                         </button>
                       )}
                       {Number(row.DistNGOIsActive) !== 2 &&
-                        [
-                          "national ngo",
-                          "state super administrator",
-                        ].includes((userRole || "").toLowerCase()) && (
+                        userRole?.toLowerCase() ===
+                          "state super administrator" && (
                           <button
                             onClick={() => openModal("approve", row)}
                             style={styles.actionBtn}
@@ -1269,9 +1245,7 @@ const DistrictAdminTable = ({ refreshTrigger, externalFilters }) => {
                       {externalFilters?.filterState &&
                       externalFilters?.filterDistrict
                         ? "No members found."
-                        : userRole === "National NGO"
-                          ? "Please select State Super Administrator, State, and District to view records."
-                          : "Please select State and District to view records."}
+                        : "Please select State and District to view records."}
                     </td>
                   </tr>
                 )}

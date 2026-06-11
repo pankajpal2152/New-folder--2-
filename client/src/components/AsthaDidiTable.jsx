@@ -833,11 +833,7 @@ const MembersTable = ({ refreshTrigger, externalFilters }) => {
 
   const filteredMembers = useMemo(() => {
     if (
-      [
-        "National NGO",
-        "State Super Administrator",
-        "District Administrator",
-      ].includes(userRole)
+      ["State Super Administrator", "District Administrator"].includes(userRole)
     ) {
       if (
         !externalFilters?.filterMotherNgo ||
@@ -881,46 +877,26 @@ const MembersTable = ({ refreshTrigger, externalFilters }) => {
 
       let matchesMotherNgo = true;
       if (externalFilters?.filterMotherNgo) {
-        if (externalFilters.filterMotherNgo.value != null) {
-          matchesMotherNgo =
-            String(member.DistNGORegId) ===
-            String(externalFilters.filterMotherNgo.value);
-        } else {
-          const dbDist = member.AsthaDidiDistName
-            ? String(member.AsthaDidiDistName).trim().toLowerCase()
-            : "";
-          const ngoDist = externalFilters.filterMotherNgo.districtName
-            ? String(externalFilters.filterMotherNgo.districtName)
-                .trim()
-                .toLowerCase()
-            : "";
-          matchesMotherNgo = dbDist === ngoDist;
-        }
+        const dbDist = member.AsthaDidiDistName
+          ? String(member.AsthaDidiDistName).trim().toLowerCase()
+          : "";
+        const ngoDist = externalFilters.filterMotherNgo.districtName
+          ? String(externalFilters.filterMotherNgo.districtName)
+              .trim()
+              .toLowerCase()
+          : "";
+        matchesMotherNgo =
+          String(member.DistNGORegId) ===
+            String(externalFilters.filterMotherNgo.value) || dbDist === ngoDist;
       }
 
       let matchesSupervisor = true;
       if (userRole === "Supervisor") {
         matchesSupervisor = String(member.SupRegId) === String(userProfileId);
       } else if (externalFilters?.filterSupervisor) {
-        const hasSupRegId =
-          member.SupRegId !== null &&
-          member.SupRegId !== undefined &&
-          member.SupRegId !== "";
-        matchesSupervisor = hasSupRegId
-          ? String(member.SupRegId) ===
-            String(externalFilters.filterSupervisor.value)
-          : externalFilters.filterSupervisor.userSignUpId != null &&
-            String(member.AsthaDidiCreatedByAuthRegId) ===
-              String(externalFilters.filterSupervisor.userSignUpId);
-      }
-
-      let matchesStateNgo = true;
-      if (externalFilters?.filterStateNgo) {
-        const memberStateNgoId =
-          member.ResolvedStateNGORegId || member.StateNGORegId;
-        matchesStateNgo =
-          String(memberStateNgoId) ===
-          String(externalFilters.filterStateNgo.value);
+        matchesSupervisor =
+          String(member.SupRegId) ===
+          String(externalFilters.filterSupervisor.value);
       }
 
       return (
@@ -928,8 +904,7 @@ const MembersTable = ({ refreshTrigger, externalFilters }) => {
         matchesState &&
         matchesDistrict &&
         matchesMotherNgo &&
-        matchesSupervisor &&
-        matchesStateNgo
+        matchesSupervisor
       );
     });
   }, [members, globalSearch, externalFilters, userRole, userProfileId]);
@@ -1295,7 +1270,6 @@ const MembersTable = ({ refreshTrigger, externalFilters }) => {
                         </button>
                         {/* ✅ FIXED: Super Admin, District Administrator, and Supervisor can edit */}
                         {[
-                          "national ngo",
                           "state super administrator",
                           "district administrator",
                           "supervisor",
@@ -1308,10 +1282,8 @@ const MembersTable = ({ refreshTrigger, externalFilters }) => {
                           </button>
                         )}
                         {/* ✅ FIXED: Super Admin can delete */}
-                        {[
-                          "national ngo",
-                          "state super administrator",
-                        ].includes((userRole || "").toLowerCase()) && (
+                        {userRole?.toLowerCase() ===
+                          "state super administrator" && (
                           <button
                             onClick={() => openModal("delete", row)}
                             style={styles.actionBtn}
@@ -1322,7 +1294,6 @@ const MembersTable = ({ refreshTrigger, externalFilters }) => {
                         {/* ✅ FIXED: Super Admin, District Administrator, and Supervisor can approve */}
                         {Number(row.AsthaDidiIsActive) !== 2 &&
                           [
-                            "national ngo",
                             "state super administrator",
                             "district administrator",
                             "supervisor",

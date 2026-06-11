@@ -73,7 +73,7 @@ export const asthaMaaSchema = z.object({
 });
 
 const SupervisorForm = ({ onSuccess, externalFilters }) => {
-  const { filterStateNgo, filterMotherNgo, filterState, filterDistrict } =
+  const { filterMotherNgo, filterState, filterDistrict } =
     externalFilters || {};
 
   const [dbStates, setDbStates] = useState([]);
@@ -137,7 +137,6 @@ const SupervisorForm = ({ onSuccess, externalFilters }) => {
       // ✅ FIXED: Allow State Super Admin and Developer to fill this form
       setIsFormAllowed(
         role === "district administrator" ||
-          role === "national ngo" ||
           role === "state super administrator" ||
           role === "developer",
       );
@@ -207,23 +206,6 @@ const SupervisorForm = ({ onSuccess, externalFilters }) => {
       return;
     }
 
-    const loggedInUser = getSafeUser ? getSafeUser() : null;
-    const currentUserRole = (
-      loggedInUser?.role ||
-      loggedInUser?.UserSignUpRole ||
-      ""
-    ).toLowerCase();
-
-    if (currentUserRole === "national ngo" && !filterStateNgo) {
-      toast.error("Please select State Super Administrator first.");
-      return;
-    }
-
-    if (currentUserRole === "national ngo" && !filterMotherNgo) {
-      toast.error("Please select District Administrator first.");
-      return;
-    }
-
     const checks = [
       {
         table: "suvervisor_reg",
@@ -249,6 +231,7 @@ const SupervisorForm = ({ onSuccess, externalFilters }) => {
     const stateName = data.state ? data.state.label : "";
     const districtName = data.district ? data.district.label : "";
 
+    const loggedInUser = getSafeUser ? getSafeUser() : null;
     const currentUserId = loggedInUser
       ? loggedInUser.UserSignUpId || loggedInUser.id
       : null;

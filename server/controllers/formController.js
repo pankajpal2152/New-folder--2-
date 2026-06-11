@@ -1558,71 +1558,114 @@ exports.getAsthaMaa = (req, res) => {
 
 exports.createAsthaMaa = (req, res) => {
   const data = req.body;
-  const insertQuery = `INSERT INTO asthama_reg (AsthaMaUserName, AsthaMaGuardianName, AsthaMaDOB, AsthaMaGuardianContactNo, AsthaMaStateName, AsthaMaDistName, AsthaMaCity, AsthaMaBlockName, AsthaMaPO, AsthaMaPS, AsthaMaGramPanchayet, AsthaMaVillage, AsthaMaPincode, AsthaMaContactNo, AsthaMaMailId, AsthaMaBankName, AsthaMaBranchName, AsthaMaBankAcctNo, AsthaMaIFSCode, AsthaMaPanNo, AsthaMaAadharNo, AsthaMaJoiningAmt, AsthaMaWalletBalance, AsthaMaSignupUserName, AsthaMaSignupEmail, AsthaMaSignupPassword, AsthaMaCreatedByAuthRegId, AsthaMaCreatedDate, DistNGORegId, SupRegId, AsthaDidiRegId, AsthaMaIsActive) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,NOW(),?,?,?,?)`;
-  const values = [
-    data.AsthaMaUserName,
-    data.AsthaMaGuardianName,
-    data.AsthaMaDOB,
-    data.AsthaMaGuardianContactNo,
-    data.AsthaMaStateName,
-    data.AsthaMaDistName,
-    data.AsthaMaCity,
-    data.AsthaMaBlockName,
-    data.AsthaMaPO,
-    data.AsthaMaPS,
-    data.AsthaMaGramPanchayet,
-    data.AsthaMaVillage,
-    data.AsthaMaPincode,
-    data.AsthaMaContactNo,
-    data.AsthaMaMailId,
-    data.AsthaMaBankName,
-    data.AsthaMaBranchName,
-    data.AsthaMaBankAcctNo,
-    data.AsthaMaIFSCode,
-    data.AsthaMaPanNo,
-    data.AsthaMaAadharNo,
-    data.AsthaMaJoiningAmt,
-    data.AsthaMaWalletBalance,
-    data.AsthaMaSignupUserName,
-    data.AsthaMaSignupEmail,
-    data.AsthaMaSignupPassword,
-    data.AsthaMaCreatedByAuthRegId || null,
-    data.DistNGORegId || null,
-    data.SupRegId || null,
-    data.AsthaDidiRegId || null,
-    data.AsthaMaIsActive || 1,
-  ];
+  const resolveStateNgoQuery = `
+    SELECT StateNGORegId
+    FROM (
+      SELECT d.StateNGORegId, 1 AS SortOrder
+      FROM dist_ngo_reg d
+      WHERE d.DistNGORegId = ?
 
-  db.query(insertQuery, values, (err, result) => {
-    if (err) return res.status(500).json({ error: err.message });
-    const newId = result.insertId;
-    const fileName = saveBase64File(
-      data.AsthaMaProfileImage,
-      "AsthaMaa",
-      newId,
-      "Profile",
-    );
-    db.query(
-      "UPDATE asthama_reg SET AsthaMaProfileImage=? WHERE AsthaMaRegId=?",
-      [fileName, newId],
-      () => {},
-    );
-    if (data.AsthaMaSignupUserName) {
-      db.query(
-        `INSERT INTO userssignup (UserSignUpRole, SignupUserName, UserSignUpEmail, UserSignUpPassword, UserSignIsActive, UserAtuorizedRegId, ProfileRegId) VALUES (?, ?, ?, ?, 1, ?, ?)`,
-        [
-          "Astha Maa",
-          data.AsthaMaSignupUserName,
-          data.AsthaMaSignupEmail,
-          data.AsthaMaSignupPassword,
-          data.AsthaMaCreatedByAuthRegId || null,
+      UNION ALL
+
+      SELECT a.StateNGORegId, 2 AS SortOrder
+      FROM asthadidi_reg a
+      WHERE a.AsthaDidiRegId = ?
+
+      UNION ALL
+
+      SELECT d.StateNGORegId, 3 AS SortOrder
+      FROM suvervisor_reg s
+      LEFT JOIN dist_ngo_reg d ON s.DistNGORegId = d.DistNGORegId
+      WHERE s.SupRegId = ?
+    ) resolved
+    WHERE StateNGORegId IS NOT NULL
+    ORDER BY SortOrder
+    LIMIT 1
+  `;
+
+  db.query(
+    resolveStateNgoQuery,
+    [
+      data.DistNGORegId || null,
+      data.AsthaDidiRegId || null,
+      data.SupRegId || null,
+    ],
+    (resolveErr, resolveResults) => {
+      if (resolveErr) {
+        return res.status(500).json({ error: resolveErr.message });
+      }
+
+      const resolvedStateNGORegId =
+        data.StateNGORegId || resolveResults[0]?.StateNGORegId || null;
+
+      const insertQuery = `INSERT INTO asthama_reg (AsthaMaUserName, AsthaMaGuardianName, AsthaMaDOB, AsthaMaGuardianContactNo, AsthaMaStateName, AsthaMaDistName, AsthaMaCity, AsthaMaBlockName, AsthaMaPO, AsthaMaPS, AsthaMaGramPanchayet, AsthaMaVillage, AsthaMaPincode, AsthaMaContactNo, AsthaMaMailId, AsthaMaBankName, AsthaMaBranchName, AsthaMaBankAcctNo, AsthaMaIFSCode, AsthaMaPanNo, AsthaMaAadharNo, AsthaMaJoiningAmt, AsthaMaWalletBalance, AsthaMaSignupUserName, AsthaMaSignupEmail, AsthaMaSignupPassword, AsthaMaCreatedByAuthRegId, AsthaMaCreatedDate, StateNGORegId, DistNGORegId, SupRegId, AsthaDidiRegId, AsthaMaIsActive) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,NOW(),?,?,?,?,?)`;
+      const values = [
+        data.AsthaMaUserName,
+        data.AsthaMaGuardianName,
+        data.AsthaMaDOB,
+        data.AsthaMaGuardianContactNo,
+        data.AsthaMaStateName,
+        data.AsthaMaDistName,
+        data.AsthaMaCity,
+        data.AsthaMaBlockName,
+        data.AsthaMaPO,
+        data.AsthaMaPS,
+        data.AsthaMaGramPanchayet,
+        data.AsthaMaVillage,
+        data.AsthaMaPincode,
+        data.AsthaMaContactNo,
+        data.AsthaMaMailId,
+        data.AsthaMaBankName,
+        data.AsthaMaBranchName,
+        data.AsthaMaBankAcctNo,
+        data.AsthaMaIFSCode,
+        data.AsthaMaPanNo,
+        data.AsthaMaAadharNo,
+        data.AsthaMaJoiningAmt,
+        data.AsthaMaWalletBalance,
+        data.AsthaMaSignupUserName,
+        data.AsthaMaSignupEmail,
+        data.AsthaMaSignupPassword,
+        data.AsthaMaCreatedByAuthRegId || null,
+        resolvedStateNGORegId,
+        data.DistNGORegId || null,
+        data.SupRegId || null,
+        data.AsthaDidiRegId || null,
+        data.AsthaMaIsActive || 1,
+      ];
+
+      db.query(insertQuery, values, (err, result) => {
+        if (err) return res.status(500).json({ error: err.message });
+        const newId = result.insertId;
+        const fileName = saveBase64File(
+          data.AsthaMaProfileImage,
+          "AsthaMaa",
           newId,
-        ],
-        () => {},
-      );
-    }
-    res.json({ message: "Astha Maa added successfully", id: newId });
-  });
+          "Profile",
+        );
+        db.query(
+          "UPDATE asthama_reg SET AsthaMaProfileImage=? WHERE AsthaMaRegId=?",
+          [fileName, newId],
+          () => {},
+        );
+        if (data.AsthaMaSignupUserName) {
+          db.query(
+            `INSERT INTO userssignup (UserSignUpRole, SignupUserName, UserSignUpEmail, UserSignUpPassword, UserSignIsActive, UserAtuorizedRegId, ProfileRegId) VALUES (?, ?, ?, ?, 1, ?, ?)`,
+            [
+              "Astha Maa",
+              data.AsthaMaSignupUserName,
+              data.AsthaMaSignupEmail,
+              data.AsthaMaSignupPassword,
+              data.AsthaMaCreatedByAuthRegId || null,
+              newId,
+            ],
+            () => {},
+          );
+        }
+        res.json({ message: "Astha Maa added successfully", id: newId });
+      });
+    },
+  );
 };
 
 exports.updateAsthaMaa = (req, res) => {

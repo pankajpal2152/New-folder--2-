@@ -20,24 +20,31 @@ import {
 
 export const asthaMaaSchema = z.object({
   joiningAmount: z.string().min(1, "Joining Amount is required"),
-  walletBalance: z.string().optional(),
+  walletBalance: z.string().min(1, "Wallet Balance is required"),
   fullName: z
     .string()
+    .trim()
     .min(2, "Min 2 characters")
     .max(50, "Max 50 characters")
     .regex(/^[a-zA-Z\s]+$/, "Letters only"),
-  sdwOf: z.string().optional(),
+  sdwOf: z.string().trim().min(1, "S/D/W of is required"),
   dob: z.string().min(1, "Date of Birth is required"),
-  guardianContactNo: z.string().min(1, "Guardian Contact no is required"),
-  state: z.object({ value: z.any(), label: z.string() }).nullable().optional(),
+  guardianContactNo: z
+    .string()
+    .trim()
+    .min(1, "Guardian Contact no is required"),
+  state: z
+    .object({ value: z.any(), label: z.string() })
+    .nullable()
+    .refine((value) => !!value, { message: "State is required" }),
   district: z
     .object({ value: z.any(), label: z.string() })
     .nullable()
-    .optional(),
-  city: z.string().optional(),
+    .refine((value) => !!value, { message: "District is required" }),
+  city: z.string().trim().min(1, "City is required"),
   block: z.string().min(1, "Block is required"),
-  postOffice: z.string().optional(),
-  policeStation: z.string().optional(),
+  postOffice: z.string().trim().min(1, "Post Office is required"),
+  policeStation: z.string().trim().min(1, "Police Station is required"),
   gramPanchayet: z.string().min(1, "Gram Panchayet is required"),
   village: z.string().min(1, "Village is required"),
   pinCode: z

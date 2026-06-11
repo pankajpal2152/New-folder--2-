@@ -663,8 +663,8 @@ const AsthaDidiModal = ({ member, mode, onClose, onSuccess }) => {
                     label="Bank Name"
                     id="edit_bankName"
                     error={errors.bankName}
-                    disabled
-                    readOnly
+                    disabled={isView}
+                    readOnly={isView}
                     {...field}
                   />
                 )}
@@ -677,8 +677,8 @@ const AsthaDidiModal = ({ member, mode, onClose, onSuccess }) => {
                     label="Branch Name"
                     id="edit_branchName"
                     error={errors.branchName}
-                    disabled
-                    readOnly
+                    disabled={isView}
+                    readOnly={isView}
                     {...field}
                   />
                 )}
@@ -691,8 +691,8 @@ const AsthaDidiModal = ({ member, mode, onClose, onSuccess }) => {
                     label="Account No"
                     id="edit_accountNo"
                     error={errors.accountNo}
-                    disabled
-                    readOnly
+                    disabled={isView}
+                    readOnly={isView}
                     {...field}
                   />
                 )}
@@ -705,8 +705,8 @@ const AsthaDidiModal = ({ member, mode, onClose, onSuccess }) => {
                     label="IFS Code"
                     id="edit_ifsCode"
                     error={errors.ifsCode}
-                    disabled
-                    readOnly
+                    disabled={isView}
+                    readOnly={isView}
                     {...field}
                   />
                 )}
@@ -719,8 +719,8 @@ const AsthaDidiModal = ({ member, mode, onClose, onSuccess }) => {
                     label="PAN No"
                     id="edit_panNo"
                     error={errors.panNo}
-                    disabled
-                    readOnly
+                    disabled={isView}
+                    readOnly={isView}
                     {...field}
                   />
                 )}
@@ -733,8 +733,8 @@ const AsthaDidiModal = ({ member, mode, onClose, onSuccess }) => {
                     label="Aadhar No *"
                     id="edit_aadharNo"
                     error={errors.aadharNo}
-                    disabled
-                    readOnly
+                    disabled={isView}
+                    readOnly={isView}
                     {...field}
                   />
                 )}

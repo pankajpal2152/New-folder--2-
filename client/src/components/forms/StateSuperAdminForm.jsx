@@ -17,12 +17,18 @@ import {
 } from "../AccountSharedUtils";
 
 const stateSuperAdminSchema = z.object({
-  stateNgoName: z.string().min(2, "State NGO name is required"),
-  registrationNo: z.string().min(1, "Registration number is required"),
+  stateNgoName: z.string().trim().min(2, "State NGO name is required"),
+  registrationNo: z.string().trim().min(1, "Registration number is required"),
   registrationDate: z.string().min(1, "Registration date is required"),
-  sdpName: z.string().min(2, "Secretary/Director/President name is required"),
-  mailId: z.string().email("Valid email required"),
-  phoneNo: z.string().regex(indianPhoneRegex, "Valid Indian phone required"),
+  sdpName: z
+    .string()
+    .trim()
+    .min(2, "Secretary/Director/President name is required"),
+  mailId: z.string().trim().email("Valid email required"),
+  phoneNo: z
+    .string()
+    .trim()
+    .regex(indianPhoneRegex, "Valid Indian phone required"),
   state: z
     .object({ value: z.any(), label: z.string() })
     .nullable()
@@ -31,19 +37,25 @@ const stateSuperAdminSchema = z.object({
     .object({ value: z.any(), label: z.string() })
     .nullable()
     .refine((value) => !!value, { message: "District is required" }),
-  blockName: z.string().min(1, "Block name is required"),
-  bankName: z.string().optional().or(z.literal("")),
-  accountNo: z.string().optional().or(z.literal("")),
-  ifsCode: z.string().optional().or(z.literal("")),
-  bankAddress: z.string().optional().or(z.literal("")),
-  accountHolderName: z.string().optional().or(z.literal("")),
-  accountType: z.string().optional().or(z.literal("")),
+  blockName: z.string().trim().min(1, "Block name is required"),
+  bankName: z.string().trim().min(1, "Bank Name is required"),
+  accountNo: z.string().trim().min(1, "Account Number is required"),
+  ifsCode: z.string().trim().min(1, "IFS Code is required"),
+  bankAddress: z.string().trim().min(1, "Bank Address is required"),
+  accountHolderName: z
+    .string()
+    .trim()
+    .min(1, "Account Holder Name is required"),
+  accountType: z.string().trim().min(1, "Bank Account Type is required"),
   userName: z
     .string()
+    .trim()
     .min(1, "User name is required")
     .max(10, "User name must be 10 characters or less"),
-  signupEmail: z.string().email("Valid login email required"),
-  password: z.string().min(1, "Password is required"),
+  signupEmail: z.string().trim().email("Valid login email required"),
+  password: z.string().refine((value) => value.trim().length > 0, {
+    message: "Password is required",
+  }),
 });
 
 const defaultValues = {

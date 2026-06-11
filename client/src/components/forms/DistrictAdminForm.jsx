@@ -15,36 +15,54 @@ import { getSafeUser, handleViewPdf } from "../AccountSharedUtils";
 import { validateUniqueFields } from "../AccountSharedUtils";
 
 export const ngoSchema = z.object({
-  ngoName: z.string().min(2, "NGO Name is required"),
+  ngoName: z.string().trim().min(2, "NGO Name is required"),
   ngoRegistrationDate: z.string().min(1, "Date is required"),
-  ngoRegistrationNo: z.string().min(1, "Registration No is required"),
-  ngoPanNo: z.string().min(1, "PAN No is required"),
-  ngoDarpanId: z.string().optional().or(z.literal("")),
-  generalNgoEmail: z.string().email("Valid email required").optional(),
-  ngoMobile: z.string().regex(indianPhoneRegex, "Valid Indian phone required"),
-  ngoRegAddress: z.string().min(5, "Address is required"),
-  ngoWorkingAddress: z.string().min(5, "Address is required"),
-  state: z.object({ value: z.any(), label: z.string() }).nullable(),
-  district: z.object({ value: z.any(), label: z.string() }).nullable(),
-  blockName: z.string().min(1, "Block Name is required"),
-  sdpName: z.string().min(2, "Name is required"),
-  secretaryEmail: z.string().email("Valid email required"),
-  secretaryMobile: z.string().regex(indianPhoneRegex, "Valid phone required"),
+  ngoRegistrationNo: z.string().trim().min(1, "Registration No is required"),
+  ngoPanNo: z.string().trim().min(1, "PAN No is required"),
+  ngoDarpanId: z.string().trim().min(1, "NGO Darpan ID is required"),
+  generalNgoEmail: z.string().trim().email("Valid email required"),
+  ngoMobile: z
+    .string()
+    .trim()
+    .regex(indianPhoneRegex, "Valid Indian phone required"),
+  ngoRegAddress: z.string().trim().min(5, "Address is required"),
+  ngoWorkingAddress: z.string().trim().min(5, "Address is required"),
+  state: z
+    .object({ value: z.any(), label: z.string() })
+    .nullable()
+    .refine((value) => !!value, { message: "State is required" }),
+  district: z
+    .object({ value: z.any(), label: z.string() })
+    .nullable()
+    .refine((value) => !!value, { message: "District is required" }),
+  blockName: z.string().trim().min(1, "Block Name is required"),
+  sdpName: z.string().trim().min(2, "Name is required"),
+  secretaryEmail: z.string().trim().email("Valid email required"),
+  secretaryMobile: z
+    .string()
+    .trim()
+    .regex(indianPhoneRegex, "Valid phone required"),
   secretaryAadhar: z
     .string()
+    .trim()
+    .min(1, "Aadhaar is required")
     .length(12, "Must be exactly 12 digits")
     .regex(/^\d+$/, "Numbers only"),
 
-  // Made Banking fields optional
-  bankAccountHolderName: z.string().optional().or(z.literal("")),
-  bankName: z.string().optional().or(z.literal("")),
-  accountNo: z.string().optional().or(z.literal("")),
-  ifsCode: z.string().optional().or(z.literal("")),
-  bankAddress: z.string().optional().or(z.literal("")),
+  bankAccountHolderName: z
+    .string()
+    .trim()
+    .min(1, "Account Holder Name is required"),
+  bankName: z.string().trim().min(1, "Bank Name is required"),
+  accountNo: z.string().trim().min(1, "Account Number is required"),
+  ifsCode: z.string().trim().min(1, "IFS Code is required"),
+  bankAddress: z.string().trim().min(1, "Bank Address is required"),
 
-  userName: z.string().min(1, "User Name is required"),
-  ngoEmail: z.string().email("Valid login email required"),
-  password: z.string().min(1, "Password is required"),
+  userName: z.string().trim().min(1, "User Name is required"),
+  ngoEmail: z.string().trim().email("Valid login email required"),
+  password: z.string().refine((value) => value.trim().length > 0, {
+    message: "Password is required",
+  }),
 });
 
 const PasswordInput = ({
@@ -414,7 +432,7 @@ const DistrictAdminForm = ({ onSuccess, defaultState, defaultDistrict }) => {
                   id="generalNgoEmail"
                   error={errors.generalNgoEmail}
                   type="email"
-                  placeholder="Optional general contact email"
+                  placeholder="General contact email"
                   {...field}
                 />
               )}
@@ -695,7 +713,6 @@ const DistrictAdminForm = ({ onSuccess, defaultState, defaultDistrict }) => {
 
           <h6 style={styles.sectionHeader}>Banking & Account Setup</h6>
           <div style={styles.formGrid}>
-            {/* Removed the * required indicator from Banking fields */}
             <Controller
               name="bankAccountHolderName"
               control={control}

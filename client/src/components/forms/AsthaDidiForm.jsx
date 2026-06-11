@@ -16,24 +16,31 @@ import { validateUniqueFields } from "../AccountSharedUtils";
 
 export const accountSchema = z.object({
   joiningAmount: z.string().min(1, "Joining Amount is required"),
-  walletBalance: z.string().optional(),
+  walletBalance: z.string().min(1, "Wallet Balance is required"),
   fullName: z
     .string()
+    .trim()
     .min(2, "Min 2 characters")
     .max(50, "Max 50 characters")
     .regex(/^[a-zA-Z\s]+$/, "Letters only"),
-  sdwOf: z.string().optional(),
+  sdwOf: z.string().trim().min(1, "S/D/W of is required"),
   dob: z.string().min(1, "Date of Birth is required"),
-  guardianContactNo: z.string().min(1, "Guardian Contact no is required"),
-  state: z.object({ value: z.any(), label: z.string() }).nullable().optional(),
+  guardianContactNo: z
+    .string()
+    .trim()
+    .min(1, "Guardian Contact no is required"),
+  state: z
+    .object({ value: z.any(), label: z.string() })
+    .nullable()
+    .refine((value) => !!value, { message: "State is required" }),
   district: z
     .object({ value: z.any(), label: z.string() })
     .nullable()
-    .optional(),
-  city: z.string().optional(),
+    .refine((value) => !!value, { message: "District is required" }),
+  city: z.string().trim().min(1, "City is required"),
   block: z.string().min(1, "Block is required"),
-  postOffice: z.string().optional(),
-  policeStation: z.string().optional(),
+  postOffice: z.string().trim().min(1, "Post Office is required"),
+  policeStation: z.string().trim().min(1, "Police Station is required"),
   gramPanchayet: z.string().min(1, "Gram Panchayet is required"),
   village: z.string().min(1, "Village is required"),
   pinCode: z
@@ -43,21 +50,22 @@ export const accountSchema = z.object({
   mobileNo: z.string().regex(indianPhoneRegex, "Valid Indian phone required"),
   email: z
     .string()
+    .trim()
     .email("Please enter a valid email address")
     .max(100, "Max 100 characters"),
   userName: z.string().min(1, "Username is required"),
   password: z.string().min(1, "Password is required"),
-  bankName: z.string().optional(),
-  branchName: z.string().optional(),
-  accountNo: z.string().optional(),
-  ifsCode: z.string().optional(),
-  panNo: z.string().optional(),
+  bankName: z.string().trim().min(1, "Bank Name is required"),
+  branchName: z.string().trim().min(1, "Branch Name is required"),
+  accountNo: z.string().trim().min(1, "Account No is required"),
+  ifsCode: z.string().trim().min(1, "IFS Code is required"),
+  panNo: z.string().trim().min(1, "PAN No is required"),
   aadharNo: z
     .string()
-    .optional()
-    .refine((val) => !val || (val.length === 12 && /^\d+$/.test(val)), {
-      message: "Aadhaar must be 12 digits or empty",
-    }),
+    .trim()
+    .min(1, "Aadhar No is required")
+    .length(12, "Aadhaar must be 12 digits")
+    .regex(/^\d+$/, "Numbers only"),
   deactivateConfirm: z.boolean().optional(),
 });
 

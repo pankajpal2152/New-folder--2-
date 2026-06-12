@@ -2056,34 +2056,37 @@ exports.createDistrictAdmin = (req, res) => {
     db.query(
       "UPDATE dist_ngo_reg SET DistNGORecCertificate=?, DistNGOPanPic=?, DistNGODarpanPic=? WHERE DistNGORegId=?",
       [regCert, panPic, darpanPic, newId],
-      () => {},
-    );
+      (docErr) => {
+        if (docErr) return res.status(500).json({ error: docErr.message });
 
-    if (data.DistNGOSignupUserName) {
-      db.query(
-        `INSERT INTO userssignup (UserSignUpRole, SignupUserName, UserSignUpEmail, UserSignUpPassword, UserSignIsActive, UserAtuorizedRegId, ProfileRegId) VALUES (?, ?, ?, ?, 1, ?, ?)`,
-        [
-          "District Administrator",
-          data.DistNGOSignupUserName,
-          data.DistNGOSignupEmail,
-          data.DistNGOSignupPassword,
-          data.DistNGOCreatedByAuthRegId || null,
-          newId,
-        ],
-        () => {},
-      );
-    }
-    syncAccountRecord(
-      {
-        acctNo: newId,
-        acctHead: data.AcctHead || "DN",
-        acctName: data.DistNGOName,
-        stateNgoId: data.StateNGORegId || null,
-        districtNgoId: newId,
-      },
-      (syncErr) => {
-        if (syncErr) return res.status(500).json({ error: syncErr.message });
-        res.json({ message: "District Admin added successfully", id: newId });
+        if (data.DistNGOSignupUserName) {
+          db.query(
+            `INSERT INTO userssignup (UserSignUpRole, SignupUserName, UserSignUpEmail, UserSignUpPassword, UserSignIsActive, UserAtuorizedRegId, ProfileRegId) VALUES (?, ?, ?, ?, 1, ?, ?)`,
+            [
+              "District Administrator",
+              data.DistNGOSignupUserName,
+              data.DistNGOSignupEmail,
+              data.DistNGOSignupPassword,
+              data.DistNGOCreatedByAuthRegId || null,
+              newId,
+            ],
+            () => {},
+          );
+        }
+
+        syncAccountRecord(
+          {
+            acctNo: newId,
+            acctHead: data.AcctHead || "DN",
+            acctName: data.DistNGOName,
+            stateNgoId: data.StateNGORegId || null,
+            districtNgoId: newId,
+          },
+          (syncErr) => {
+            if (syncErr) return res.status(500).json({ error: syncErr.message });
+            res.json({ message: "District Admin added successfully", id: newId });
+          },
+        );
       },
     );
   });

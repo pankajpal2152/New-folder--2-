@@ -2,7 +2,13 @@ const fs = require('fs');
 const path = require('path');
 
 const saveBase64File = (base64Data, category, id, docType) => {
-    if (!base64Data || base64Data.includes('ID:')) return base64Data;
+    if (!base64Data) return base64Data;
+    if (typeof base64Data !== 'string') return null;
+
+    const dataUrlMatch = base64Data.match(/^data:([^;]+);base64,(.+)$/);
+    if (!dataUrlMatch) {
+        return base64Data;
+    }
 
     try {
         // ✅ GUARANTEED MATCH: Uses the exact same path formula as server.js
@@ -12,17 +18,17 @@ const saveBase64File = (base64Data, category, id, docType) => {
             fs.mkdirSync(dir, { recursive: true });
         }
 
+        const mimeType = dataUrlMatch[1];
         let extension = "png";
-        if (base64Data.includes("image/jpeg")) extension = "jpeg";
-        else if (base64Data.includes("image/jpg")) extension = "jpg";
-        else if (base64Data.includes("image/png")) extension = "png";
-        else if (base64Data.includes("application/pdf")) extension = "pdf";
+        if (mimeType === "image/jpeg") extension = "jpeg";
+        else if (mimeType === "image/jpg") extension = "jpg";
+        else if (mimeType === "image/png") extension = "png";
+        else if (mimeType === "application/pdf") extension = "pdf";
 
         const fileName = `${category}_ID${id}_${docType}.${extension}`;
         const filePath = path.join(dir, fileName);
 
-        const base64Image = base64Data.split(';base64,').pop();
-        fs.writeFileSync(filePath, base64Image, { encoding: 'base64' });
+        fs.writeFileSync(filePath, dataUrlMatch[2], { encoding: 'base64' });
 
         return fileName;
     } catch (error) {

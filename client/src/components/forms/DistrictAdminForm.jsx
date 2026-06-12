@@ -133,6 +133,7 @@ const DistrictAdminForm = ({
   const [regCertPdf, setRegCertPdf] = useState(null);
   const [panPdf, setPanPdf] = useState(null);
   const [darpanPdf, setDarpanPdf] = useState(null);
+  const [documentInputKey, setDocumentInputKey] = useState(0);
 
   const {
     control,
@@ -231,6 +232,7 @@ const DistrictAdminForm = ({
     setRegCertPdf(null);
     setPanPdf(null);
     setDarpanPdf(null);
+    setDocumentInputKey((prev) => prev + 1);
   };
 
   const onSubmitDistrictAdmin = async (data) => {
@@ -811,6 +813,7 @@ const DistrictAdminForm = ({
                 Reg Cert PDF <span style={{ color: "#ff3e1d" }}>*</span>
               </label>
               <input
+                key={`reg-cert-${documentInputKey}`}
                 type="file"
                 accept="application/pdf"
                 onChange={(e) => handlePdfUpload(e, setRegCertPdf)}
@@ -853,6 +856,7 @@ const DistrictAdminForm = ({
                 NGO PAN PDF <span style={{ color: "#ff3e1d" }}>*</span>
               </label>
               <input
+                key={`pan-${documentInputKey}`}
                 type="file"
                 accept="application/pdf"
                 onChange={(e) => handlePdfUpload(e, setPanPdf)}
@@ -894,6 +898,7 @@ const DistrictAdminForm = ({
               {/* Removed the * required indicator from Darpan PDF */}
               <label style={styles.label}>Darpan PDF</label>
               <input
+                key={`darpan-${documentInputKey}`}
                 type="file"
                 accept="application/pdf"
                 onChange={(e) => handlePdfUpload(e, setDarpanPdf)}

@@ -210,6 +210,89 @@ const AccountTab = () => {
       .catch(console.error);
   }, []);
 
+  useEffect(() => {
+    if (refreshTrigger === 0) return;
+
+    fetch(`${API_BASE_URL}/statengo`)
+      .then((res) => res.json())
+      .then((data) =>
+        setDbStateNgos(
+          data
+            .filter((ngo) => String(ngo.StateNGOIsActive) !== "0")
+            .map((ngo) => ({
+              value: ngo.StateNGORegId,
+              label:
+                ngo.StateNGOName ||
+                ngo.StateNGOSignupUserName ||
+                `State Super Administrator ${ngo.StateNGORegId}`,
+              stateId: ngo.StateNGOStateId,
+              stateName: ngo.StateNGOStateName,
+              districtId: ngo.StateNGODistId,
+              districtName: ngo.StateNGODistName,
+              nationalNgoId: ngo.AcctId,
+              acctHead: ngo.AcctHead || "SN",
+            })),
+        ),
+      )
+      .catch(console.error);
+
+    fetch(`${API_BASE_URL}/districtadmin`)
+      .then((res) => res.json())
+      .then((data) =>
+        setDbMotherNgos(
+          data
+            .filter((n) => String(n.DistNGOIsActive) !== "0")
+            .map((n) => ({
+              value: n.DistNGORegId,
+              label: n.DistNGOName,
+              districtName: n.DistNGODistName,
+              stateName: n.DistNGOStateName,
+              stateNgoRegId: n.StateNGORegId,
+            })),
+        ),
+      )
+      .catch(console.error);
+
+    fetch(`${API_BASE_URL}/supervisor`)
+      .then((res) => res.json())
+      .then((data) =>
+        setDbSupervisors(
+          data
+            .filter((s) => String(s.SupIsActive) !== "0")
+            .map((s) => ({
+              value: s.SupRegId,
+              label: s.SupName,
+              userSignUpId: s.UserSignUpId || s.SupRegId,
+              stateName: s.SupStateName,
+              distName: s.SupDistName,
+              motherNgoId: s.DistNGORegId,
+              stateNgoRegId: s.StateNGORegId || s.ParentStateNGORegId,
+            })),
+        ),
+      )
+      .catch(console.error);
+
+    fetch(`${API_BASE_URL}/asthadidi`)
+      .then((res) => res.json())
+      .then((data) =>
+        setDbAsthaDidis(
+          data
+            .filter((a) => String(a.AsthaDidiIsActive) !== "0")
+            .map((a) => ({
+              value: a.AsthaDidiRegId,
+              label: a.AsthaDidiUserName,
+              stateName: a.AsthaDidiStateName,
+              distName: a.AsthaDidiDistName,
+              motherNgoId: a.DistNGORegId,
+              supRegId: a.SupRegId,
+              stateNgoRegId: a.StateNGORegId || a.ResolvedStateNGORegId,
+              createdByAuthRegId: a.AsthaDidiCreatedByAuthRegId,
+            })),
+        ),
+      )
+      .catch(console.error);
+  }, [refreshTrigger]);
+
   const filteredStateNgos = useMemo(() => {
     if (appUserRole === "State Super Administrator" && loggedInProfileId) {
       return dbStateNgos.filter(

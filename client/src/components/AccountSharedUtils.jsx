@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { toast } from "react-toastify";
-import { styles, extractBase64 } from "../config/constants";
-import { API_BASE_URL } from "../config/constants";
+import { API_BASE_URL, resolveDocumentUrl, styles } from "../config/constants";
 
 export const getSafeUser = () => {
   try {
@@ -18,10 +17,12 @@ export const getSafeUser = () => {
 // Automatically handles Base64 previews and Physical URLs!
 // ==========================================
 export const handleViewPdf = (dbValue) => {
-  if (!dbValue) return;
+  const fullUrl = resolveDocumentUrl(dbValue);
 
-  // Resolve the exact URL using constants logic
-  const fullUrl = extractBase64(dbValue);
+  if (!fullUrl) {
+    toast.error("Document is not available.");
+    return;
+  }
 
   // If it's a raw base64 string, open via iframe
   if (fullUrl.startsWith("data:")) {
@@ -37,7 +38,7 @@ export const handleViewPdf = (dbValue) => {
     }
   } else {
     // It's a real file hosted on the server, open directly
-    window.open(fullUrl, "_blank");
+    window.open(fullUrl, "_blank", "noopener,noreferrer");
   }
 };
 

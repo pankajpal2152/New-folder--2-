@@ -5,9 +5,12 @@ import React from "react";
 // ==========================================
 
 // ✅ SMART ROUTING: Blank for local (uses Vite proxy), full URL for production
-const SERVER_ROOT = import.meta.env.PROD
-  ? "https://ngo-shevasham-backend.onrender.com"
-  : "";
+const DEFAULT_PRODUCTION_SERVER_ROOT = "https://ngo-shevasham-backend.onrender.com";
+export const SERVER_ROOT = (
+  import.meta.env.VITE_SERVER_ROOT ||
+  (import.meta.env.VITE_API_BASE_URL || "").replace(/\/api\/?$/, "") ||
+  (import.meta.env.PROD ? DEFAULT_PRODUCTION_SERVER_ROOT : "")
+).replace(/\/+$/, "");
 export const API_BASE_URL = `${SERVER_ROOT}/api`;
 export const DOCS_URL = `${SERVER_ROOT}/allDocumentsFolder`;
 
@@ -20,27 +23,55 @@ export const indianPhoneRegex = /^(?:\+91[\s]?|91[\s]?)?[6789]\d{9}$/;
 
 export const extractBase64 = (dbValue) => {
   if (!dbValue) return DUMMY_AVATAR;
+  const rawValue = String(dbValue).trim();
 
   if (
-    dbValue.startsWith("data:image/") ||
-    dbValue.startsWith("data:application/pdf")
+    rawValue.startsWith("data:image/") ||
+    rawValue.startsWith("data:application/pdf")
   ) {
-    return dbValue;
+    return rawValue;
   }
 
-  if (dbValue.includes("||")) {
-    const parts = dbValue.split("||");
+  if (rawValue.includes("||")) {
+    const parts = rawValue.split("||");
     return parts.length > 1 && parts[1] ? parts[1] : DUMMY_AVATAR;
   }
 
+  if (/^https?:\/\//i.test(rawValue)) {
+    return rawValue;
+  }
+
   // ✅ FIXED REGEX: Simply checks if the value is a saved filename and builds the correct URL
-  const isFile = /\.(jpg|jpeg|png|gif|webp|pdf)$/i.test(dbValue);
+  const isFile = /\.(jpg|jpeg|png|gif|webp|pdf)$/i.test(rawValue);
 
   if (isFile) {
-    return `${DOCS_URL}/${dbValue}`;
+    return resolveDocumentUrl(rawValue);
   }
 
   return DUMMY_AVATAR;
+};
+
+export const resolveDocumentUrl = (dbValue) => {
+  if (!dbValue) return "";
+  const rawValue = String(dbValue).trim();
+
+  if (rawValue.startsWith("data:")) return rawValue;
+  if (/^https?:\/\//i.test(rawValue)) return rawValue;
+
+  if (rawValue.startsWith("/allDocumentsFolder/")) {
+    return `${SERVER_ROOT}${rawValue}`;
+  }
+
+  if (rawValue.startsWith("allDocumentsFolder/")) {
+    return `${DOCS_URL}/${rawValue.split("/").slice(1).join("/")}`;
+  }
+
+  const fileName = rawValue.split(/[\\/]/).pop();
+  if (fileName && /\.(jpg|jpeg|png|gif|webp|pdf)$/i.test(fileName)) {
+    return `${DOCS_URL}/${encodeURIComponent(fileName)}`;
+  }
+
+  return rawValue;
 };
 
 export const fileToBase64 = (file) => {

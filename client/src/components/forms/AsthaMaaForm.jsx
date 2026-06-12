@@ -58,19 +58,17 @@ export const asthaMaaSchema = z.object({
     .max(100, "Max 100 characters"),
   userName: z.string().min(1, "Username is required"),
   password: z.string().min(1, "Password is required"),
-  bankName: z.string().optional(),
-  branchName: z.string().optional(),
-  accountNo: z.string().optional(),
-  ifsCode: z.string().optional(),
-  panNo: z.string().optional(),
+  bankName: z.string().trim().min(1, "Bank Name is required"),
+  branchName: z.string().trim().min(1, "Branch Name is required"),
+  accountNo: z.string().trim().min(1, "Account No is required"),
+  ifsCode: z.string().trim().min(1, "IFS Code is required"),
+  panNo: z.string().trim().min(1, "PAN No is required"),
   aadharNo: z
     .string()
-    .optional()
-    .nullable()
+    .trim()
+    .min(1, "Aadhar No is required")
     .refine(
       (val) =>
-        !val ||
-        val.trim() === "" ||
         (val.trim().length === 12 && /^\d+$/.test(val.trim())),
       "Must be exactly 12 digits",
     ),
@@ -78,6 +76,7 @@ export const asthaMaaSchema = z.object({
 
 const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
   const {
+    filterStateNgo,
     filterMotherNgo,
     filterState,
     filterDistrict,
@@ -92,6 +91,7 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
   // ✅ FIXED: Using inclusive hierarchy validation
   const [isFormAllowed, setIsFormAllowed] = useState(false);
   const [isStrictAsthaDidi, setIsStrictAsthaDidi] = useState(false);
+  const [loggedRole, setLoggedRole] = useState("");
 
   const {
     control,
@@ -143,12 +143,14 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
         loggedInUser?.UserSignUpRole ||
         ""
       ).toLowerCase();
+      setLoggedRole(role);
 
       setIsStrictAsthaDidi(role === "astha didi");
 
       // ✅ FIXED: Allow State Super Admin and all intermediate roles
       setIsFormAllowed(
-        role === "astha didi" ||
+        role === "national ngo" ||
+          role === "astha didi" ||
           role === "supervisor" ||
           role === "district administrator" ||
           role === "state super administrator" ||
@@ -276,7 +278,12 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
       AsthaMaAadharNo: data.aadharNo || "",
       AsthaMaJoiningAmt: parseInt(data.joiningAmount) || 105,
       AsthaMaWalletBalance: parseInt(data.walletBalance) || 0,
-      StateNGORegId: null,
+      StateNGORegId:
+        filterStateNgo?.value ||
+        filterAsthaDidi?.stateNgoRegId ||
+        filterSupervisor?.stateNgoRegId ||
+        filterMotherNgo?.stateNgoRegId ||
+        null,
       DistNGORegId: filterMotherNgo ? filterMotherNgo.value : null,
       SupRegId: filterSupervisor ? filterSupervisor.value : null,
       AsthaDidiRegId:
@@ -289,6 +296,7 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
       AsthaMaAprovedBy: null,
       AsthaMaAprovalDate: null,
       AsthaMaRegNo: null,
+      AcctHead: "AM",
     };
 
     try {
@@ -318,7 +326,15 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
 
   // ✅ FIXED: Evaluates true for Super Admin as long as they pick an Astha Didi from the external filter
   const isFormEnabled =
-    isFormAllowed && (isStrictAsthaDidi ? true : !!filterAsthaDidi);
+    isFormAllowed &&
+    (isStrictAsthaDidi
+      ? true
+      : !!filterMotherNgo &&
+        !!filterState &&
+        !!filterDistrict &&
+        !!filterSupervisor &&
+        !!filterAsthaDidi &&
+        (loggedRole !== "national ngo" || !!filterStateNgo));
 
   return (
     <div style={styles.card}>

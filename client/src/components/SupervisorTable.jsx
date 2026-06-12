@@ -757,12 +757,14 @@ const SupervisorTable = ({ refreshTrigger, externalFilters }) => {
   }, [refreshTrigger]);
 
   const filteredMembers = useMemo(() => {
+    const isNationalNgo = (userRole || "").toLowerCase() === "national ngo";
     if (
       userRole !== "Supervisor" &&
       userRole !== "Astha Didi" &&
       userRole !== "Astha Maa"
     ) {
       if (
+        (isNationalNgo && !externalFilters?.filterStateNgo) ||
         !externalFilters?.filterMotherNgo ||
         !externalFilters?.filterState ||
         !externalFilters?.filterDistrict
@@ -814,12 +816,26 @@ const SupervisorTable = ({ refreshTrigger, externalFilters }) => {
           : "";
 
         matchesMotherNgo =
-          String(member.DistNGORegId) ===
-            String(externalFilters.filterMotherNgo.value) || dbDist === ngoDist;
+          member.DistNGORegId != null
+            ? String(member.DistNGORegId) ===
+              String(externalFilters.filterMotherNgo.value)
+            : dbDist === ngoDist;
+      }
+
+      let matchesStateNgo = true;
+      if (externalFilters?.filterStateNgo) {
+        const rowStateNgoId = member.StateNGORegId || member.ParentStateNGORegId;
+        matchesStateNgo =
+          String(rowStateNgoId) ===
+          String(externalFilters.filterStateNgo.value);
       }
 
       return (
-        matchesSearch && matchesState && matchesDistrict && matchesMotherNgo
+        matchesSearch &&
+        matchesStateNgo &&
+        matchesState &&
+        matchesDistrict &&
+        matchesMotherNgo
       );
     });
   }, [members, globalSearch, externalFilters, userRole]);
@@ -1185,7 +1201,9 @@ const SupervisorTable = ({ refreshTrigger, externalFilters }) => {
                             </button>
                           )}
                         {/* ✅ FIXED: Super Admin can delete */}
-                        {userRole === "State Super Administrator" && (
+                        {["national ngo", "state super administrator"].includes(
+                          (userRole || "").toLowerCase(),
+                        ) && (
                           <button
                             onClick={() => openModal("delete", row)}
                             style={styles.actionBtn}
@@ -1197,6 +1215,7 @@ const SupervisorTable = ({ refreshTrigger, externalFilters }) => {
                         {Number(row.SupIsActive) !== 2 &&
                           userRole &&
                           [
+                            "national ngo",
                             "state super administrator",
                             "district administrator",
                           ].includes((userRole || "").toLowerCase()) && (
@@ -1219,10 +1238,12 @@ const SupervisorTable = ({ refreshTrigger, externalFilters }) => {
                         {userRole !== "Supervisor" &&
                         userRole !== "Astha Didi" &&
                         userRole !== "Astha Maa" &&
-                        (!externalFilters?.filterMotherNgo ||
+                        (((userRole || "").toLowerCase() === "national ngo" &&
+                          !externalFilters?.filterStateNgo) ||
+                          !externalFilters?.filterMotherNgo ||
                           !externalFilters?.filterState ||
                           !externalFilters?.filterDistrict)
-                          ? "Please select all filters above (DISTRICT NGO, State, and District) to view data."
+                          ? "Please select all filters above (State Super Administrator, DISTRICT NGO, State, and District) to view data."
                           : "No members found in database."}
                       </td>
                     </tr>

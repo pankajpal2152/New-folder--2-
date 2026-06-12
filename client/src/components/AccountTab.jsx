@@ -27,6 +27,7 @@ const AccountTab = () => {
   const [adminActiveView, setAdminActiveView] = useState("");
 
   const [filterNationalNgo, setFilterNationalNgo] = useState(null);
+  const [filterStateNgo, setFilterStateNgo] = useState(null);
   const [filterMotherNgo, setFilterMotherNgo] = useState(null);
   const [filterState, setFilterState] = useState(null);
   const [filterDistrict, setFilterDistrict] = useState(null);
@@ -34,6 +35,7 @@ const AccountTab = () => {
   const [filterAsthaDidi, setFilterAsthaDidi] = useState(null);
 
   const [dbNationalNgos, setDbNationalNgos] = useState([]);
+  const [dbStateNgos, setDbStateNgos] = useState([]);
   const [dbMotherNgos, setDbMotherNgos] = useState([]);
   const [dbStates, setDbStates] = useState([]);
   const [dbDistricts, setDbDistricts] = useState([]);
@@ -134,6 +136,29 @@ const AccountTab = () => {
       )
       .catch(console.error);
 
+    fetch(`${API_BASE_URL}/statengo`)
+      .then((res) => res.json())
+      .then((data) =>
+        setDbStateNgos(
+          data
+            .filter((ngo) => String(ngo.StateNGOIsActive) !== "0")
+            .map((ngo) => ({
+              value: ngo.StateNGORegId,
+              label:
+                ngo.StateNGOName ||
+                ngo.StateNGOSignupUserName ||
+                `State Super Administrator ${ngo.StateNGORegId}`,
+              stateId: ngo.StateNGOStateId,
+              stateName: ngo.StateNGOStateName,
+              districtId: ngo.StateNGODistId,
+              districtName: ngo.StateNGODistName,
+              nationalNgoId: ngo.AcctId,
+              acctHead: ngo.AcctHead || "SN",
+            })),
+        ),
+      )
+      .catch(console.error);
+
     fetch(`${API_BASE_URL}/districtadmin`)
       .then((res) => res.json())
       .then((data) =>
@@ -143,6 +168,7 @@ const AccountTab = () => {
             label: n.DistNGOName,
             districtName: n.DistNGODistName,
             stateName: n.DistNGOStateName,
+            stateNgoRegId: n.StateNGORegId,
           })),
         ),
       )
@@ -159,6 +185,7 @@ const AccountTab = () => {
             stateName: s.SupStateName,
             distName: s.SupDistName,
             motherNgoId: s.DistNGORegId,
+            stateNgoRegId: s.StateNGORegId || s.ParentStateNGORegId,
           })),
         ),
       )
@@ -175,12 +202,32 @@ const AccountTab = () => {
             distName: a.AsthaDidiDistName,
             motherNgoId: a.DistNGORegId,
             supRegId: a.SupRegId,
+            stateNgoRegId: a.StateNGORegId || a.ResolvedStateNGORegId,
             createdByAuthRegId: a.AsthaDidiCreatedByAuthRegId,
           })),
         ),
       )
       .catch(console.error);
   }, []);
+
+  const filteredStateNgos = useMemo(() => {
+    if (appUserRole === "State Super Administrator" && loggedInProfileId) {
+      return dbStateNgos.filter(
+        (ngo) => String(ngo.value) === String(loggedInProfileId),
+      );
+    }
+    return dbStateNgos;
+  }, [dbStateNgos, appUserRole, loggedInProfileId]);
+
+  useEffect(() => {
+    if (
+      appUserRole === "State Super Administrator" &&
+      filteredStateNgos.length === 1 &&
+      !filterStateNgo
+    ) {
+      setFilterStateNgo(filteredStateNgos[0]);
+    }
+  }, [appUserRole, filteredStateNgos, filterStateNgo]);
 
   useEffect(() => {
     if (
@@ -194,6 +241,11 @@ const AccountTab = () => {
       );
 
       if (myDidi) {
+        const matchedStateNgo = dbStateNgos.find(
+          (ngo) => String(ngo.value) === String(myDidi.stateNgoRegId),
+        );
+        if (matchedStateNgo) setFilterStateNgo(matchedStateNgo);
+
         const matchedNgo = dbMotherNgos.find(
           (n) => String(n.value) === String(myDidi.motherNgoId),
         );
@@ -222,8 +274,22 @@ const AccountTab = () => {
     dbStates,
     dbDistricts,
     dbSupervisors,
+    dbStateNgos,
     loggedInProfileId,
   ]);
+
+  useEffect(() => {
+    if (!filterMotherNgo?.stateNgoRegId) return;
+    const matchedStateNgo = dbStateNgos.find(
+      (ngo) => String(ngo.value) === String(filterMotherNgo.stateNgoRegId),
+    );
+    if (
+      matchedStateNgo &&
+      String(filterStateNgo?.value) !== String(matchedStateNgo.value)
+    ) {
+      setFilterStateNgo(matchedStateNgo);
+    }
+  }, [filterMotherNgo, dbStateNgos, filterStateNgo]);
 
   useEffect(() => {
     if (filterState && filterState.value) {
@@ -241,6 +307,7 @@ const AccountTab = () => {
   }, [filterState]);
 
   const filteredMotherNgos = useMemo(() => {
+    if (appUserRole === "National NGO" && !filterStateNgo) return [];
     if (appUserRole === "District Administrator" && loggedInProfileId)
       return dbMotherNgos.filter(
         (ngo) => String(ngo.value) === String(loggedInProfileId),
@@ -258,15 +325,26 @@ const AccountTab = () => {
           (ngo) => String(ngo.value) === String(currentSupervisor.motherNgoId),
         );
     }
+    if (filterStateNgo) {
+      return dbMotherNgos.filter(
+        (ngo) => String(ngo.stateNgoRegId) === String(filterStateNgo.value),
+      );
+    }
     return dbMotherNgos;
-  }, [dbMotherNgos, appUserRole, loggedInProfileId, dbSupervisors]);
+  }, [
+    dbMotherNgos,
+    appUserRole,
+    loggedInProfileId,
+    dbSupervisors,
+    filterStateNgo,
+  ]);
 
   const filteredStateOptions = useMemo(() => {
     if (filterMotherNgo && filterMotherNgo.stateName) {
       const ngoState = filterMotherNgo.stateName.trim().toLowerCase();
       return dbStates.filter((s) => s.label.trim().toLowerCase() === ngoState);
     }
-    return dbStates;
+    return [];
   }, [dbStates, filterMotherNgo]);
 
   const filteredDistrictOptions = useMemo(() => {
@@ -276,12 +354,26 @@ const AccountTab = () => {
         (d) => d.label.trim().toLowerCase() === ngoDist,
       );
     }
-    return dbDistricts;
+    return [];
   }, [dbDistricts, filterMotherNgo]);
 
   const filteredSupervisorOptions = useMemo(() => {
+    if (
+      (appUserRole === "National NGO" && !filterStateNgo) ||
+      !filterMotherNgo ||
+      !filterState ||
+      !filterDistrict
+    ) {
+      return [];
+    }
+
     return dbSupervisors.filter((sup) => {
       let matches = true;
+      if (
+        filterStateNgo &&
+        String(sup.stateNgoRegId) !== String(filterStateNgo.value)
+      )
+        matches = false;
       if (
         filterMotherNgo &&
         String(sup.motherNgoId) !== String(filterMotherNgo.value)
@@ -301,15 +393,34 @@ const AccountTab = () => {
         matches = false;
       return matches;
     });
-  }, [dbSupervisors, filterMotherNgo, filterState, filterDistrict]);
+  }, [
+    dbSupervisors,
+    filterStateNgo,
+    filterMotherNgo,
+    filterState,
+    filterDistrict,
+    appUserRole,
+  ]);
 
   const filteredAsthaDidiOptions = useMemo(() => {
+    if (
+      appUserRole !== "Astha Didi" &&
+      (!filterMotherNgo || !filterState || !filterDistrict || !filterSupervisor)
+    ) {
+      return [];
+    }
+
     const user = getSafeUser();
     const currentUserId = user ? user.id || user.UserSignUpId : null;
     const currentProfileId = user ? user.ProfileRegId : null;
 
     return dbAsthaDidis.filter((ad) => {
       let matches = true;
+      if (
+        filterStateNgo &&
+        String(ad.stateNgoRegId) !== String(filterStateNgo.value)
+      )
+        matches = false;
       if (
         filterMotherNgo &&
         ad.motherNgoId != null &&
@@ -358,23 +469,24 @@ const AccountTab = () => {
     filterState,
     filterDistrict,
     filterSupervisor,
+    filterStateNgo,
     appUserRole,
   ]);
 
   useEffect(() => {
-    if (filteredMotherNgos.length === 1 && !filterMotherNgo)
+    if (isLockedRole && filteredMotherNgos.length === 1 && !filterMotherNgo)
       setFilterMotherNgo(filteredMotherNgos[0]);
-  }, [filteredMotherNgos, filterMotherNgo]);
+  }, [filteredMotherNgos, filterMotherNgo, isLockedRole]);
 
   useEffect(() => {
-    if (filteredStateOptions.length === 1 && !filterState)
+    if (filterMotherNgo && filteredStateOptions.length === 1 && !filterState)
       setFilterState(filteredStateOptions[0]);
-  }, [filteredStateOptions, filterState]);
+  }, [filteredStateOptions, filterState, filterMotherNgo]);
 
   useEffect(() => {
-    if (filteredDistrictOptions.length === 1 && !filterDistrict)
+    if (filterState && filteredDistrictOptions.length === 1 && !filterDistrict)
       setFilterDistrict(filteredDistrictOptions[0]);
-  }, [filteredDistrictOptions, filterDistrict]);
+  }, [filteredDistrictOptions, filterDistrict, filterState]);
 
   useEffect(() => {
     if (
@@ -386,11 +498,16 @@ const AccountTab = () => {
   }, [appUserRole, filteredSupervisorOptions, filterSupervisor]);
 
   useEffect(() => {
-    if (filteredAsthaDidiOptions.length === 1 && !filterAsthaDidi)
+    if (
+      (appUserRole === "Astha Didi" || filterSupervisor) &&
+      filteredAsthaDidiOptions.length === 1 &&
+      !filterAsthaDidi
+    )
       setFilterAsthaDidi(filteredAsthaDidiOptions[0]);
-  }, [filteredAsthaDidiOptions, filterAsthaDidi]);
+  }, [filteredAsthaDidiOptions, filterAsthaDidi, filterSupervisor, appUserRole]);
 
   const handleReset = (level) => {
+    if (level <= -1) setFilterStateNgo(null);
     if (level <= 0) setFilterMotherNgo(null);
     if (level <= 1) setFilterState(null);
     if (level <= 2) setFilterDistrict(null);
@@ -410,8 +527,7 @@ const AccountTab = () => {
     { value: "Astha Didi", label: "Astha Didi" },
     { value: "Astha Maa", label: "Astha Maa" },
   ].filter((o) => {
-    if (appUserRole === "National NGO")
-      return o.value === "State Super Administrator";
+    if (appUserRole === "National NGO") return true;
     if (o.value === "State Super Administrator") return false;
     if (appUserRole === "District Administrator")
       return ["Supervisor", "Astha Didi", "Astha Maa"].includes(o.value);
@@ -428,6 +544,9 @@ const AccountTab = () => {
     "District Administrator",
   ].includes(adminActiveView);
   const isNationalNgoVisible = adminActiveView === "State Super Administrator";
+  const isStateNgoVisible =
+    appUserRole === "National NGO" &&
+    adminActiveView !== "State Super Administrator";
   const isSupervisorVisible = ["Astha Maa", "Astha Didi"].includes(
     adminActiveView,
   );
@@ -505,7 +624,7 @@ const AccountTab = () => {
             value={adminOptions.find((o) => o.value === adminActiveView)}
             onChange={(s) => {
               setAdminActiveView(s.value);
-              handleReset(0);
+              handleReset(-1);
             }}
             styles={customSelectStyles}
             menuPortalTarget={document.body}
@@ -535,6 +654,29 @@ const AccountTab = () => {
           </div>
         )}
 
+        {isStateNgoVisible && (
+          <div style={{ flex: "1 1 auto", minWidth: "250px" }}>
+            <label
+              style={{ ...styles.label, marginBottom: "8px", display: "block" }}
+            >
+              STATE SUPER ADMINISTRATOR
+            </label>
+            <Select
+              options={filteredStateNgos}
+              value={filterStateNgo}
+              onChange={(s) => {
+                setFilterStateNgo(s);
+                handleReset(0);
+              }}
+              isClearable
+              placeholder="Select State Super Administrator"
+              styles={customSelectStyles}
+              menuPortalTarget={document.body}
+              menuPosition="fixed"
+            />
+          </div>
+        )}
+
         {isMotherNgoVisible && (
           <div style={{ flex: "1 1 auto", minWidth: "250px" }}>
             <label
@@ -549,7 +691,11 @@ const AccountTab = () => {
                 setFilterMotherNgo(s);
                 handleReset(1);
               }}
-              isDisabled={isLockedRole || appUserRole === "Astha Didi"}
+              isDisabled={
+                isLockedRole ||
+                appUserRole === "Astha Didi" ||
+                (appUserRole === "National NGO" && !filterStateNgo)
+              }
               isClearable={!isLockedRole && appUserRole !== "Astha Didi"}
               placeholder="Select NGO"
               styles={customSelectStyles}
@@ -609,7 +755,10 @@ const AccountTab = () => {
                   handleReset(3);
                 }}
                 isDisabled={
-                  !filterState || isLockedRole || appUserRole === "Astha Didi"
+                  !filterMotherNgo ||
+                  !filterState ||
+                  isLockedRole ||
+                  appUserRole === "Astha Didi"
                 }
                 isClearable={!isLockedRole && appUserRole !== "Astha Didi"}
                 placeholder="District"
@@ -688,23 +837,39 @@ const AccountTab = () => {
         <>
           <DistrictAdminForm
             onSuccess={handleFormSuccess}
+            filterStateNgo={filterStateNgo}
             defaultState={filterState}
             defaultDistrict={filterDistrict}
           />
           <DistrictAdminTable
             refreshTrigger={refreshTrigger}
-            externalFilters={{ filterMotherNgo, filterState, filterDistrict }}
+            externalFilters={{
+              filterStateNgo,
+              filterMotherNgo,
+              filterState,
+              filterDistrict,
+            }}
           />
         </>
       ) : adminActiveView === "Supervisor" ? (
         <>
           <SupervisorForm
             onSuccess={handleFormSuccess}
-            externalFilters={{ filterMotherNgo, filterState, filterDistrict }}
+            externalFilters={{
+              filterStateNgo,
+              filterMotherNgo,
+              filterState,
+              filterDistrict,
+            }}
           />
           <SupervisorTable
             refreshTrigger={refreshTrigger}
-            externalFilters={{ filterMotherNgo, filterState, filterDistrict }}
+            externalFilters={{
+              filterStateNgo,
+              filterMotherNgo,
+              filterState,
+              filterDistrict,
+            }}
           />
         </>
       ) : adminActiveView === "Astha Maa" ? (
@@ -713,6 +878,7 @@ const AccountTab = () => {
             onSuccess={handleFormSuccess}
             externalFilters={{
               filterMotherNgo,
+              filterStateNgo,
               filterState,
               filterDistrict,
               filterSupervisor,
@@ -723,6 +889,7 @@ const AccountTab = () => {
             refreshTrigger={refreshTrigger}
             externalFilters={{
               filterMotherNgo,
+              filterStateNgo,
               filterState,
               filterDistrict,
               filterSupervisor,
@@ -736,6 +903,7 @@ const AccountTab = () => {
             onSuccess={handleFormSuccess}
             externalFilters={{
               filterMotherNgo,
+              filterStateNgo,
               filterState,
               filterDistrict,
               filterSupervisor,
@@ -745,6 +913,7 @@ const AccountTab = () => {
             refreshTrigger={refreshTrigger}
             externalFilters={{
               filterMotherNgo,
+              filterStateNgo,
               filterState,
               filterDistrict,
               filterSupervisor,

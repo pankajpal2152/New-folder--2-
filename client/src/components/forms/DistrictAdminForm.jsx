@@ -121,7 +121,12 @@ const PasswordInput = ({
   );
 };
 
-const DistrictAdminForm = ({ onSuccess, defaultState, defaultDistrict }) => {
+const DistrictAdminForm = ({
+  onSuccess,
+  filterStateNgo,
+  defaultState,
+  defaultDistrict,
+}) => {
   const [dbStates, setDbStates] = useState([]);
   const [dbDistricts, setDbDistricts] = useState([]);
 
@@ -254,9 +259,27 @@ const DistrictAdminForm = ({ onSuccess, defaultState, defaultDistrict }) => {
     if (!(await validateUniqueFields(checks))) return;
 
     const loggedInUser = getSafeUser ? getSafeUser() : null;
+    const loggedInRole = (
+      loggedInUser?.role ||
+      loggedInUser?.UserSignUpRole ||
+      ""
+    ).toLowerCase();
     const currentUserId = loggedInUser
       ? loggedInUser.UserSignUpId || loggedInUser.id
       : null;
+    const stateNgoRegId =
+      filterStateNgo?.value ||
+      (loggedInRole === "state super administrator"
+        ? loggedInUser?.ProfileRegId
+        : null);
+
+    if (
+      ["national ngo", "state super administrator"].includes(loggedInRole) &&
+      !stateNgoRegId
+    ) {
+      toast.error("Please select a State Super Administrator first.");
+      return;
+    }
 
     const dbPayload = {
       DistNGOName: data.ngoName,
@@ -288,10 +311,11 @@ const DistrictAdminForm = ({ onSuccess, defaultState, defaultDistrict }) => {
       DistNGOSignupPassword: data.password,
       DistNGOCreatedByAuthRegId: currentUserId,
       DistNGOIsActive: 1,
-      StateNGORegId: null,
+      StateNGORegId: stateNgoRegId,
       DistNGOAprovedBy: null,
       DistNGOAprovedDate: null,
       DistNGOGenRegNo: null,
+      AcctHead: "DN",
     };
 
     try {

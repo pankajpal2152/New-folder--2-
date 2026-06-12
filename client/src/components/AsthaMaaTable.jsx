@@ -777,11 +777,14 @@ const AsthaMaaTable = ({ refreshTrigger, externalFilters }) => {
   }, [refreshTrigger]);
 
   const filteredMembers = useMemo(() => {
+    const isNationalNgo = (userRole || "").toLowerCase() === "national ngo";
     if (
+      userRole === "National NGO" ||
       userRole === "State Super Administrator" ||
       userRole === "District Administrator"
     ) {
       if (
+        (isNationalNgo && !externalFilters?.filterStateNgo) ||
         !externalFilters?.filterMotherNgo ||
         !externalFilters?.filterState ||
         !externalFilters?.filterDistrict ||
@@ -843,8 +846,19 @@ const AsthaMaaTable = ({ refreshTrigger, externalFilters }) => {
               .toLowerCase()
           : "";
         matchesMotherNgo =
-          String(member.DistNGORegId) ===
-            String(externalFilters.filterMotherNgo.value) || dbDist === ngoDist;
+          member.DistNGORegId != null
+            ? String(member.DistNGORegId) ===
+              String(externalFilters.filterMotherNgo.value)
+            : dbDist === ngoDist;
+      }
+
+      let matchesStateNgo = true;
+      if (externalFilters?.filterStateNgo) {
+        const rowStateNgoId =
+          member.StateNGORegId || member.ResolvedStateNGORegId;
+        matchesStateNgo =
+          String(rowStateNgoId) ===
+          String(externalFilters.filterStateNgo.value);
       }
 
       let matchesSupervisor = true;
@@ -873,6 +887,7 @@ const AsthaMaaTable = ({ refreshTrigger, externalFilters }) => {
 
       return (
         matchesSearch &&
+        matchesStateNgo &&
         matchesState &&
         matchesDistrict &&
         matchesMotherNgo &&
@@ -1260,6 +1275,7 @@ const AsthaMaaTable = ({ refreshTrigger, externalFilters }) => {
                         {/* ✅ FIXED: Allowed District Administrator to edit Astha Maa */}
                         {userRole &&
                           [
+                            "national ngo",
                             "state super administrator",
                             "district administrator",
                             "astha didi",
@@ -1276,6 +1292,7 @@ const AsthaMaaTable = ({ refreshTrigger, externalFilters }) => {
                         {Number(row.AsthaMaIsActive) !== 2 &&
                           userRole &&
                           [
+                            "national ngo",
                             "state super administrator",
                             "district administrator",
                             "supervisor",
@@ -1289,7 +1306,9 @@ const AsthaMaaTable = ({ refreshTrigger, externalFilters }) => {
                             </button>
                           )}
 
-                        {userRole === "State Super Administrator" && (
+                        {["national ngo", "state super administrator"].includes(
+                          (userRole || "").toLowerCase(),
+                        ) && (
                           <button
                             onClick={() => openModal("delete", row)}
                             style={styles.actionBtn}
@@ -1306,14 +1325,17 @@ const AsthaMaaTable = ({ refreshTrigger, externalFilters }) => {
                         colSpan="30"
                         style={{ ...styles.td, textAlign: "center" }}
                       >
-                        {(userRole === "State Super Administrator" ||
+                        {(userRole === "National NGO" ||
+                          userRole === "State Super Administrator" ||
                           userRole === "District Administrator") &&
-                        (!externalFilters?.filterMotherNgo ||
+                        (((userRole || "").toLowerCase() === "national ngo" &&
+                          !externalFilters?.filterStateNgo) ||
+                          !externalFilters?.filterMotherNgo ||
                           !externalFilters?.filterState ||
                           !externalFilters?.filterDistrict ||
                           !externalFilters?.filterSupervisor ||
                           !externalFilters?.filterAsthaDidi)
-                          ? "Please select all filters above (DISTRICT NGO, State, District, Supervisor, and Astha Didi) to view data."
+                          ? "Please select all filters above (State Super Administrator, DISTRICT NGO, State, District, Supervisor, and Astha Didi) to view data."
                           : userRole === "Supervisor" &&
                               (!externalFilters?.filterMotherNgo ||
                                 !externalFilters?.filterState ||

@@ -73,7 +73,7 @@ export const asthaMaaSchema = z.object({
 });
 
 const SupervisorForm = ({ onSuccess, externalFilters }) => {
-  const { filterMotherNgo, filterState, filterDistrict } =
+  const { filterStateNgo, filterMotherNgo, filterState, filterDistrict } =
     externalFilters || {};
 
   const [dbStates, setDbStates] = useState([]);
@@ -83,6 +83,7 @@ const SupervisorForm = ({ onSuccess, externalFilters }) => {
 
   // ✅ FIXED: Using inclusive hierarchy validation
   const [isFormAllowed, setIsFormAllowed] = useState(false);
+  const [loggedRole, setLoggedRole] = useState("");
 
   const {
     control,
@@ -134,9 +135,11 @@ const SupervisorForm = ({ onSuccess, externalFilters }) => {
         loggedInUser?.UserSignUpRole ||
         ""
       ).toLowerCase();
+      setLoggedRole(role);
       // ✅ FIXED: Allow State Super Admin and Developer to fill this form
       setIsFormAllowed(
-        role === "district administrator" ||
+        role === "national ngo" ||
+          role === "district administrator" ||
           role === "state super administrator" ||
           role === "developer",
       );
@@ -257,7 +260,10 @@ const SupervisorForm = ({ onSuccess, externalFilters }) => {
       SupSignupEmail: data.email,
       SupSignupPassword: data.password,
       SupCreatedByAuthRegId: currentUserId,
+      StateNGORegId:
+        filterStateNgo?.value || filterMotherNgo?.stateNgoRegId || null,
       DistNGORegId: filterMotherNgo ? filterMotherNgo.value : null,
+      AcctHead: "SV",
       SupBankName: data.bankName || "",
       SupBranchName: data.branchName || "",
       SupAcctNo: data.accountNo || "0",
@@ -306,7 +312,10 @@ const SupervisorForm = ({ onSuccess, externalFilters }) => {
     });
 
   // ✅ FIXED: Form enables automatically when Super Admin chooses an NGO
-  const isFormEnabled = isFormAllowed && !!filterMotherNgo;
+  const isFormEnabled =
+    isFormAllowed &&
+    !!filterMotherNgo &&
+    (loggedRole !== "national ngo" || !!filterStateNgo);
 
   return (
     <div style={styles.card}>

@@ -127,8 +127,13 @@ const PasswordInput = ({
 };
 
 const AsthaDidiForm = ({ onSuccess, externalFilters }) => {
-  const { filterMotherNgo, filterState, filterDistrict, filterSupervisor } =
-    externalFilters || {};
+  const {
+    filterStateNgo,
+    filterMotherNgo,
+    filterState,
+    filterDistrict,
+    filterSupervisor,
+  } = externalFilters || {};
 
   const [dbStates, setDbStates] = useState([]);
   const [dbDistricts, setDbDistricts] = useState([]);
@@ -138,6 +143,7 @@ const AsthaDidiForm = ({ onSuccess, externalFilters }) => {
   // ✅ FIXED: Using inclusive hierarchy validation
   const [isFormAllowed, setIsFormAllowed] = useState(false);
   const [isStrictSupervisor, setIsStrictSupervisor] = useState(false);
+  const [loggedRole, setLoggedRole] = useState("");
 
   const {
     control,
@@ -189,6 +195,8 @@ const AsthaDidiForm = ({ onSuccess, externalFilters }) => {
         const loggedInUser = JSON.parse(userStr);
         const role = (loggedInUser?.role || "").toLowerCase();
         const signUpRole = (loggedInUser?.UserSignUpRole || "").toLowerCase();
+        const resolvedRole = role || signUpRole;
+        setLoggedRole(resolvedRole);
 
         setIsStrictSupervisor(
           role === "supervisor" || signUpRole === "supervisor",
@@ -196,7 +204,9 @@ const AsthaDidiForm = ({ onSuccess, externalFilters }) => {
 
         // ✅ FIXED: Form is allowed for State Super Admin, Developer, District Admin, and Supervisor
         setIsFormAllowed(
-          role === "supervisor" ||
+          role === "national ngo" ||
+            signUpRole === "national ngo" ||
+            role === "supervisor" ||
             signUpRole === "supervisor" ||
             role === "district administrator" ||
             signUpRole === "district administrator" ||
@@ -387,7 +397,11 @@ const AsthaDidiForm = ({ onSuccess, externalFilters }) => {
       AsthaDidiSignupEmail: data.email,
       AsthaDidiSignupPassword: data.password,
       AsthaDidiCreatedByAuthRegId: currentUserId,
-      StateNGORegId: null,
+      StateNGORegId:
+        filterStateNgo?.value ||
+        filterSupervisor?.stateNgoRegId ||
+        filterMotherNgo?.stateNgoRegId ||
+        null,
       DistNGORegId: filterMotherNgo ? filterMotherNgo.value : null,
       SupRegId:
         isStrictSupervisor && currentUserProfileId
@@ -396,6 +410,7 @@ const AsthaDidiForm = ({ onSuccess, externalFilters }) => {
             ? filterSupervisor.value
             : null,
       AsthaDidiIsActive: 1,
+      AcctHead: "AD",
     };
 
     if (dbPayload.AsthaDidiDOB)
@@ -436,7 +451,14 @@ const AsthaDidiForm = ({ onSuccess, externalFilters }) => {
 
   // ✅ FIXED: Evaluates true for Super Admin as long as they pick a Supervisor from the external filter
   const isFormEnabled =
-    isFormAllowed && (isStrictSupervisor ? true : !!filterSupervisor);
+    isFormAllowed &&
+    (isStrictSupervisor
+      ? true
+      : !!filterMotherNgo &&
+        !!filterState &&
+        !!filterDistrict &&
+        !!filterSupervisor &&
+        (loggedRole !== "national ngo" || !!filterStateNgo));
 
   return (
     <div style={styles.card}>

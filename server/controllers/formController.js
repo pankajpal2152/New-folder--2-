@@ -1016,6 +1016,124 @@
 const db = require("../config/db");
 const { saveBase64File } = require("../utils/fileUploadHelper");
 
+const nullableId = (value) => {
+  if (value === undefined || value === null || value === "") return null;
+  return value;
+};
+
+const isInactive = (value) => String(value) === "0";
+
+const syncAccountRecord = (
+  {
+    acctNo,
+    acctHead,
+    acctName,
+    stateNgoId,
+    districtNgoId,
+    supervisorId,
+    asthaDidiId,
+    asthaMaaId,
+  },
+  callback = () => {},
+) => {
+  if (!acctNo || !acctHead) return callback();
+
+  const query = `
+    INSERT INTO accounts (
+      AcctNo, AcctHead, AcctName, SNGOAcctNo, DNGOAcctNo,
+      SVAcctNo, ADAcctNo, AMAcctNo
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    ON DUPLICATE KEY UPDATE
+      AcctName = VALUES(AcctName),
+      SNGOAcctNo = VALUES(SNGOAcctNo),
+      DNGOAcctNo = VALUES(DNGOAcctNo),
+      SVAcctNo = VALUES(SVAcctNo),
+      ADAcctNo = VALUES(ADAcctNo),
+      AMAcctNo = VALUES(AMAcctNo)
+  `;
+
+  db.query(
+    query,
+    [
+      nullableId(acctNo),
+      acctHead,
+      acctName || "",
+      nullableId(stateNgoId),
+      nullableId(districtNgoId),
+      nullableId(supervisorId),
+      nullableId(asthaDidiId),
+      nullableId(asthaMaaId),
+    ],
+    callback,
+  );
+};
+
+const deleteAccountRecord = (acctNo, acctHead, callback = () => {}) => {
+  if (!acctNo || !acctHead) return callback();
+  db.query(
+    "DELETE FROM accounts WHERE AcctNo = ? AND AcctHead = ?",
+    [acctNo, acctHead],
+    callback,
+  );
+};
+
+const syncOrDeleteAccountRecord = (activeValue, accountPayload, callback) => {
+  if (isInactive(activeValue)) {
+    return deleteAccountRecord(
+      accountPayload.acctNo,
+      accountPayload.acctHead,
+      callback,
+    );
+  }
+  return syncAccountRecord(accountPayload, callback);
+};
+
+const resolveStateNgoId = (data, callback) => {
+  const directStateNgoId =
+    data.StateNGORegId || data.ResolvedStateNGORegId || data.ParentStateNGORegId;
+  if (directStateNgoId) return callback(null, directStateNgoId);
+
+  const query = `
+    SELECT StateNGORegId
+    FROM (
+      SELECT d.StateNGORegId, 1 AS SortOrder
+      FROM dist_ngo_reg d
+      WHERE d.DistNGORegId = ?
+
+      UNION ALL
+
+      SELECT COALESCE(s.StateNGORegId, d.StateNGORegId) AS StateNGORegId, 2 AS SortOrder
+      FROM suvervisor_reg s
+      LEFT JOIN dist_ngo_reg d ON s.DistNGORegId = d.DistNGORegId
+      WHERE s.SupRegId = ?
+
+      UNION ALL
+
+      SELECT COALESCE(a.StateNGORegId, s.StateNGORegId, d.StateNGORegId) AS StateNGORegId, 3 AS SortOrder
+      FROM asthadidi_reg a
+      LEFT JOIN suvervisor_reg s ON a.SupRegId = s.SupRegId
+      LEFT JOIN dist_ngo_reg d ON a.DistNGORegId = d.DistNGORegId
+      WHERE a.AsthaDidiRegId = ?
+    ) resolved
+    WHERE StateNGORegId IS NOT NULL
+    ORDER BY SortOrder
+    LIMIT 1
+  `;
+
+  db.query(
+    query,
+    [
+      data.DistNGORegId || null,
+      data.SupRegId || null,
+      data.AsthaDidiRegId || null,
+    ],
+    (err, results) => {
+      if (err) return callback(err);
+      callback(null, results[0]?.StateNGORegId || null);
+    },
+  );
+};
+
 // ==========================================
 // LOCATION & ROLE HELPERS
 // ==========================================
@@ -1228,7 +1346,21 @@ exports.createStateNgo = (req, res) => {
       );
     }
 
-    res.json({ message: "State Super Administrator added successfully", id: newId });
+    syncAccountRecord(
+      {
+        acctNo: newId,
+        acctHead: data.AcctHead || "SN",
+        acctName: data.StateNGOName,
+        stateNgoId: newId,
+      },
+      (syncErr) => {
+        if (syncErr) return res.status(500).json({ error: syncErr.message });
+        res.json({
+          message: "State Super Administrator added successfully",
+          id: newId,
+        });
+      },
+    );
   });
 };
 
@@ -1303,7 +1435,19 @@ exports.updateStateNgo = (req, res) => {
       );
     }
 
-    res.json({ message: "State Super Administrator updated successfully" });
+    syncOrDeleteAccountRecord(
+      activeValue,
+      {
+        acctNo: id,
+        acctHead: data.AcctHead || "SN",
+        acctName: data.StateNGOName,
+        stateNgoId: id,
+      },
+      (syncErr) => {
+        if (syncErr) return res.status(500).json({ error: syncErr.message });
+        res.json({ message: "State Super Administrator updated successfully" });
+      },
+    );
   });
 };
 
@@ -1313,7 +1457,10 @@ exports.deleteStateNgo = (req, res) => {
     [req.params.id],
     (err) => {
       if (err) return res.status(500).json({ error: err.message });
-      res.json({ message: "State Super Administrator deleted successfully" });
+      deleteAccountRecord(req.params.id, "SN", (syncErr) => {
+        if (syncErr) return res.status(500).json({ error: syncErr.message });
+        res.json({ message: "State Super Administrator deleted successfully" });
+      });
     },
   );
 };
@@ -1327,9 +1474,11 @@ exports.getAsthaDidi = (req, res) => {
         SELECT a.*, 
                DATE_FORMAT(a.AsthaDidiAprovalDate, '%Y-%m-%d') AS AsthaDidiAprovalDateRaw,
                DATE_FORMAT(a.AsthaDidiDOB, '%Y-%m-%d') AS AsthaDidiDOBRaw,
-               u.SignupUserName AS ApproverName, u.UserSignUpEmail AS ApproverEmail 
+               u.SignupUserName AS ApproverName, u.UserSignUpEmail AS ApproverEmail,
+               COALESCE(a.StateNGORegId, dngo.StateNGORegId) AS ResolvedStateNGORegId
         FROM \`asthadidi_reg\` a 
         LEFT JOIN userssignup u ON a.AsthaDidiAprovedBy = CAST(u.UserSignUpId AS CHAR)
+        LEFT JOIN dist_ngo_reg dngo ON a.DistNGORegId = dngo.DistNGORegId
         ORDER BY a.AsthaDidiRegId DESC
     `;
   db.query(query, (err, results) => {
@@ -1369,7 +1518,8 @@ exports.createAsthaDidi = (req, res) => {
           .status(500)
           .json({ error: "Database error while resolving State ID." });
       const mappedStateNGORegId =
-        mappingResult.length > 0 ? mappingResult[0].StateNGORegId : null;
+        data.StateNGORegId ||
+        (mappingResult.length > 0 ? mappingResult[0].StateNGORegId : null);
 
       const insertQuery = `INSERT INTO \`asthadidi_reg\` (
             AsthaDidiUserName, AsthaDidiGuardianName, AsthaDidiDOB, AsthaDidiGuardianContactNo, 
@@ -1377,8 +1527,8 @@ exports.createAsthaDidi = (req, res) => {
             AsthaDidiGramPanchayet, AsthaDidiVillage, AsthaDidiPincode, AsthaDidiContactNo, AsthaDidiMailId, 
             AsthaDidiBankName, AsthaDidiBranchName, AsthaDidiBankAcctNo, AsthaDidiIFSCode, AsthaDidiPanNo, AsthaDidiAadharNo, 
             AsthaDidiJoiningAmt, AsthaDidiWalletBalance, AsthaDidiSignupUserName, AsthaDidiSignupEmail, AsthaDidiSignupPassword, 
-            AsthaDidiCreatedByAuthRegId, AsthaDidiCreatedDate, StateNGORegId, DistNGORegId, SupRegId, AsthaDidiIsActive
-        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,NOW(),?,?,?,?)`;
+            AsthaDidiCreatedByAuthRegId, AsthaDidiCreatedDate, StateNGORegId, DistNGORegId, SupRegId, AsthaDidiIsActive, AcctHead
+        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,NOW(),?,?,?,?,?)`;
 
       const values = [
         data.AsthaDidiUserName,
@@ -1412,6 +1562,7 @@ exports.createAsthaDidi = (req, res) => {
         data.DistNGORegId || null,
         data.SupRegId || null,
         data.AsthaDidiIsActive || 1,
+        data.AcctHead || "AD",
       ];
 
       db.query(insertQuery, values, (err, result) => {
@@ -1449,7 +1600,21 @@ exports.createAsthaDidi = (req, res) => {
             () => {},
           );
         }
-        res.json({ message: "Astha Didi added successfully", id: newId });
+        syncAccountRecord(
+          {
+            acctNo: newId,
+            acctHead: data.AcctHead || "AD",
+            acctName: data.AsthaDidiUserName,
+            stateNgoId: mappedStateNGORegId,
+            districtNgoId: data.DistNGORegId || null,
+            supervisorId: data.SupRegId || null,
+            asthaDidiId: newId,
+          },
+          (syncErr) => {
+            if (syncErr) return res.status(500).json({ error: syncErr.message });
+            res.json({ message: "Astha Didi added successfully", id: newId });
+          },
+        );
       });
     },
   );
@@ -1464,6 +1629,8 @@ exports.updateAsthaDidi = (req, res) => {
     id,
     "Profile",
   );
+  const stateNgoRegId =
+    data.StateNGORegId || data.ResolvedStateNGORegId || null;
 
   const updateQuery = `UPDATE \`asthadidi_reg\` SET 
         AsthaDidiProfileImage=?, AsthaDidiUserName=?, AsthaDidiGuardianName=?, AsthaDidiDOB=?, AsthaDidiGuardianContactNo=?, 
@@ -1471,7 +1638,8 @@ exports.updateAsthaDidi = (req, res) => {
         AsthaDidiGramPanchayet=?, AsthaDidiVillage=?, AsthaDidiPincode=?, AsthaDidiContactNo=?, AsthaDidiMailId=?, 
         AsthaDidiBankName=?, AsthaDidiBranchName=?, AsthaDidiBankAcctNo=?, AsthaDidiIFSCode=?, AsthaDidiPanNo=?, AsthaDidiAadharNo=?, 
         AsthaDidiJoiningAmt=?, AsthaDidiWalletBalance=?, AsthaDidiSignupUserName=?, AsthaDidiSignupEmail=?, AsthaDidiSignupPassword=?, 
-        AsthaDidiIsActive=?, AsthaDidiAprovedBy=?, AsthaDidiAprovalDate=?, AsthaDidiRegNo=?
+        AsthaDidiIsActive=?, AsthaDidiAprovedBy=?, AsthaDidiAprovalDate=?, AsthaDidiRegNo=?,
+        StateNGORegId=?, DistNGORegId=?, SupRegId=?, AcctHead=?
         WHERE AsthaDidiRegId=?`;
 
   const values = [
@@ -1506,6 +1674,10 @@ exports.updateAsthaDidi = (req, res) => {
     data.AsthaDidiAprovedBy,
     data.AsthaDidiAprovalDate,
     data.AsthaDidiRegNo,
+    stateNgoRegId,
+    data.DistNGORegId || null,
+    data.SupRegId || null,
+    data.AcctHead || "AD",
     id,
   ];
 
@@ -1518,7 +1690,22 @@ exports.updateAsthaDidi = (req, res) => {
         () => {},
       );
     }
-    res.json({ message: "Record updated successfully" });
+    syncOrDeleteAccountRecord(
+      data.AsthaDidiIsActive,
+      {
+        acctNo: id,
+        acctHead: data.AcctHead || "AD",
+        acctName: data.AsthaDidiUserName,
+        stateNgoId: stateNgoRegId,
+        districtNgoId: data.DistNGORegId || null,
+        supervisorId: data.SupRegId || null,
+        asthaDidiId: id,
+      },
+      (syncErr) => {
+        if (syncErr) return res.status(500).json({ error: syncErr.message });
+        res.json({ message: "Record updated successfully" });
+      },
+    );
   });
 };
 
@@ -1528,7 +1715,10 @@ exports.deleteAsthaDidi = (req, res) => {
     [req.params.id],
     (err) => {
       if (err) return res.status(500).json({ error: err.message });
-      res.json({ message: "Record deleted successfully" });
+      deleteAccountRecord(req.params.id, "AD", (syncErr) => {
+        if (syncErr) return res.status(500).json({ error: syncErr.message });
+        res.json({ message: "Record deleted successfully" });
+      });
     },
   );
 };
@@ -1538,7 +1728,19 @@ exports.deleteAsthaDidi = (req, res) => {
 // ==========================================
 
 exports.getAsthaMaa = (req, res) => {
-  const query = `SELECT a.*, DATE_FORMAT(a.AsthaMaAprovalDate, '%Y-%m-%d') AS AsthaMaAprovalDateRaw, DATE_FORMAT(a.AsthaMaDOB, '%Y-%m-%d') AS AsthaMaDOBRaw, u.SignupUserName AS ApproverName, u.UserSignUpEmail AS ApproverEmail FROM \`asthama_reg\` a LEFT JOIN userssignup u ON a.AsthaMaAprovedBy = CAST(u.UserSignUpId AS CHAR) ORDER BY a.AsthaMaRegId DESC`;
+  const query = `
+    SELECT a.*,
+           DATE_FORMAT(a.AsthaMaAprovalDate, '%Y-%m-%d') AS AsthaMaAprovalDateRaw,
+           DATE_FORMAT(a.AsthaMaDOB, '%Y-%m-%d') AS AsthaMaDOBRaw,
+           u.SignupUserName AS ApproverName,
+           u.UserSignUpEmail AS ApproverEmail,
+           COALESCE(a.StateNGORegId, dngo.StateNGORegId, ad.StateNGORegId) AS ResolvedStateNGORegId
+    FROM \`asthama_reg\` a
+    LEFT JOIN userssignup u ON a.AsthaMaAprovedBy = CAST(u.UserSignUpId AS CHAR)
+    LEFT JOIN dist_ngo_reg dngo ON a.DistNGORegId = dngo.DistNGORegId
+    LEFT JOIN asthadidi_reg ad ON a.AsthaDidiRegId = ad.AsthaDidiRegId
+    ORDER BY a.AsthaMaRegId DESC
+  `;
   db.query(query, (err, results) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json(
@@ -1598,7 +1800,7 @@ exports.createAsthaMaa = (req, res) => {
       const resolvedStateNGORegId =
         data.StateNGORegId || resolveResults[0]?.StateNGORegId || null;
 
-      const insertQuery = `INSERT INTO asthama_reg (AsthaMaUserName, AsthaMaGuardianName, AsthaMaDOB, AsthaMaGuardianContactNo, AsthaMaStateName, AsthaMaDistName, AsthaMaCity, AsthaMaBlockName, AsthaMaPO, AsthaMaPS, AsthaMaGramPanchayet, AsthaMaVillage, AsthaMaPincode, AsthaMaContactNo, AsthaMaMailId, AsthaMaBankName, AsthaMaBranchName, AsthaMaBankAcctNo, AsthaMaIFSCode, AsthaMaPanNo, AsthaMaAadharNo, AsthaMaJoiningAmt, AsthaMaWalletBalance, AsthaMaSignupUserName, AsthaMaSignupEmail, AsthaMaSignupPassword, AsthaMaCreatedByAuthRegId, AsthaMaCreatedDate, StateNGORegId, DistNGORegId, SupRegId, AsthaDidiRegId, AsthaMaIsActive) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,NOW(),?,?,?,?,?)`;
+      const insertQuery = `INSERT INTO asthama_reg (AsthaMaUserName, AsthaMaGuardianName, AsthaMaDOB, AsthaMaGuardianContactNo, AsthaMaStateName, AsthaMaDistName, AsthaMaCity, AsthaMaBlockName, AsthaMaPO, AsthaMaPS, AsthaMaGramPanchayet, AsthaMaVillage, AsthaMaPincode, AsthaMaContactNo, AsthaMaMailId, AsthaMaBankName, AsthaMaBranchName, AsthaMaBankAcctNo, AsthaMaIFSCode, AsthaMaPanNo, AsthaMaAadharNo, AsthaMaJoiningAmt, AsthaMaWalletBalance, AsthaMaSignupUserName, AsthaMaSignupEmail, AsthaMaSignupPassword, AsthaMaCreatedByAuthRegId, AsthaMaCreatedDate, StateNGORegId, DistNGORegId, SupRegId, AsthaDidiRegId, AsthaMaIsActive, AcctHead) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,NOW(),?,?,?,?,?,?)`;
       const values = [
         data.AsthaMaUserName,
         data.AsthaMaGuardianName,
@@ -1632,6 +1834,7 @@ exports.createAsthaMaa = (req, res) => {
         data.SupRegId || null,
         data.AsthaDidiRegId || null,
         data.AsthaMaIsActive || 1,
+        data.AcctHead || "AM",
       ];
 
       db.query(insertQuery, values, (err, result) => {
@@ -1662,7 +1865,22 @@ exports.createAsthaMaa = (req, res) => {
             () => {},
           );
         }
-        res.json({ message: "Astha Maa added successfully", id: newId });
+        syncAccountRecord(
+          {
+            acctNo: newId,
+            acctHead: data.AcctHead || "AM",
+            acctName: data.AsthaMaUserName,
+            stateNgoId: resolvedStateNGORegId,
+            districtNgoId: data.DistNGORegId || null,
+            supervisorId: data.SupRegId || null,
+            asthaDidiId: data.AsthaDidiRegId || null,
+            asthaMaaId: newId,
+          },
+          (syncErr) => {
+            if (syncErr) return res.status(500).json({ error: syncErr.message });
+            res.json({ message: "Astha Maa added successfully", id: newId });
+          },
+        );
       });
     },
   );
@@ -1677,7 +1895,9 @@ exports.updateAsthaMaa = (req, res) => {
     id,
     "Profile",
   );
-  const query = `UPDATE asthama_reg SET AsthaMaProfileImage=?, AsthaMaUserName=?, AsthaMaGuardianName=?, AsthaMaDOB=?, AsthaMaGuardianContactNo=?, AsthaMaStateName=?, AsthaMaDistName=?, AsthaMaCity=?, AsthaMaBlockName=?, AsthaMaPO=?, AsthaMaPS=?, AsthaMaGramPanchayet=?, AsthaMaVillage=?, AsthaMaPincode=?, AsthaMaContactNo=?, AsthaMaMailId=?, AsthaMaBankName=?, AsthaMaBranchName=?, AsthaMaBankAcctNo=?, AsthaMaIFSCode=?, AsthaMaPanNo=?, AsthaMaAadharNo=?, AsthaMaJoiningAmt=?, AsthaMaWalletBalance=?, AsthaMaSignupUserName=?, AsthaMaSignupEmail=?, AsthaMaSignupPassword=?, DistNGORegId=?, SupRegId=?, AsthaDidiRegId=?, AsthaMaIsActive=?, AsthaMaAprovedBy=?, AsthaMaAprovalDate=?, AsthaMaRegNo=? WHERE AsthaMaRegId=?`;
+  const stateNgoRegId =
+    data.StateNGORegId || data.ResolvedStateNGORegId || null;
+  const query = `UPDATE asthama_reg SET AsthaMaProfileImage=?, AsthaMaUserName=?, AsthaMaGuardianName=?, AsthaMaDOB=?, AsthaMaGuardianContactNo=?, AsthaMaStateName=?, AsthaMaDistName=?, AsthaMaCity=?, AsthaMaBlockName=?, AsthaMaPO=?, AsthaMaPS=?, AsthaMaGramPanchayet=?, AsthaMaVillage=?, AsthaMaPincode=?, AsthaMaContactNo=?, AsthaMaMailId=?, AsthaMaBankName=?, AsthaMaBranchName=?, AsthaMaBankAcctNo=?, AsthaMaIFSCode=?, AsthaMaPanNo=?, AsthaMaAadharNo=?, AsthaMaJoiningAmt=?, AsthaMaWalletBalance=?, AsthaMaSignupUserName=?, AsthaMaSignupEmail=?, AsthaMaSignupPassword=?, StateNGORegId=?, DistNGORegId=?, SupRegId=?, AsthaDidiRegId=?, AsthaMaIsActive=?, AsthaMaAprovedBy=?, AsthaMaAprovalDate=?, AsthaMaRegNo=?, AcctHead=? WHERE AsthaMaRegId=?`;
   const values = [
     fileName,
     data.AsthaMaUserName,
@@ -1706,6 +1926,7 @@ exports.updateAsthaMaa = (req, res) => {
     data.AsthaMaSignupUserName,
     data.AsthaMaSignupEmail,
     data.AsthaMaSignupPassword,
+    stateNgoRegId,
     data.DistNGORegId || null,
     data.SupRegId || null,
     data.AsthaDidiRegId || null,
@@ -1713,11 +1934,28 @@ exports.updateAsthaMaa = (req, res) => {
     data.AsthaMaAprovedBy,
     data.AsthaMaAprovalDate,
     data.AsthaMaRegNo,
+    data.AcctHead || "AM",
     id,
   ];
   db.query(query, values, (err) => {
     if (err) return res.status(500).json({ error: err.message });
-    res.json({ message: "Record updated successfully" });
+    syncOrDeleteAccountRecord(
+      data.AsthaMaIsActive,
+      {
+        acctNo: id,
+        acctHead: data.AcctHead || "AM",
+        acctName: data.AsthaMaUserName,
+        stateNgoId: stateNgoRegId,
+        districtNgoId: data.DistNGORegId || null,
+        supervisorId: data.SupRegId || null,
+        asthaDidiId: data.AsthaDidiRegId || null,
+        asthaMaaId: id,
+      },
+      (syncErr) => {
+        if (syncErr) return res.status(500).json({ error: syncErr.message });
+        res.json({ message: "Record updated successfully" });
+      },
+    );
   });
 };
 
@@ -1727,7 +1965,10 @@ exports.deleteAsthaMaa = (req, res) => {
     [req.params.id],
     (err) => {
       if (err) return res.status(500).json({ error: err.message });
-      res.json({ message: "Record deleted successfully" });
+      deleteAccountRecord(req.params.id, "AM", (syncErr) => {
+        if (syncErr) return res.status(500).json({ error: syncErr.message });
+        res.json({ message: "Record deleted successfully" });
+      });
     },
   );
 };
@@ -1757,7 +1998,7 @@ exports.getDistrictAdmin = (req, res) => {
 
 exports.createDistrictAdmin = (req, res) => {
   const data = req.body;
-  const insertQuery = `INSERT INTO dist_ngo_reg (DistNGOName, DistNGORegDate, DistNGORegNo, DistNGOPanNo, DistNGODarpanId, DistNGOMailId, DistNGOPhoneNo, DistNGORegAddress, DistNGOWorkingAddress, DistNGOStateName, DistNGODistName, DistNGOBlockName, DistNGOSDPName, DistNGOSDPMailId, DistNGOSDPPhoneNo, DistNGOSDPAadhaarNo, DistNGOBankAcctHolderName, DistNGOBankName, DistNGOAcctNo, DistNGOIFSCode, DistNGOBankAdd, DistNGOSignupUserName, DistNGOSignupEmail, DistNGOSignupPassword, DistNGOCreatedByAuthRegId, DistNGOCreatedDate, DistNGOIsActive, StateNGORegId) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?)`;
+  const insertQuery = `INSERT INTO dist_ngo_reg (DistNGOName, DistNGORegDate, DistNGORegNo, DistNGOPanNo, DistNGODarpanId, DistNGOMailId, DistNGOPhoneNo, DistNGORegAddress, DistNGOWorkingAddress, DistNGOStateName, DistNGODistName, DistNGOBlockName, DistNGOSDPName, DistNGOSDPMailId, DistNGOSDPPhoneNo, DistNGOSDPAadhaarNo, DistNGOBankAcctHolderName, DistNGOBankName, DistNGOAcctNo, DistNGOIFSCode, DistNGOBankAdd, DistNGOSignupUserName, DistNGOSignupEmail, DistNGOSignupPassword, DistNGOCreatedByAuthRegId, DistNGOCreatedDate, DistNGOIsActive, StateNGORegId, AcctHead) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?)`;
   const values = [
     data.DistNGOName,
     data.DistNGORegDate,
@@ -1786,6 +2027,7 @@ exports.createDistrictAdmin = (req, res) => {
     data.DistNGOCreatedByAuthRegId || null,
     data.DistNGOIsActive || 1,
     data.StateNGORegId || null,
+    data.AcctHead || "DN",
   ];
 
   db.query(insertQuery, values, (err, result) => {
@@ -1831,7 +2073,19 @@ exports.createDistrictAdmin = (req, res) => {
         () => {},
       );
     }
-    res.json({ message: "District Admin added successfully", id: newId });
+    syncAccountRecord(
+      {
+        acctNo: newId,
+        acctHead: data.AcctHead || "DN",
+        acctName: data.DistNGOName,
+        stateNgoId: data.StateNGORegId || null,
+        districtNgoId: newId,
+      },
+      (syncErr) => {
+        if (syncErr) return res.status(500).json({ error: syncErr.message });
+        res.json({ message: "District Admin added successfully", id: newId });
+      },
+    );
   });
 };
 
@@ -1853,7 +2107,7 @@ exports.updateDistrictAdmin = (req, res) => {
     "Darpan",
   );
 
-  const query = `UPDATE dist_ngo_reg SET DistNGOName=?, DistNGORegDate=?, DistNGORegNo=?, DistNGOPanNo=?, DistNGODarpanId=?, DistNGOMailId=?, DistNGOPhoneNo=?, DistNGORegAddress=?, DistNGOWorkingAddress=?, DistNGOStateName=?, DistNGODistName=?, DistNGOBlockName=?, DistNGOSDPName=?, DistNGOSDPMailId=?, DistNGOSDPPhoneNo=?, DistNGOSDPAadhaarNo=?, DistNGOBankAcctHolderName=?, DistNGOBankName=?, DistNGOAcctNo=?, DistNGOIFSCode=?, DistNGOBankAdd=?, DistNGORecCertificate=?, DistNGOPanPic=?, DistNGODarpanPic=?, DistNGOSignupUserName=?, DistNGOSignupEmail=?, DistNGOSignupPassword=?, DistNGOIsActive=?, DistNGOAprovedBy=?, DistNGOAprovedDate=?, DistNGOGenRegNo=? WHERE DistNGORegId=?`;
+  const query = `UPDATE dist_ngo_reg SET DistNGOName=?, DistNGORegDate=?, DistNGORegNo=?, DistNGOPanNo=?, DistNGODarpanId=?, DistNGOMailId=?, DistNGOPhoneNo=?, DistNGORegAddress=?, DistNGOWorkingAddress=?, DistNGOStateName=?, DistNGODistName=?, DistNGOBlockName=?, DistNGOSDPName=?, DistNGOSDPMailId=?, DistNGOSDPPhoneNo=?, DistNGOSDPAadhaarNo=?, DistNGOBankAcctHolderName=?, DistNGOBankName=?, DistNGOAcctNo=?, DistNGOIFSCode=?, DistNGOBankAdd=?, DistNGORecCertificate=?, DistNGOPanPic=?, DistNGODarpanPic=?, DistNGOSignupUserName=?, DistNGOSignupEmail=?, DistNGOSignupPassword=?, DistNGOIsActive=?, DistNGOAprovedBy=?, DistNGOAprovedDate=?, DistNGOGenRegNo=?, StateNGORegId=?, AcctHead=? WHERE DistNGORegId=?`;
   const values = [
     data.DistNGOName,
     data.DistNGORegDate,
@@ -1886,12 +2140,27 @@ exports.updateDistrictAdmin = (req, res) => {
     data.DistNGOAprovedBy,
     data.DistNGOAprovedDate,
     data.DistNGOGenRegNo,
+    data.StateNGORegId || null,
+    data.AcctHead || "DN",
     id,
   ];
 
   db.query(query, values, (err) => {
     if (err) return res.status(500).json({ error: err.message });
-    res.json({ message: "Record updated successfully" });
+    syncOrDeleteAccountRecord(
+      data.DistNGOIsActive,
+      {
+        acctNo: id,
+        acctHead: data.AcctHead || "DN",
+        acctName: data.DistNGOName,
+        stateNgoId: data.StateNGORegId || null,
+        districtNgoId: id,
+      },
+      (syncErr) => {
+        if (syncErr) return res.status(500).json({ error: syncErr.message });
+        res.json({ message: "Record updated successfully" });
+      },
+    );
   });
 };
 
@@ -1901,7 +2170,10 @@ exports.deleteDistrictAdmin = (req, res) => {
     [req.params.id],
     (err) => {
       if (err) return res.status(500).json({ error: err.message });
-      res.json({ message: "Record deleted successfully" });
+      deleteAccountRecord(req.params.id, "DN", (syncErr) => {
+        if (syncErr) return res.status(500).json({ error: syncErr.message });
+        res.json({ message: "Record deleted successfully" });
+      });
     },
   );
 };
@@ -1911,7 +2183,18 @@ exports.deleteDistrictAdmin = (req, res) => {
 // ==========================================
 
 exports.getSupervisor = (req, res) => {
-  const query = `SELECT a.*, DATE_FORMAT(a.SupAprovedDate, '%Y-%m-%d') AS SupAprovedDateRaw, DATE_FORMAT(a.SupDOB, '%Y-%m-%d') AS SupDOBRaw, u.SignupUserName AS ApproverName, u.UserSignUpEmail AS ApproverEmail FROM \`suvervisor_reg\` a LEFT JOIN userssignup u ON a.SupAprovedBy = CAST(u.UserSignUpId AS CHAR) ORDER BY a.SupRegId DESC`;
+  const query = `
+    SELECT a.*,
+           DATE_FORMAT(a.SupAprovedDate, '%Y-%m-%d') AS SupAprovedDateRaw,
+           DATE_FORMAT(a.SupDOB, '%Y-%m-%d') AS SupDOBRaw,
+           u.SignupUserName AS ApproverName,
+           u.UserSignUpEmail AS ApproverEmail,
+           dngo.StateNGORegId AS ParentStateNGORegId
+    FROM \`suvervisor_reg\` a
+    LEFT JOIN userssignup u ON a.SupAprovedBy = CAST(u.UserSignUpId AS CHAR)
+    LEFT JOIN dist_ngo_reg dngo ON a.DistNGORegId = dngo.DistNGORegId
+    ORDER BY a.SupRegId DESC
+  `;
   db.query(query, (err, results) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json(
@@ -1931,68 +2214,88 @@ exports.getSupervisor = (req, res) => {
 
 exports.createSupervisor = (req, res) => {
   const data = req.body;
-  const insertQuery = `INSERT INTO suvervisor_reg (SupName, SupGuardianName, SupDOB, SupGuardianContactNo, SupStateName, SupDistName, SupCity, SupBlockName, SupPO, SupPS, SupGramPanchayet, SupVillage, SupPincode, SupContactNo, SupMailId, SupBankName, SupBranchName, SupAcctNo, SupIFSCode, SupPanNo, SupAadharNo, SupJoiningAmt, SupWalletBalance, SupSignupUserName, SupSignupEmail, SupSignupPassword, SupCreatedByAuthRegId, SupCreatedDate, DistNGORegId, SupIsActive) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,NOW(),?,?)`;
-  const values = [
-    data.SupName,
-    data.SupGuardianName,
-    data.SupDOB,
-    data.SupGuardianContactNo,
-    data.SupStateName,
-    data.SupDistName,
-    data.SupCity,
-    data.SupBlockName,
-    data.SupPO,
-    data.SupPS,
-    data.SupGramPanchayet,
-    data.SupVillage,
-    data.SupPincode,
-    data.SupContactNo,
-    data.SupMailId,
-    data.SupBankName,
-    data.SupBranchName,
-    data.SupAcctNo,
-    data.SupIFSCode,
-    data.SupPanNo,
-    data.SupAadharNo,
-    data.SupJoiningAmt,
-    data.SupWalletBalance,
-    data.SupSignupUserName,
-    data.SupSignupEmail,
-    data.SupSignupPassword,
-    data.SupCreatedByAuthRegId || null,
-    data.DistNGORegId || null,
-    data.SupIsActive || 1,
-  ];
+  resolveStateNgoId(data, (resolveErr, resolvedStateNGORegId) => {
+    if (resolveErr) return res.status(500).json({ error: resolveErr.message });
 
-  db.query(insertQuery, values, (err, result) => {
-    if (err) return res.status(500).json({ error: err.message });
-    const newId = result.insertId;
-    const fileName = saveBase64File(
-      data.SupProfileImage,
-      "Supervisor",
-      newId,
-      "Profile",
-    );
-    db.query(
-      "UPDATE suvervisor_reg SET SupProfileImage=? WHERE SupRegId=?",
-      [fileName, newId],
-      () => {},
-    );
-    if (data.SupSignupUserName) {
+    const insertQuery = `INSERT INTO suvervisor_reg (SupName, SupGuardianName, SupDOB, SupGuardianContactNo, SupStateName, SupDistName, SupCity, SupBlockName, SupPO, SupPS, SupGramPanchayet, SupVillage, SupPincode, SupContactNo, SupMailId, SupBankName, SupBranchName, SupAcctNo, SupIFSCode, SupPanNo, SupAadharNo, SupJoiningAmt, SupWalletBalance, SupSignupUserName, SupSignupEmail, SupSignupPassword, SupCreatedByAuthRegId, SupCreatedDate, DistNGORegId, SupIsActive, StateNGORegId, AcctHead) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,NOW(),?,?,?,?)`;
+    const values = [
+      data.SupName,
+      data.SupGuardianName,
+      data.SupDOB,
+      data.SupGuardianContactNo,
+      data.SupStateName,
+      data.SupDistName,
+      data.SupCity,
+      data.SupBlockName,
+      data.SupPO,
+      data.SupPS,
+      data.SupGramPanchayet,
+      data.SupVillage,
+      data.SupPincode,
+      data.SupContactNo,
+      data.SupMailId,
+      data.SupBankName,
+      data.SupBranchName,
+      data.SupAcctNo,
+      data.SupIFSCode,
+      data.SupPanNo,
+      data.SupAadharNo,
+      data.SupJoiningAmt,
+      data.SupWalletBalance,
+      data.SupSignupUserName,
+      data.SupSignupEmail,
+      data.SupSignupPassword,
+      data.SupCreatedByAuthRegId || null,
+      data.DistNGORegId || null,
+      data.SupIsActive || 1,
+      resolvedStateNGORegId,
+      data.AcctHead || "SV",
+    ];
+
+    db.query(insertQuery, values, (err, result) => {
+      if (err) return res.status(500).json({ error: err.message });
+      const newId = result.insertId;
+      const fileName = saveBase64File(
+        data.SupProfileImage,
+        "Supervisor",
+        newId,
+        "Profile",
+      );
       db.query(
-        `INSERT INTO userssignup (UserSignUpRole, SignupUserName, UserSignUpEmail, UserSignUpPassword, UserSignIsActive, UserAtuorizedRegId, ProfileRegId) VALUES (?, ?, ?, ?, 1, ?, ?)`,
-        [
-          "Supervisor",
-          data.SupSignupUserName,
-          data.SupSignupEmail,
-          data.SupSignupPassword,
-          data.SupCreatedByAuthRegId || null,
-          newId,
-        ],
+        "UPDATE suvervisor_reg SET SupProfileImage=? WHERE SupRegId=?",
+        [fileName, newId],
         () => {},
       );
-    }
-    res.json({ message: "Supervisor added successfully", id: newId });
+      if (data.SupSignupUserName) {
+        db.query(
+          `INSERT INTO userssignup (UserSignUpRole, SignupUserName, UserSignUpEmail, UserSignUpPassword, UserSignIsActive, UserAtuorizedRegId, ProfileRegId) VALUES (?, ?, ?, ?, 1, ?, ?)`,
+          [
+            "Supervisor",
+            data.SupSignupUserName,
+            data.SupSignupEmail,
+            data.SupSignupPassword,
+            data.SupCreatedByAuthRegId || null,
+            newId,
+          ],
+          () => {},
+        );
+      }
+
+      syncAccountRecord(
+        {
+          acctNo: newId,
+          acctHead: data.AcctHead || "SV",
+          acctName: data.SupName,
+          stateNgoId: resolvedStateNGORegId,
+          districtNgoId: data.DistNGORegId || null,
+          supervisorId: newId,
+        },
+        (syncErr) => {
+          if (syncErr) return res.status(500).json({ error: syncErr.message });
+          res.json({ message: "Supervisor added successfully", id: newId });
+        },
+      );
+    });
   });
 };
 
@@ -2005,7 +2308,9 @@ exports.updateSupervisor = (req, res) => {
     id,
     "Profile",
   );
-  const query = `UPDATE suvervisor_reg SET SupProfileImage=?, SupName=?, SupGuardianName=?, SupDOB=?, SupGuardianContactNo=?, SupStateName=?, SupDistName=?, SupCity=?, SupBlockName=?, SupPO=?, SupPS=?, SupGramPanchayet=?, SupVillage=?, SupPincode=?, SupContactNo=?, SupMailId=?, SupBankName=?, SupBranchName=?, SupAcctNo=?, SupIFSCode=?, SupPanNo=?, SupAadharNo=?, SupJoiningAmt=?, SupWalletBalance=?, SupSignupUserName=?, SupSignupEmail=?, SupSignupPassword=?, DistNGORegId=?, SupIsActive=?, SupAprovedBy=?, SupAprovedDate=?, SupRegNo=? WHERE SupRegId=?`;
+  const stateNgoRegId =
+    data.StateNGORegId || data.ParentStateNGORegId || null;
+  const query = `UPDATE suvervisor_reg SET SupProfileImage=?, SupName=?, SupGuardianName=?, SupDOB=?, SupGuardianContactNo=?, SupStateName=?, SupDistName=?, SupCity=?, SupBlockName=?, SupPO=?, SupPS=?, SupGramPanchayet=?, SupVillage=?, SupPincode=?, SupContactNo=?, SupMailId=?, SupBankName=?, SupBranchName=?, SupAcctNo=?, SupIFSCode=?, SupPanNo=?, SupAadharNo=?, SupJoiningAmt=?, SupWalletBalance=?, SupSignupUserName=?, SupSignupEmail=?, SupSignupPassword=?, DistNGORegId=?, SupIsActive=?, SupAprovedBy=?, SupAprovedDate=?, SupRegNo=?, StateNGORegId=?, AcctHead=? WHERE SupRegId=?`;
   const values = [
     fileName,
     data.SupName,
@@ -2039,11 +2344,27 @@ exports.updateSupervisor = (req, res) => {
     data.SupAprovedBy,
     data.SupAprovedDate,
     data.SupRegNo,
+    stateNgoRegId,
+    data.AcctHead || "SV",
     id,
   ];
   db.query(query, values, (err) => {
     if (err) return res.status(500).json({ error: err.message });
-    res.json({ message: "Supervisor updated successfully" });
+    syncOrDeleteAccountRecord(
+      data.SupIsActive,
+      {
+        acctNo: id,
+        acctHead: data.AcctHead || "SV",
+        acctName: data.SupName,
+        stateNgoId: stateNgoRegId,
+        districtNgoId: data.DistNGORegId || null,
+        supervisorId: id,
+      },
+      (syncErr) => {
+        if (syncErr) return res.status(500).json({ error: syncErr.message });
+        res.json({ message: "Supervisor updated successfully" });
+      },
+    );
   });
 };
 
@@ -2053,7 +2374,10 @@ exports.deleteSupervisor = (req, res) => {
     [req.params.id],
     (err) => {
       if (err) return res.status(500).json({ error: err.message });
-      res.json({ message: "Supervisor deleted successfully" });
+      deleteAccountRecord(req.params.id, "SV", (syncErr) => {
+        if (syncErr) return res.status(500).json({ error: syncErr.message });
+        res.json({ message: "Supervisor deleted successfully" });
+      });
     },
   );
 };
@@ -2061,12 +2385,30 @@ exports.deleteSupervisor = (req, res) => {
 exports.checkDuplicate = (req, res) => {
   const { table, column, value, idColumn, idValue } = req.body;
 
-  // ✅ FIXED: Configured the global allowed rule-set to ONLY accept Email ID and Contact No. for duplicate checks across ALL tables.
+  // Keep this list explicit so duplicate checks cannot target arbitrary tables.
   const allowed = {
-    asthadidi_reg: ["AsthaDidiMailId", "AsthaDidiContactNo"],
-    asthama_reg: ["AsthaMaMailId", "AsthaMaContactNo"],
-    suvervisor_reg: ["SupMailId", "SupContactNo"],
-    dist_ngo_reg: ["DistNGOMailId", "DistNGOPhoneNo"],
+    asthadidi_reg: [
+      "AsthaDidiMailId",
+      "AsthaDidiContactNo",
+      "AsthaDidiSignupUserName",
+      "AsthaDidiAadharNo",
+    ],
+    asthama_reg: [
+      "AsthaMaMailId",
+      "AsthaMaContactNo",
+      "AsthaMaSignupUserName",
+    ],
+    suvervisor_reg: [
+      "SupMailId",
+      "SupContactNo",
+      "SupSignupUserName",
+      "SupAadharNo",
+    ],
+    dist_ngo_reg: [
+      "DistNGOMailId",
+      "DistNGOPhoneNo",
+      "DistNGOSignupUserName",
+    ],
     state_ngo_reg: [
       "StateNGOMailId",
       "StateNGOPhoneNo",

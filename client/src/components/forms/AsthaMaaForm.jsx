@@ -58,20 +58,12 @@ export const asthaMaaSchema = z.object({
     .max(100, "Max 100 characters"),
   userName: z.string().min(1, "Username is required"),
   password: z.string().min(1, "Password is required"),
-  bankName: z.string().trim().min(1, "Bank Name is required"),
-  branchName: z.string().trim().min(1, "Branch Name is required"),
-  accountNo: z.string().trim().min(1, "Account No is required"),
-  ifsCode: z.string().trim().min(1, "IFS Code is required"),
-  panNo: z.string().trim().min(1, "PAN No is required"),
-  aadharNo: z
-    .string()
-    .trim()
-    .min(1, "Aadhar No is required")
-    .refine(
-      (val) =>
-        (val.trim().length === 12 && /^\d+$/.test(val.trim())),
-      "Must be exactly 12 digits",
-    ),
+  bankName: z.string().trim().optional(),
+  branchName: z.string().trim().optional(),
+  accountNo: z.string().trim().optional(),
+  ifsCode: z.string().trim().optional(),
+  panNo: z.string().trim().optional(),
+  aadharNo: z.string().trim().optional(),
 });
 
 const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
@@ -320,7 +312,25 @@ const AsthaMaaForm = ({ onSuccess, externalFilters }) => {
     }
   };
 
-  const onErrorAsthaMaa = () => {
+  const onErrorAsthaMaa = (formErrors) => {
+    const firstVisibleErrorField = Object.keys(formErrors || {})
+      .map((fieldName) =>
+        document.querySelector(`[name="${fieldName}"], #${fieldName}`),
+      )
+      .find((element) => {
+        if (!element) return false;
+        const rect = element.getBoundingClientRect();
+        return rect.width > 0 && rect.height > 0;
+      });
+
+    if (firstVisibleErrorField) {
+      firstVisibleErrorField.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+      firstVisibleErrorField.focus?.();
+    }
+
     toast.error("Error: Please check the required red fields.");
   };
 

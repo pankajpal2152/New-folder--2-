@@ -1045,11 +1045,11 @@ const syncAccountRecord = (
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     ON DUPLICATE KEY UPDATE
       AcctName = VALUES(AcctName),
-      SNGOAcctNo = VALUES(SNGOAcctNo),
-      DNGOAcctNo = VALUES(DNGOAcctNo),
-      SVAcctNo = VALUES(SVAcctNo),
-      ADAcctNo = VALUES(ADAcctNo),
-      AMAcctNo = VALUES(AMAcctNo)
+      SNGOAcctNo = COALESCE(VALUES(SNGOAcctNo), SNGOAcctNo),
+      DNGOAcctNo = COALESCE(VALUES(DNGOAcctNo), DNGOAcctNo),
+      SVAcctNo = COALESCE(VALUES(SVAcctNo), SVAcctNo),
+      ADAcctNo = COALESCE(VALUES(ADAcctNo), ADAcctNo),
+      AMAcctNo = COALESCE(VALUES(AMAcctNo), AMAcctNo)
   `;
 
   db.query(
@@ -1132,6 +1132,11 @@ const resolveStateNgoId = (data, callback) => {
       callback(null, results[0]?.StateNGORegId || null);
     },
   );
+};
+
+const resolveStateNgoIdForAccount = (data, fallbackStateNgoId, callback) => {
+  if (fallbackStateNgoId) return callback(null, fallbackStateNgoId);
+  return resolveStateNgoId(data, callback);
 };
 
 // ==========================================
@@ -1690,20 +1695,27 @@ exports.updateAsthaDidi = (req, res) => {
         () => {},
       );
     }
-    syncOrDeleteAccountRecord(
-      data.AsthaDidiIsActive,
-      {
-        acctNo: id,
-        acctHead: data.AcctHead || "AD",
-        acctName: data.AsthaDidiUserName,
-        stateNgoId: stateNgoRegId,
-        districtNgoId: data.DistNGORegId || null,
-        supervisorId: data.SupRegId || null,
-        asthaDidiId: id,
-      },
-      (syncErr) => {
-        if (syncErr) return res.status(500).json({ error: syncErr.message });
-        res.json({ message: "Record updated successfully" });
+    resolveStateNgoIdForAccount(
+      data,
+      stateNgoRegId,
+      (resolveErr, resolvedStateNgoId) => {
+        if (resolveErr) return res.status(500).json({ error: resolveErr.message });
+        syncOrDeleteAccountRecord(
+          data.AsthaDidiIsActive,
+          {
+            acctNo: id,
+            acctHead: data.AcctHead || "AD",
+            acctName: data.AsthaDidiUserName,
+            stateNgoId: resolvedStateNgoId,
+            districtNgoId: data.DistNGORegId || null,
+            supervisorId: data.SupRegId || null,
+            asthaDidiId: id,
+          },
+          (syncErr) => {
+            if (syncErr) return res.status(500).json({ error: syncErr.message });
+            res.json({ message: "Record updated successfully" });
+          },
+        );
       },
     );
   });
@@ -1939,21 +1951,28 @@ exports.updateAsthaMaa = (req, res) => {
   ];
   db.query(query, values, (err) => {
     if (err) return res.status(500).json({ error: err.message });
-    syncOrDeleteAccountRecord(
-      data.AsthaMaIsActive,
-      {
-        acctNo: id,
-        acctHead: data.AcctHead || "AM",
-        acctName: data.AsthaMaUserName,
-        stateNgoId: stateNgoRegId,
-        districtNgoId: data.DistNGORegId || null,
-        supervisorId: data.SupRegId || null,
-        asthaDidiId: data.AsthaDidiRegId || null,
-        asthaMaaId: id,
-      },
-      (syncErr) => {
-        if (syncErr) return res.status(500).json({ error: syncErr.message });
-        res.json({ message: "Record updated successfully" });
+    resolveStateNgoIdForAccount(
+      data,
+      stateNgoRegId,
+      (resolveErr, resolvedStateNgoId) => {
+        if (resolveErr) return res.status(500).json({ error: resolveErr.message });
+        syncOrDeleteAccountRecord(
+          data.AsthaMaIsActive,
+          {
+            acctNo: id,
+            acctHead: data.AcctHead || "AM",
+            acctName: data.AsthaMaUserName,
+            stateNgoId: resolvedStateNgoId,
+            districtNgoId: data.DistNGORegId || null,
+            supervisorId: data.SupRegId || null,
+            asthaDidiId: data.AsthaDidiRegId || null,
+            asthaMaaId: id,
+          },
+          (syncErr) => {
+            if (syncErr) return res.status(500).json({ error: syncErr.message });
+            res.json({ message: "Record updated successfully" });
+          },
+        );
       },
     );
   });
@@ -2353,19 +2372,26 @@ exports.updateSupervisor = (req, res) => {
   ];
   db.query(query, values, (err) => {
     if (err) return res.status(500).json({ error: err.message });
-    syncOrDeleteAccountRecord(
-      data.SupIsActive,
-      {
-        acctNo: id,
-        acctHead: data.AcctHead || "SV",
-        acctName: data.SupName,
-        stateNgoId: stateNgoRegId,
-        districtNgoId: data.DistNGORegId || null,
-        supervisorId: id,
-      },
-      (syncErr) => {
-        if (syncErr) return res.status(500).json({ error: syncErr.message });
-        res.json({ message: "Supervisor updated successfully" });
+    resolveStateNgoIdForAccount(
+      data,
+      stateNgoRegId,
+      (resolveErr, resolvedStateNgoId) => {
+        if (resolveErr) return res.status(500).json({ error: resolveErr.message });
+        syncOrDeleteAccountRecord(
+          data.SupIsActive,
+          {
+            acctNo: id,
+            acctHead: data.AcctHead || "SV",
+            acctName: data.SupName,
+            stateNgoId: resolvedStateNgoId,
+            districtNgoId: data.DistNGORegId || null,
+            supervisorId: id,
+          },
+          (syncErr) => {
+            if (syncErr) return res.status(500).json({ error: syncErr.message });
+            res.json({ message: "Supervisor updated successfully" });
+          },
+        );
       },
     );
   });

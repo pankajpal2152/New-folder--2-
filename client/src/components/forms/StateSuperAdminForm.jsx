@@ -523,7 +523,11 @@ const StateSuperAdminForm = ({ onSuccess, externalFilters }) => {
               marginTop: "32px",
             }}
           >
-            <button type="button" style={styles.btnOutline} onClick={handleCancel}>
+            <button
+              type="button"
+              style={styles.btnOutline}
+              onClick={handleCancel}
+            >
               Cancel
             </button>
             <button type="submit" style={styles.btnPrimary}>

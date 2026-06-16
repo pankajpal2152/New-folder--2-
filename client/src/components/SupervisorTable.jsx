@@ -824,7 +824,8 @@ const SupervisorTable = ({ refreshTrigger, externalFilters }) => {
 
       let matchesStateNgo = true;
       if (externalFilters?.filterStateNgo) {
-        const rowStateNgoId = member.StateNGORegId || member.ParentStateNGORegId;
+        const rowStateNgoId =
+          member.StateNGORegId || member.ParentStateNGORegId;
         matchesStateNgo =
           String(rowStateNgoId) ===
           String(externalFilters.filterStateNgo.value);

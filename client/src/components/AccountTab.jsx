@@ -587,7 +587,12 @@ const AccountTab = () => {
       !filterAsthaDidi
     )
       setFilterAsthaDidi(filteredAsthaDidiOptions[0]);
-  }, [filteredAsthaDidiOptions, filterAsthaDidi, filterSupervisor, appUserRole]);
+  }, [
+    filteredAsthaDidiOptions,
+    filterAsthaDidi,
+    filterSupervisor,
+    appUserRole,
+  ]);
 
   const handleReset = (level) => {
     if (level <= -1) setFilterStateNgo(null);

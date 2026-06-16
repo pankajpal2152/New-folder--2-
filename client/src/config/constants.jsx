@@ -5,7 +5,8 @@ import React from "react";
 // ==========================================
 
 // ✅ SMART ROUTING: Blank for local (uses Vite proxy), full URL for production
-const DEFAULT_PRODUCTION_SERVER_ROOT = "https://ngo-shevasham-backend.onrender.com";
+const DEFAULT_PRODUCTION_SERVER_ROOT =
+  "https://ngo-shevasham-backend.onrender.com";
 export const SERVER_ROOT = (
   import.meta.env.VITE_SERVER_ROOT ||
   (import.meta.env.VITE_API_BASE_URL || "").replace(/\/api\/?$/, "") ||

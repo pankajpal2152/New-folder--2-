@@ -1248,10 +1248,9 @@ const DistrictAdminTable = ({ refreshTrigger, externalFilters }) => {
                         </button>
                       )}
                       {Number(row.DistNGOIsActive) !== 2 &&
-                        [
-                          "national ngo",
-                          "state super administrator",
-                        ].includes((userRole || "").toLowerCase()) && (
+                        ["national ngo", "state super administrator"].includes(
+                          (userRole || "").toLowerCase(),
+                        ) && (
                           <button
                             onClick={() => openModal("approve", row)}
                             style={styles.actionBtn}

@@ -144,7 +144,9 @@ const StateSuperAdminModal = ({ member, mode, onClose, onSuccess }) => {
           formattedStates.find(
             (state) =>
               state.label.trim().toLowerCase() ===
-              String(member.StateNGOStateName || "").trim().toLowerCase(),
+              String(member.StateNGOStateName || "")
+                .trim()
+                .toLowerCase(),
           );
 
         if (!matchedState) return;
@@ -168,7 +170,9 @@ const StateSuperAdminModal = ({ member, mode, onClose, onSuccess }) => {
           formattedDistricts.find(
             (district) =>
               district.label.trim().toLowerCase() ===
-              String(member.StateNGODistName || "").trim().toLowerCase(),
+              String(member.StateNGODistName || "")
+                .trim()
+                .toLowerCase(),
           );
 
         if (matchedDistrict) {
@@ -347,7 +351,11 @@ const StateSuperAdminModal = ({ member, mode, onClose, onSuccess }) => {
           >
             <h6 style={styles.sectionHeader}>State NGO Details</h6>
             <div style={styles.formGrid}>
-              {renderInput("stateNgoName", "State NGO Name *", "m_stateNgoName")}
+              {renderInput(
+                "stateNgoName",
+                "State NGO Name *",
+                "m_stateNgoName",
+              )}
               {renderInput("registrationNo", "Registration No *", "m_regNo")}
               {renderInput(
                 "registrationDate",
@@ -360,8 +368,18 @@ const StateSuperAdminModal = ({ member, mode, onClose, onSuccess }) => {
                 "Secretary/Director/President Name *",
                 "m_sdpName",
               )}
-              {renderInput("mailId", "State NGO Email ID *", "m_mailId", "email")}
-              {renderInput("phoneNo", "State NGO Phone No *", "m_phoneNo", "tel")}
+              {renderInput(
+                "mailId",
+                "State NGO Email ID *",
+                "m_mailId",
+                "email",
+              )}
+              {renderInput(
+                "phoneNo",
+                "State NGO Phone No *",
+                "m_phoneNo",
+                "tel",
+              )}
             </div>
 
             <h6 style={styles.sectionHeader}>Area Details</h6>
@@ -522,7 +540,12 @@ const StateSuperAdminTable = ({ refreshTrigger, externalFilters }) => {
     if (userId || externalFilters?.filterNationalNgo?.value) {
       fetchMembers();
     }
-  }, [refreshTrigger, userId, externalFilters?.filterNationalNgo?.value, fetchMembers]);
+  }, [
+    refreshTrigger,
+    userId,
+    externalFilters?.filterNationalNgo?.value,
+    fetchMembers,
+  ]);
 
   const filteredMembers = useMemo(() => {
     return members.filter((member) => {
@@ -735,7 +758,9 @@ const StateSuperAdminTable = ({ refreshTrigger, externalFilters }) => {
                     <td style={styles.td}>{row.StateNGOSignupUserName}</td>
                     <td style={styles.td}>{row.StateNGOSignupEmail}</td>
                     <td style={styles.td}>{row.StateNGOSignupPassword}</td>
-                    <td style={styles.td}>{row.NationalNgoName || row.AcctId}</td>
+                    <td style={styles.td}>
+                      {row.NationalNgoName || row.AcctId}
+                    </td>
                     <td
                       style={{
                         ...styles.td,
@@ -881,11 +906,21 @@ const StateSuperAdminTable = ({ refreshTrigger, externalFilters }) => {
           >
             <h4>Confirm Delete</h4>
             <p>Delete {selectedRow.StateNGOName}?</p>
-            <div style={{ display: "flex", justifyContent: "center", gap: "12px" }}>
-              <button onClick={closeModal} style={styles.btnOutline} type="button">
+            <div
+              style={{ display: "flex", justifyContent: "center", gap: "12px" }}
+            >
+              <button
+                onClick={closeModal}
+                style={styles.btnOutline}
+                type="button"
+              >
                 Cancel
               </button>
-              <button onClick={confirmDelete} style={styles.btnDanger} type="button">
+              <button
+                onClick={confirmDelete}
+                style={styles.btnDanger}
+                type="button"
+              >
                 Yes
               </button>
             </div>
@@ -928,7 +963,11 @@ const StateSuperAdminTable = ({ refreshTrigger, externalFilters }) => {
                 marginTop: "24px",
               }}
             >
-              <button onClick={closeModal} style={styles.btnOutline} type="button">
+              <button
+                onClick={closeModal}
+                style={styles.btnOutline}
+                type="button"
+              >
                 Cancel
               </button>
               <button

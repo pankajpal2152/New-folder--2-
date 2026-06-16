@@ -834,9 +834,11 @@ const MembersTable = ({ refreshTrigger, externalFilters }) => {
   const filteredMembers = useMemo(() => {
     const isNationalNgo = (userRole || "").toLowerCase() === "national ngo";
     if (
-      ["National NGO", "State Super Administrator", "District Administrator"].includes(
-        userRole,
-      )
+      [
+        "National NGO",
+        "State Super Administrator",
+        "District Administrator",
+      ].includes(userRole)
     ) {
       if (
         (isNationalNgo && !externalFilters?.filterStateNgo) ||
@@ -1300,10 +1302,9 @@ const MembersTable = ({ refreshTrigger, externalFilters }) => {
                           </button>
                         )}
                         {/* ✅ FIXED: Super Admin can delete */}
-                        {[
-                          "national ngo",
-                          "state super administrator",
-                        ].includes((userRole || "").toLowerCase()) && (
+                        {["national ngo", "state super administrator"].includes(
+                          (userRole || "").toLowerCase(),
+                        ) && (
                           <button
                             onClick={() => openModal("delete", row)}
                             style={styles.actionBtn}

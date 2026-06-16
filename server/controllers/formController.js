@@ -1533,6 +1533,94 @@ exports.checkDuplicate = (req, res) => {
 };
 
 // ==========================================
+// LOCATION MANAGEMENT (STATES & DISTRICTS)
+// ==========================================
+exports.getAllStates = (req, res) => {
+  db.query("SELECT * FROM state ORDER BY StateName ASC", (err, results) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(results);
+  });
+};
+
+exports.createState = (req, res) => {
+  const { StateName, IsActive } = req.body;
+  db.query(
+    "INSERT INTO state (StateName, IsActive) VALUES (?, ?)",
+    [StateName, IsActive],
+    (err, result) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ message: "State created successfully", id: result.insertId });
+    },
+  );
+};
+
+exports.updateState = (req, res) => {
+  const { StateName, IsActive } = req.body;
+  db.query(
+    "UPDATE state SET StateName=?, IsActive=? WHERE StateId=?",
+    [StateName, IsActive, req.params.id],
+    (err) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ message: "State updated successfully" });
+    },
+  );
+};
+
+exports.deleteState = (req, res) => {
+  db.query("DELETE FROM state WHERE StateId=?", [req.params.id], (err) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ message: "State deleted successfully" });
+  });
+};
+
+exports.getAllDistricts = (req, res) => {
+  const query = `
+    SELECT d.*, s.StateName 
+    FROM dist d 
+    LEFT JOIN state s ON d.StateId = s.StateId 
+    ORDER BY s.StateName ASC, d.DistName ASC
+  `;
+  db.query(query, (err, results) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(results);
+  });
+};
+
+exports.createDistrict = (req, res) => {
+  const { DistName, StateId, IsActive } = req.body;
+  db.query(
+    "INSERT INTO dist (DistName, StateId, IsActive) VALUES (?, ?, ?)",
+    [DistName, StateId, IsActive],
+    (err, result) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({
+        message: "District created successfully",
+        id: result.insertId,
+      });
+    },
+  );
+};
+
+exports.updateDistrict = (req, res) => {
+  const { DistName, StateId, IsActive } = req.body;
+  db.query(
+    "UPDATE dist SET DistName=?, StateId=?, IsActive=? WHERE DistId=?",
+    [DistName, StateId, IsActive, req.params.id],
+    (err) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ message: "District updated successfully" });
+    },
+  );
+};
+
+exports.deleteDistrict = (req, res) => {
+  db.query("DELETE FROM dist WHERE DistId=?", [req.params.id], (err) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ message: "District deleted successfully" });
+  });
+};
+
+// ==========================================
 // PRODUCT DISTRIBUTION MODULE
 // ==========================================
 
@@ -1638,13 +1726,13 @@ exports.distributeProduct = (req, res) => {
     ProductId,
     DistributedQty,
     Remarks,
-    InvoiceFile, // ✅ Now extracting the InvoiceBase64 File
+    InvoiceFile,
   } = req.body;
 
   const receiverInfo = `${ReceiverRole} - ${ReceiverId}`;
   const senderInfo = `${SenderRole} - ${SenderId}`;
   const trnDate = SenderDate || new Date().toISOString().split("T")[0];
-  const entryDate = new Date().toISOString().split("T")[0]; // ✅ Capture exact submission date
+  const entryDate = new Date().toISOString().split("T")[0];
 
   const sModeParsed = SenderMode ? SenderMode.split(" - ")[1] : "TRANSFER";
   const sDrCr = SenderMode ? SenderMode.split(" - ")[0] : "Dr";
@@ -1658,7 +1746,6 @@ exports.distributeProduct = (req, res) => {
   const rDeposit = rDrCr === "Cr" ? DistributedQty : 0;
   const rWithdraw = rDrCr === "Dr" ? DistributedQty : 0;
 
-  // ✅ Process Document Using the Existing Upload Helper (Using Timestamp as pseudo ID)
   const invoiceFileName = saveBase64File(
     InvoiceFile,
     "ProTran",
@@ -1666,7 +1753,6 @@ exports.distributeProduct = (req, res) => {
     "Invoice",
   );
 
-  // Record transaction for Sender
   db.query(
     "INSERT INTO ProTran (TrnDate, AcctNo, AcctHead, ProId, Deposit, Withdraw, DrCr, TrnType, Remerks, UserName, invoice, EntryDate) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     [
@@ -1686,7 +1772,6 @@ exports.distributeProduct = (req, res) => {
     (err) => {
       if (err) return res.status(500).json({ error: err.message });
 
-      // Record transaction for Receiver
       db.query(
         "INSERT INTO ProTran (TrnDate, AcctNo, AcctHead, ProId, Deposit, Withdraw, DrCr, TrnType, Remerks, UserName, invoice, EntryDate) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         [
@@ -1715,7 +1800,6 @@ exports.distributeProduct = (req, res) => {
 exports.getDistributionHistory = (req, res) => {
   const { senderId, senderHead } = req.query;
 
-  // ✅ Added EntryDate and invoice columns to the SELECT statements
   const query = `
     SELECT 
       pt.TrnId,

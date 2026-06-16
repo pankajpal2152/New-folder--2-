@@ -1,4 +1,3 @@
-// src/layouts/Sidebar.jsx
 import React, { useState, useEffect } from "react";
 import { NavLink } from "react-router-dom";
 
@@ -6,6 +5,7 @@ const Sidebar = () => {
   // State for toggling menus
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(true);
   const [isSettingsMenuOpen, setIsSettingsMenuOpen] = useState(false);
+  const [isLocationMenuOpen, setIsLocationMenuOpen] = useState(false); // ✅ Added Location State
 
   // Fetch the logged-in user's role from local storage
   const [userRole, setUserRole] = useState("");
@@ -25,7 +25,7 @@ const Sidebar = () => {
 
   // Check roles (case-insensitive for safety)
   const isDeveloper = userRole.toLowerCase() === "developer";
-  const isAsthaMaa = userRole.toLowerCase() === "astha maa"; // ✅ ADDED: Identify if user is Astha Maa
+  const isAsthaMaa = userRole.toLowerCase() === "astha maa";
   const isNationalNgo = userRole.toLowerCase() === "national ngo";
 
   const styles = {
@@ -90,7 +90,7 @@ const Sidebar = () => {
     subMenuContainer: (isOpen) => ({
       overflow: "hidden",
       transition: "max-height 0.3s ease-in-out",
-      maxHeight: isOpen ? "250px" : "0px",
+      maxHeight: isOpen ? "300px" : "0px",
     }),
     subMenuItem: (isActive) => ({
       padding: "10px 16px 10px 48px",
@@ -149,7 +149,6 @@ const Sidebar = () => {
         </div>
 
         {/* --- 2. PRODUCT DISTRIBUTION (MAIN MENU) --- */}
-        {/* ✅ FIXED: Hide this menu item entirely if the user is an Astha Maa */}
         {!isAsthaMaa && !isNationalNgo && (
           <NavLink to="/product-distribution" style={styles.link}>
             {({ isActive }) => (
@@ -163,7 +162,40 @@ const Sidebar = () => {
           </NavLink>
         )}
 
-        {/* --- 3. SETTINGS MENU --- */}
+        {/* --- 3. LOCATION MANAGEMENT (NEW) --- */}
+        {(isNationalNgo || isDeveloper) && (
+          <>
+            <li
+              style={styles.menuItem(false)}
+              onClick={() => setIsLocationMenuOpen(!isLocationMenuOpen)}
+            >
+              <div style={styles.menuItemLeft}>
+                <span style={{ marginRight: "10px" }}>📍</span> Locations
+              </div>
+              <span style={styles.chevron(isLocationMenuOpen)}>▶</span>
+            </li>
+
+            <div style={styles.subMenuContainer(isLocationMenuOpen)}>
+              <NavLink to="/settings/states" style={styles.link}>
+                {({ isActive }) => (
+                  <li style={styles.subMenuItem(isActive)}>
+                    <div style={styles.subMenuDot(isActive)}></div> States
+                  </li>
+                )}
+              </NavLink>
+
+              <NavLink to="/settings/districts" style={styles.link}>
+                {({ isActive }) => (
+                  <li style={styles.subMenuItem(isActive)}>
+                    <div style={styles.subMenuDot(isActive)}></div> Districts
+                  </li>
+                )}
+              </NavLink>
+            </div>
+          </>
+        )}
+
+        {/* --- 4. SETTINGS MENU --- */}
         {isDeveloper && (
           <>
             <li

@@ -1,4 +1,3 @@
-// src/App.jsx
 import React, { useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Sidebar from "./layouts/Sidebar";
@@ -8,12 +7,12 @@ import AccountSettings from "./pages/AccountSettings";
 import Login from "./pages/Login";
 import RoleManagement from "./pages/RoleManagement";
 import AccessControl from "./pages/AccessControl";
-// ✅ ADDED THIS IMPORT TO FIX THE ERROR
 import ProductDistribution from "./pages/ProductDistribution";
+// ✅ IMPORT NEW LOCATION PAGES
+import StateManagement from "./pages/StateManagement";
+import DistrictManagement from "./pages/DistrictManagement";
 
 const App = () => {
-  // FIX: Initialize state by checking localStorage directly.
-  // This ensures that if they refresh, it remembers they are logged in!
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     return localStorage.getItem("loggedInUser") !== null;
   });
@@ -57,13 +56,11 @@ const App = () => {
   return (
     <BrowserRouter>
       <Routes>
-        {/* LOGIN ROUTE */}
         <Route
           path="/login"
           element={<Login onLogin={() => setIsAuthenticated(true)} />}
         />
 
-        {/* PROTECTED ROUTES (Only accessible if logged in) */}
         <Route
           path="*"
           element={
@@ -74,13 +71,13 @@ const App = () => {
                   <Navbar />
                   <div style={styles.contentArea}>
                     <Routes>
-                      {/* Redirect Root directly to Account Settings */}
                       <Route
                         path="/"
                         element={
                           <Navigate to="/account-settings/account" replace />
                         }
                       />
+
                       <Route
                         path="/product-distribution"
                         element={
@@ -91,10 +88,7 @@ const App = () => {
                           )
                         }
                       />
-                      <Route
-                        path="/layouts"
-                        element={<Maintenance pageName="Layouts" />}
-                      />
+
                       <Route
                         path="/account-settings/account"
                         element={<AccountSettings />}
@@ -103,10 +97,23 @@ const App = () => {
                         path="/settings/role-management"
                         element={<RoleManagement />}
                       />
+
+                      {/* ✅ FIXED: Renamed to match the sidebar Link */}
                       <Route
-                        path="/settings/access-control"
+                        path="/settings/access-management"
                         element={<AccessControl />}
                       />
+
+                      {/* ✅ NEW: Location Management Routes */}
+                      <Route
+                        path="/settings/states"
+                        element={<StateManagement />}
+                      />
+                      <Route
+                        path="/settings/districts"
+                        element={<DistrictManagement />}
+                      />
+
                       <Route
                         path="*"
                         element={<Maintenance pageName="404 Not Found" />}
@@ -116,7 +123,6 @@ const App = () => {
                 </div>
               </div>
             ) : (
-              /* IF NOT LOGGED IN, KICK THEM TO LOGIN PAGE */
               <Navigate to="/login" replace />
             )
           }

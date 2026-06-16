@@ -19,6 +19,17 @@ router.get("/filter/states", formController.getFilterStates);
 router.get("/filter/districts/:stateId", formController.getFilterDistricts);
 router.get("/nationalngo", formController.getNationalNgos);
 
+// --- LOCATION MANAGEMENT (NEW) ---
+router.get("/manage/states", formController.getAllStates);
+router.post("/manage/states", formController.createState);
+router.put("/manage/states/:id", formController.updateState);
+router.delete("/manage/states/:id", formController.deleteState);
+
+router.get("/manage/districts", formController.getAllDistricts);
+router.post("/manage/districts", formController.createDistrict);
+router.put("/manage/districts/:id", formController.updateDistrict);
+router.delete("/manage/districts/:id", formController.deleteDistrict);
+
 // --- REGISTRATION ROUTES ---
 router.get("/statengo", formController.getStateNgo);
 router.post("/statengo", formController.createStateNgo);

@@ -271,9 +271,9 @@ const StateManagement = () => {
       <div style={styles.card}>
         <div style={styles.header}>
           <h4 style={styles.title}>State Management Dashboard</h4>
-          <button style={styles.btnPrimary} onClick={openCreateModal}>
+          {/* <button style={styles.btnPrimary} onClick={openCreateModal}>
             + Add State
-          </button>
+          </button> */}
         </div>
         {loading ? (
           <p>Loading Data...</p>

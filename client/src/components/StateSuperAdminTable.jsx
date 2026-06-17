@@ -492,7 +492,7 @@ const StateSuperAdminModal = ({ member, mode, onClose, onSuccess }) => {
   );
 };
 
-const StateSuperAdminTable = ({ refreshTrigger }) => {
+const StateSuperAdminTable = ({ refreshTrigger, externalFilters }) => {
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [globalSearch, setGlobalSearch] = useState("");

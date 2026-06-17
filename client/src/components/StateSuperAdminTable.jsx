@@ -492,7 +492,7 @@ const StateSuperAdminModal = ({ member, mode, onClose, onSuccess }) => {
   );
 };
 
-const StateSuperAdminTable = ({ refreshTrigger, externalFilters }) => {
+const StateSuperAdminTable = ({ refreshTrigger }) => {
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [globalSearch, setGlobalSearch] = useState("");
@@ -517,22 +517,13 @@ const StateSuperAdminTable = ({ refreshTrigger, externalFilters }) => {
       // ✅ Strict enforcement to hide records where StateNGOIsActive === "0"
       data = data.filter((member) => String(member.StateNGOIsActive) !== "0");
 
-      // ✅ Filter strictly by the selected National NGO in the dropdown
-      // If none is selected, let all records pass (or limit to default based on your needs)
-      const nationalNgoId = externalFilters?.filterNationalNgo?.value;
-      if (nationalNgoId) {
-        data = data.filter(
-          (member) => String(member.AcctId) === String(nationalNgoId),
-        );
-      }
-
       setMembers(data);
     } catch {
       toast.error("Failed to load State Super Administrator table data.");
     } finally {
       setLoading(false);
     }
-  }, [externalFilters?.filterNationalNgo?.value]);
+  }, []);
 
   useEffect(() => {
     const currentUser = getCurrentUser();

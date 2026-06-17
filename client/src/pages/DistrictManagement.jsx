@@ -404,12 +404,13 @@ const DistrictManagement = () => {
       <div style={styles.card}>
         <div style={styles.header}>
           <h4 style={styles.title}>District Management Dashboard</h4>
-          <button style={styles.btnPrimary} onClick={openCreateModal}>
+          {/* ✅ COMMENTED OUT ADD DISTRICT BUTTON */}
+          {/* <button style={styles.btnPrimary} onClick={openCreateModal}>
             + Add District
-          </button>
+          </button> */}
         </div>
 
-        {/* ✅ NEW: Master Dropdown Filter matching the Whiteboard Sketch */}
+        {/* ✅ Master Dropdown Filter */}
         <div style={styles.filterBanner}>
           <label style={{ margin: 0, fontWeight: "600", color: "#566a7f" }}>
             📍 Filter by State:
@@ -452,7 +453,7 @@ const DistrictManagement = () => {
                   <th style={styles.th}>District Name</th>
                   <th style={styles.th}>Parent State</th>
 
-                  {/* ✅ NEW: Master Checkbox Column */}
+                  {/* ✅ Master Checkbox Column */}
                   <th style={{ ...styles.th, textAlign: "center" }}>
                     <div
                       style={{
@@ -479,7 +480,8 @@ const DistrictManagement = () => {
                     </div>
                   </th>
 
-                  <th style={styles.th}>Actions</th>
+                  {/* ✅ COMMENTED OUT ACTIONS HEADER */}
+                  {/* <th style={styles.th}>Actions</th> */}
                 </tr>
               </thead>
               <tbody>
@@ -505,7 +507,7 @@ const DistrictManagement = () => {
                       {d.StateName || `State ID: ${d.StateId}`}
                     </td>
 
-                    {/* ✅ NEW: Interactive Row Checkbox */}
+                    {/* ✅ Interactive Row Checkbox */}
                     <td style={{ ...styles.td, textAlign: "center" }}>
                       <input
                         type="checkbox"
@@ -519,7 +521,8 @@ const DistrictManagement = () => {
                       />
                     </td>
 
-                    <td style={styles.td}>
+                    {/* ✅ COMMENTED OUT ACTIONS CELL (EDIT/DELETE) */}
+                    {/* <td style={styles.td}>
                       <button
                         style={styles.actionBtnEdit}
                         onClick={() => openEditModal(d)}
@@ -532,13 +535,13 @@ const DistrictManagement = () => {
                       >
                         🗑️
                       </button>
-                    </td>
+                    </td> */}
                   </tr>
                 ))}
                 {displayedDistricts.length === 0 && (
                   <tr>
                     <td
-                      colSpan="5"
+                      colSpan="4"
                       style={{
                         textAlign: "center",
                         padding: "30px",
@@ -554,6 +557,7 @@ const DistrictManagement = () => {
           </div>
         )}
 
+        {/* MODALS REMAIN FUNCTIONAL BUT HIDDEN IN UI */}
         {isModalOpen && (
           <div style={styles.modalOverlay}>
             <div style={styles.modalContent}>

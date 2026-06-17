@@ -449,7 +449,9 @@ const DistrictManagement = () => {
             <table style={styles.table}>
               <thead>
                 <tr>
-                  <th style={styles.th}>Dist ID</th>
+                  {/* ✅ COMMENTED OUT ID HEADER */}
+                  {/* <th style={styles.th}>Dist ID</th> */}
+
                   <th style={styles.th}>District Name</th>
                   <th style={styles.th}>Parent State</th>
 
@@ -493,7 +495,9 @@ const DistrictManagement = () => {
                         d.IsActive == 1 ? "transparent" : "#fff5f5",
                     }}
                   >
-                    <td style={styles.td}>#{d.DistId}</td>
+                    {/* ✅ COMMENTED OUT ID COLUMN */}
+                    {/* <td style={styles.td}>#{d.DistId}</td> */}
+
                     <td
                       style={{
                         ...styles.td,
@@ -541,7 +545,7 @@ const DistrictManagement = () => {
                 {displayedDistricts.length === 0 && (
                   <tr>
                     <td
-                      colSpan="4"
+                      colSpan="3" /* ✅ Changed colSpan from 4 to 3 since Dist ID is commented out */
                       style={{
                         textAlign: "center",
                         padding: "30px",

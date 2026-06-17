@@ -517,14 +517,9 @@ const StateSuperAdminTable = ({ refreshTrigger, externalFilters }) => {
       // ✅ Strict enforcement to hide records where StateNGOIsActive === "0"
       data = data.filter((member) => String(member.StateNGOIsActive) !== "0");
 
-      // ✅ FIXED: Rely solely on filterNationalNgo from AccountTab.jsx to prevent
-      // restricting Developer accounts inadvertently by fallback `userId`.
-      const nationalNgoId = externalFilters?.filterNationalNgo?.value;
-      if (nationalNgoId) {
-        data = data.filter(
-          (member) => String(member.AcctId) === String(nationalNgoId),
-        );
-      }
+      // ✅ FIXED: Removed National NGO filtering constraint completely.
+      // This ensures all active State Super Administrators are fully visible
+      // globally across the table as per the explicit database rules.
 
       setMembers(data);
     } catch {
@@ -532,7 +527,7 @@ const StateSuperAdminTable = ({ refreshTrigger, externalFilters }) => {
     } finally {
       setLoading(false);
     }
-  }, [externalFilters?.filterNationalNgo?.value]);
+  }, []);
 
   useEffect(() => {
     const currentUser = getCurrentUser();
@@ -541,8 +536,9 @@ const StateSuperAdminTable = ({ refreshTrigger, externalFilters }) => {
   }, []);
 
   useEffect(() => {
+    // ✅ FIXED: Safely fetch without needing the `externalFilters` dependency limit
     fetchMembers();
-  }, [refreshTrigger, externalFilters?.filterNationalNgo?.value, fetchMembers]);
+  }, [refreshTrigger, fetchMembers]);
 
   const filteredMembers = useMemo(() => {
     return members.filter((member) => {

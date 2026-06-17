@@ -299,14 +299,9 @@ const AccountTab = () => {
         (ngo) => String(ngo.value) === String(loggedInProfileId),
       );
     }
-    // ✅ Added National NGO mapping so dropdown filters properly
-    if (filterNationalNgo) {
-      return dbStateNgos.filter(
-        (ngo) => String(ngo.nationalNgoId) === String(filterNationalNgo.value),
-      );
-    }
+    // ✅ FIXED: Removed National NGO filtering so ALL active State NGOs show in dropdown
     return dbStateNgos;
-  }, [dbStateNgos, appUserRole, loggedInProfileId, filterNationalNgo]);
+  }, [dbStateNgos, appUserRole, loggedInProfileId]);
 
   useEffect(() => {
     if (

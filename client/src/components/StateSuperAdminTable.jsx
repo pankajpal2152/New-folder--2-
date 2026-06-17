@@ -513,9 +513,13 @@ const StateSuperAdminTable = ({ refreshTrigger, externalFilters }) => {
       const response = await fetch(`${API_BASE_URL}/statengo`);
       if (!response.ok) throw new Error("Failed to fetch data");
       let data = await response.json();
+
+      // ✅ Strict enforcement to hide records where StateNGOIsActive === "0"
       data = data.filter((member) => String(member.StateNGOIsActive) !== "0");
 
-      const nationalNgoId = externalFilters?.filterNationalNgo?.value || userId;
+      // ✅ FIXED: Rely solely on filterNationalNgo from AccountTab.jsx to prevent
+      // restricting Developer accounts inadvertently by fallback `userId`.
+      const nationalNgoId = externalFilters?.filterNationalNgo?.value;
       if (nationalNgoId) {
         data = data.filter(
           (member) => String(member.AcctId) === String(nationalNgoId),
@@ -528,7 +532,7 @@ const StateSuperAdminTable = ({ refreshTrigger, externalFilters }) => {
     } finally {
       setLoading(false);
     }
-  }, [externalFilters?.filterNationalNgo?.value, userId]);
+  }, [externalFilters?.filterNationalNgo?.value]);
 
   useEffect(() => {
     const currentUser = getCurrentUser();
@@ -537,15 +541,8 @@ const StateSuperAdminTable = ({ refreshTrigger, externalFilters }) => {
   }, []);
 
   useEffect(() => {
-    if (userId || externalFilters?.filterNationalNgo?.value) {
-      fetchMembers();
-    }
-  }, [
-    refreshTrigger,
-    userId,
-    externalFilters?.filterNationalNgo?.value,
-    fetchMembers,
-  ]);
+    fetchMembers();
+  }, [refreshTrigger, externalFilters?.filterNationalNgo?.value, fetchMembers]);
 
   const filteredMembers = useMemo(() => {
     return members.filter((member) => {

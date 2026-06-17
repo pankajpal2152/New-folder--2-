@@ -299,8 +299,14 @@ const AccountTab = () => {
         (ngo) => String(ngo.value) === String(loggedInProfileId),
       );
     }
+    // ✅ Added National NGO mapping so dropdown filters properly
+    if (filterNationalNgo) {
+      return dbStateNgos.filter(
+        (ngo) => String(ngo.nationalNgoId) === String(filterNationalNgo.value),
+      );
+    }
     return dbStateNgos;
-  }, [dbStateNgos, appUserRole, loggedInProfileId]);
+  }, [dbStateNgos, appUserRole, loggedInProfileId, filterNationalNgo]);
 
   useEffect(() => {
     if (
@@ -640,7 +646,6 @@ const AccountTab = () => {
   );
   const isAsthaDidiVisible = ["Astha Maa"].includes(adminActiveView);
 
-  // ✅ FIXED: Advanced layout rules for seamless, unbroken text in react-select
   const baseSelectStyles = styles.selectStyles(false);
   const customSelectStyles = {
     ...baseSelectStyles,
@@ -653,7 +658,7 @@ const AccountTab = () => {
     menu: (base, props) => ({
       ...(baseSelectStyles.menu ? baseSelectStyles.menu(base, props) : base),
       zIndex: 99999,
-      width: "max-content", // Allow dropdown options to expand as far as they need
+      width: "max-content",
       minWidth: "100%",
     }),
     control: (base, props) => ({
@@ -661,20 +666,20 @@ const AccountTab = () => {
         ? baseSelectStyles.control(base, props)
         : base),
       minWidth: "100%",
-      width: "max-content", // Allow input box to stretch to fully display selected text
+      width: "max-content",
     }),
     option: (base, props) => ({
       ...(baseSelectStyles.option
         ? baseSelectStyles.option(base, props)
         : base),
-      whiteSpace: "nowrap", // Strictly prevent text breaking across lines in the dropdown
+      whiteSpace: "nowrap",
     }),
     singleValue: (base, props) => ({
       ...(baseSelectStyles.singleValue
         ? baseSelectStyles.singleValue(base, props)
         : base),
-      whiteSpace: "nowrap", // Prevent selected value breaking in the input box
-      overflow: "visible", // Ensure visibility
+      whiteSpace: "nowrap",
+      overflow: "visible",
     }),
     valueContainer: (base, props) => ({
       ...(baseSelectStyles.valueContainer
@@ -700,7 +705,6 @@ const AccountTab = () => {
           alignItems: "flex-end",
         }}
       >
-        {/* ✅ FIXED: Removed maxWidth to let inputs naturally grow */}
         <div style={{ flex: "1 1 auto", minWidth: "200px" }}>
           <label
             style={{ ...styles.label, marginBottom: "8px", display: "block" }}

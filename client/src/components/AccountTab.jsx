@@ -303,7 +303,7 @@ const AccountTab = () => {
   }, [dbStateNgos, appUserRole, loggedInProfileId]);
 
   // =========================================================================
-  // ✅ UNIVERSAL AUTO-POPULATE ENGINE 
+  // ✅ UNIVERSAL AUTO-POPULATE ENGINE
   // Forces proper UI selection instantly for ALL hierarchical user roles
   // =========================================================================
   useEffect(() => {
@@ -320,15 +320,22 @@ const AccountTab = () => {
       );
       if (myDn) {
         if (!filterMotherNgo) setFilterMotherNgo(myDn);
-        
-        const matchedStateNgo = dbStateNgos.find((sn) => String(sn.value) === String(myDn.stateNgoRegId));
-        if (matchedStateNgo && !filterStateNgo) setFilterStateNgo(matchedStateNgo);
 
-        const matchedState = dbStates.find((s) => s.label.toLowerCase() === myDn.stateName?.toLowerCase());
+        const matchedStateNgo = dbStateNgos.find(
+          (sn) => String(sn.value) === String(myDn.stateNgoRegId),
+        );
+        if (matchedStateNgo && !filterStateNgo)
+          setFilterStateNgo(matchedStateNgo);
+
+        const matchedState = dbStates.find(
+          (s) => s.label.toLowerCase() === myDn.stateName?.toLowerCase(),
+        );
         if (matchedState && !filterState) setFilterState(matchedState);
 
         if (dbDistricts.length > 0 && !filterDistrict) {
-          const matchedDist = dbDistricts.find((d) => d.label.toLowerCase() === myDn.districtName?.toLowerCase());
+          const matchedDist = dbDistricts.find(
+            (d) => d.label.toLowerCase() === myDn.districtName?.toLowerCase(),
+          );
           if (matchedDist) setFilterDistrict(matchedDist);
         }
       }
@@ -347,17 +354,26 @@ const AccountTab = () => {
       if (mySup) {
         if (!filterSupervisor) setFilterSupervisor(mySup);
 
-        const matchedNgo = dbMotherNgos.find((n) => String(n.value) === String(mySup.motherNgoId));
+        const matchedNgo = dbMotherNgos.find(
+          (n) => String(n.value) === String(mySup.motherNgoId),
+        );
         if (matchedNgo && !filterMotherNgo) setFilterMotherNgo(matchedNgo);
 
-        const matchedStateNgo = dbStateNgos.find((sn) => String(sn.value) === String(mySup.stateNgoRegId));
-        if (matchedStateNgo && !filterStateNgo) setFilterStateNgo(matchedStateNgo);
+        const matchedStateNgo = dbStateNgos.find(
+          (sn) => String(sn.value) === String(mySup.stateNgoRegId),
+        );
+        if (matchedStateNgo && !filterStateNgo)
+          setFilterStateNgo(matchedStateNgo);
 
-        const matchedState = dbStates.find((s) => s.label.toLowerCase() === mySup.stateName?.toLowerCase());
+        const matchedState = dbStates.find(
+          (s) => s.label.toLowerCase() === mySup.stateName?.toLowerCase(),
+        );
         if (matchedState && !filterState) setFilterState(matchedState);
 
         if (dbDistricts.length > 0 && !filterDistrict) {
-          const matchedDist = dbDistricts.find((d) => d.label.toLowerCase() === mySup.distName?.toLowerCase());
+          const matchedDist = dbDistricts.find(
+            (d) => d.label.toLowerCase() === mySup.distName?.toLowerCase(),
+          );
           if (matchedDist) setFilterDistrict(matchedDist);
         }
       }
@@ -377,20 +393,31 @@ const AccountTab = () => {
       if (myDidi) {
         if (!filterAsthaDidi) setFilterAsthaDidi(myDidi);
 
-        const matchedSup = dbSupervisors.find((s) => String(s.value) === String(myDidi.supRegId));
+        const matchedSup = dbSupervisors.find(
+          (s) => String(s.value) === String(myDidi.supRegId),
+        );
         if (matchedSup && !filterSupervisor) setFilterSupervisor(matchedSup);
 
-        const matchedNgo = dbMotherNgos.find((n) => String(n.value) === String(myDidi.motherNgoId));
+        const matchedNgo = dbMotherNgos.find(
+          (n) => String(n.value) === String(myDidi.motherNgoId),
+        );
         if (matchedNgo && !filterMotherNgo) setFilterMotherNgo(matchedNgo);
 
-        const matchedStateNgo = dbStateNgos.find((sn) => String(sn.value) === String(myDidi.stateNgoRegId));
-        if (matchedStateNgo && !filterStateNgo) setFilterStateNgo(matchedStateNgo);
+        const matchedStateNgo = dbStateNgos.find(
+          (sn) => String(sn.value) === String(myDidi.stateNgoRegId),
+        );
+        if (matchedStateNgo && !filterStateNgo)
+          setFilterStateNgo(matchedStateNgo);
 
-        const matchedState = dbStates.find((s) => s.label.toLowerCase() === myDidi.stateName?.toLowerCase());
+        const matchedState = dbStates.find(
+          (s) => s.label.toLowerCase() === myDidi.stateName?.toLowerCase(),
+        );
         if (matchedState && !filterState) setFilterState(matchedState);
 
         if (dbDistricts.length > 0 && !filterDistrict) {
-          const matchedDist = dbDistricts.find((d) => d.label.toLowerCase() === myDidi.distName?.toLowerCase());
+          const matchedDist = dbDistricts.find(
+            (d) => d.label.toLowerCase() === myDidi.distName?.toLowerCase(),
+          );
           if (matchedDist) setFilterDistrict(matchedDist);
         }
       }
@@ -409,7 +436,7 @@ const AccountTab = () => {
     filterState,
     filterDistrict,
     filterSupervisor,
-    filterAsthaDidi
+    filterAsthaDidi,
   ]);
 
   useEffect(() => {
@@ -931,8 +958,14 @@ const AccountTab = () => {
                 setFilterSupervisor(s);
                 handleReset(4);
               }}
-              isDisabled={!filterDistrict || appUserRole === "Supervisor" || appUserRole === "Astha Didi"}
-              isClearable={appUserRole !== "Supervisor" && appUserRole !== "Astha Didi"}
+              isDisabled={
+                !filterDistrict ||
+                appUserRole === "Supervisor" ||
+                appUserRole === "Astha Didi"
+              }
+              isClearable={
+                appUserRole !== "Supervisor" && appUserRole !== "Astha Didi"
+              }
               placeholder="Supervisor"
               styles={customSelectStyles}
               menuPortalTarget={document.body}

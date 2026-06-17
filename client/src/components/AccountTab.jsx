@@ -297,6 +297,7 @@ const AccountTab = () => {
       .catch(console.error);
   }, [refreshTrigger]);
 
+  // Handle District Data Loading
   useEffect(() => {
     if (filterState && filterState.value) {
       fetch(`${API_BASE_URL}/districts/${filterState.value}`)
@@ -313,12 +314,141 @@ const AccountTab = () => {
   }, [filterState]);
 
   // =========================================================================
-  // ✅ CASCADING AUTO-POPULATE LOGIC
-  // Instantly populates State, District, and State NGO when District NGO is selected
-  // Handles hierarchy upwards automatically based on selection
+  // ✅ MODULAR AUTO-POPULATE ENGINE FOR LOCKED USERS
+  // =========================================================================
+  const currentUserProfile = useMemo(() => {
+    if (!appUserRole || !loggedInProfileId) return null;
+    const profileIdStr = String(loggedInProfileId);
+
+    if (appUserRole === "State Super Administrator")
+      return dbStateNgos.find((sn) => String(sn.value) === profileIdStr);
+    if (appUserRole === "District Administrator")
+      return dbMotherNgos.find((n) => String(n.value) === profileIdStr);
+    if (appUserRole === "Supervisor")
+      return dbSupervisors.find((s) => String(s.value) === profileIdStr);
+    if (appUserRole === "Astha Didi")
+      return dbAsthaDidis.find((a) => String(a.value) === profileIdStr);
+    return null;
+  }, [
+    appUserRole,
+    loggedInProfileId,
+    dbStateNgos,
+    dbMotherNgos,
+    dbSupervisors,
+    dbAsthaDidis,
+  ]);
+
+  useEffect(() => {
+    if (!currentUserProfile) return;
+
+    const findState = (name) =>
+      dbStates.find(
+        (s) =>
+          s.label.trim().toLowerCase() ===
+          String(name || "")
+            .trim()
+            .toLowerCase(),
+      );
+
+    // 1. Auto-select State NGO
+    if (!filterStateNgo && dbStateNgos.length > 0) {
+      let targetStateNgoId = null;
+      if (appUserRole === "State Super Administrator")
+        targetStateNgoId = currentUserProfile.value;
+      else if (currentUserProfile.stateNgoRegId)
+        targetStateNgoId = currentUserProfile.stateNgoRegId;
+
+      if (targetStateNgoId) {
+        const match = dbStateNgos.find(
+          (sn) => String(sn.value) === String(targetStateNgoId),
+        );
+        if (match) setFilterStateNgo(match);
+      }
+    }
+
+    // 2. Auto-select Mother NGO
+    if (!filterMotherNgo && dbMotherNgos.length > 0) {
+      let targetMotherNgoId = null;
+      if (appUserRole === "District Administrator")
+        targetMotherNgoId = currentUserProfile.value;
+      else if (currentUserProfile.motherNgoId)
+        targetMotherNgoId = currentUserProfile.motherNgoId;
+
+      if (targetMotherNgoId) {
+        const match = dbMotherNgos.find(
+          (mn) => String(mn.value) === String(targetMotherNgoId),
+        );
+        if (match) setFilterMotherNgo(match);
+      }
+    }
+
+    // 3. Auto-select State
+    if (!filterState && dbStates.length > 0 && currentUserProfile.stateName) {
+      const match = findState(currentUserProfile.stateName);
+      if (match) setFilterState(match);
+    }
+
+    // 4. Auto-select Supervisor
+    if (!filterSupervisor && dbSupervisors.length > 0) {
+      let targetSupId = null;
+      if (appUserRole === "Supervisor") targetSupId = currentUserProfile.value;
+      else if (appUserRole === "Astha Didi")
+        targetSupId = currentUserProfile.supRegId;
+
+      if (targetSupId) {
+        const match = dbSupervisors.find(
+          (s) => String(s.value) === String(targetSupId),
+        );
+        if (match) setFilterSupervisor(match);
+      }
+    }
+
+    // 5. Auto-select Astha Didi
+    if (
+      !filterAsthaDidi &&
+      dbAsthaDidis.length > 0 &&
+      appUserRole === "Astha Didi"
+    ) {
+      setFilterAsthaDidi(currentUserProfile);
+    }
+  }, [
+    currentUserProfile,
+    dbStateNgos,
+    dbMotherNgos,
+    dbStates,
+    dbSupervisors,
+    dbAsthaDidis,
+    filterStateNgo,
+    filterMotherNgo,
+    filterState,
+    filterSupervisor,
+    filterAsthaDidi,
+    appUserRole,
+  ]);
+
+  // 6. Auto-select District (Runs independently when dbDistricts loads after State selection)
+  useEffect(() => {
+    if (!currentUserProfile || dbDistricts.length === 0 || filterDistrict)
+      return;
+
+    const districtName =
+      currentUserProfile.distName || currentUserProfile.districtName;
+    if (districtName) {
+      const match = dbDistricts.find(
+        (d) =>
+          d.label.trim().toLowerCase() ===
+          String(districtName).trim().toLowerCase(),
+      );
+      if (match) setFilterDistrict(match);
+    }
+  }, [currentUserProfile, dbDistricts, filterDistrict]);
+
+  // =========================================================================
+  // ✅ SYNC ENGINE: Auto-select items when upper levels are manually clicked
+  // E.g. Selecting a District NGO automatically populates its State & District
   // =========================================================================
 
-  // 1. Astha Didi -> Supervisor
+  // 1. If Astha Didi is manually selected, automatically select her Supervisor
   useEffect(() => {
     if (!filterAsthaDidi) return;
     const matchedSup = dbSupervisors.find(
@@ -332,7 +462,7 @@ const AccountTab = () => {
     }
   }, [filterAsthaDidi, dbSupervisors, filterSupervisor]);
 
-  // 2. Supervisor -> District NGO (Mother NGO)
+  // 2. If Supervisor is manually selected, automatically select their District NGO (Mother NGO)
   useEffect(() => {
     if (!filterSupervisor) return;
     const matchedMother = dbMotherNgos.find(
@@ -346,7 +476,7 @@ const AccountTab = () => {
     }
   }, [filterSupervisor, dbMotherNgos, filterMotherNgo]);
 
-  // 3. District NGO -> State NGO & State
+  // 3. If District NGO is manually selected, automatically select the State NGO and State
   useEffect(() => {
     if (!filterMotherNgo) return;
 
@@ -379,7 +509,7 @@ const AccountTab = () => {
     }
   }, [filterMotherNgo, dbStateNgos, dbStates, filterStateNgo, filterState]);
 
-  // 4. District NGO -> District (waits for dbDistricts to load from State selection)
+  // 4. Auto-select District once the District list finishes fetching based on the Mother NGO
   useEffect(() => {
     if (!filterMotherNgo || dbDistricts.length === 0) return;
 
@@ -398,67 +528,83 @@ const AccountTab = () => {
     }
   }, [filterMotherNgo, dbDistricts, filterDistrict]);
 
+  // =========================================================================
+  // NORMAL FILTER OPTIONS (Filters arrays visually based on dependencies)
+  // =========================================================================
+
   const filteredStateNgos = useMemo(() => {
-    if (appUserRole === "State Super Administrator" && loggedInProfileId) {
+    if (
+      filterStateNgo &&
+      [
+        "State Super Administrator",
+        "District Administrator",
+        "Supervisor",
+        "Astha Didi",
+        "Astha Maa",
+      ].includes(appUserRole)
+    ) {
+      return [filterStateNgo];
+    }
+    if (filterNationalNgo) {
       return dbStateNgos.filter(
-        (ngo) => String(ngo.value) === String(loggedInProfileId),
+        (ngo) => String(ngo.nationalNgoId) === String(filterNationalNgo.value),
       );
     }
     return dbStateNgos;
-  }, [dbStateNgos, appUserRole, loggedInProfileId]);
-
-  useEffect(() => {
-    if (
-      appUserRole === "State Super Administrator" &&
-      filteredStateNgos.length === 1 &&
-      !filterStateNgo
-    ) {
-      setFilterStateNgo(filteredStateNgos[0]);
-    }
-  }, [appUserRole, filteredStateNgos, filterStateNgo]);
+  }, [dbStateNgos, filterNationalNgo, filterStateNgo, appUserRole]);
 
   const filteredMotherNgos = useMemo(() => {
-    if (appUserRole === "National NGO" && !filterStateNgo) return [];
-    if (appUserRole === "District Administrator" && loggedInProfileId)
-      return dbMotherNgos.filter(
-        (ngo) => String(ngo.value) === String(loggedInProfileId),
-      );
     if (
-      appUserRole === "Supervisor" &&
-      loggedInProfileId &&
-      dbSupervisors.length > 0
+      filterMotherNgo &&
+      [
+        "District Administrator",
+        "Supervisor",
+        "Astha Didi",
+        "Astha Maa",
+      ].includes(appUserRole)
     ) {
-      const currentSupervisor = dbSupervisors.find(
-        (sup) => String(sup.value) === String(loggedInProfileId),
-      );
-      if (currentSupervisor && currentSupervisor.motherNgoId)
-        return dbMotherNgos.filter(
-          (ngo) => String(ngo.value) === String(currentSupervisor.motherNgoId),
-        );
+      return [filterMotherNgo];
     }
+    if (appUserRole === "National NGO" && !filterStateNgo) return [];
     if (filterStateNgo) {
       return dbMotherNgos.filter(
         (ngo) => String(ngo.stateNgoRegId) === String(filterStateNgo.value),
       );
     }
     return dbMotherNgos;
-  }, [
-    dbMotherNgos,
-    appUserRole,
-    loggedInProfileId,
-    dbSupervisors,
-    filterStateNgo,
-  ]);
+  }, [dbMotherNgos, appUserRole, filterStateNgo, filterMotherNgo]);
 
   const filteredStateOptions = useMemo(() => {
+    if (
+      filterState &&
+      [
+        "District Administrator",
+        "Supervisor",
+        "Astha Didi",
+        "Astha Maa",
+      ].includes(appUserRole)
+    ) {
+      return [filterState];
+    }
     if (filterMotherNgo && filterMotherNgo.stateName) {
       const ngoState = filterMotherNgo.stateName.trim().toLowerCase();
       return dbStates.filter((s) => s.label.trim().toLowerCase() === ngoState);
     }
     return dbStates;
-  }, [dbStates, filterMotherNgo]);
+  }, [dbStates, filterMotherNgo, filterState, appUserRole]);
 
   const filteredDistrictOptions = useMemo(() => {
+    if (
+      filterDistrict &&
+      [
+        "District Administrator",
+        "Supervisor",
+        "Astha Didi",
+        "Astha Maa",
+      ].includes(appUserRole)
+    ) {
+      return [filterDistrict];
+    }
     if (filterMotherNgo && filterMotherNgo.districtName) {
       const ngoDist = filterMotherNgo.districtName.trim().toLowerCase();
       return dbDistricts.filter(
@@ -466,9 +612,15 @@ const AccountTab = () => {
       );
     }
     return dbDistricts;
-  }, [dbDistricts, filterMotherNgo]);
+  }, [dbDistricts, filterMotherNgo, filterDistrict, appUserRole]);
 
   const filteredSupervisorOptions = useMemo(() => {
+    if (
+      filterSupervisor &&
+      ["Supervisor", "Astha Didi", "Astha Maa"].includes(appUserRole)
+    ) {
+      return [filterSupervisor];
+    }
     if (
       (appUserRole === "National NGO" && !filterStateNgo) ||
       !filterMotherNgo ||
@@ -510,10 +662,14 @@ const AccountTab = () => {
     filterMotherNgo,
     filterState,
     filterDistrict,
+    filterSupervisor,
     appUserRole,
   ]);
 
   const filteredAsthaDidiOptions = useMemo(() => {
+    if (filterAsthaDidi && ["Astha Didi", "Astha Maa"].includes(appUserRole)) {
+      return [filterAsthaDidi];
+    }
     if (
       appUserRole !== "Astha Didi" &&
       (!filterMotherNgo || !filterState || !filterDistrict || !filterSupervisor)
@@ -523,7 +679,6 @@ const AccountTab = () => {
 
     const user = getSafeUser();
     const currentUserId = user ? user.id || user.UserSignUpId : null;
-    const currentProfileId = user ? user.ProfileRegId : null;
 
     return dbAsthaDidis.filter((ad) => {
       let matches = true;
@@ -550,18 +705,15 @@ const AccountTab = () => {
           filterDistrict.label.trim().toLowerCase()
       )
         matches = false;
+      if (
+        filterSupervisor &&
+        ad.supRegId != null &&
+        String(ad.supRegId) !== String(filterSupervisor.value)
+      )
+        matches = false;
 
-      if (appUserRole === "Astha Didi") {
-        if (String(ad.value) !== String(currentProfileId)) matches = false;
-      } else if (appUserRole === "Supervisor") {
-        const matchBySupRegId =
-          ad.supRegId != null &&
-          String(ad.supRegId) === String(currentProfileId);
-        const matchByCreator =
-          ad.createdByAuthRegId != null &&
-          String(ad.createdByAuthRegId) === String(currentUserId);
-        if (!matchBySupRegId && !matchByCreator) matches = false;
-      } else if (filterSupervisor) {
+      // Force creator/owner match if Supervisor is manually navigating
+      if (appUserRole === "Supervisor" && filterSupervisor) {
         const matchBySupRegId =
           ad.supRegId != null &&
           String(ad.supRegId) === String(filterSupervisor.value);
@@ -581,44 +733,7 @@ const AccountTab = () => {
     filterDistrict,
     filterSupervisor,
     filterStateNgo,
-    appUserRole,
-  ]);
-
-  useEffect(() => {
-    if (isLockedRole && filteredMotherNgos.length === 1 && !filterMotherNgo)
-      setFilterMotherNgo(filteredMotherNgos[0]);
-  }, [filteredMotherNgos, filterMotherNgo, isLockedRole]);
-
-  useEffect(() => {
-    if (filterMotherNgo && filteredStateOptions.length === 1 && !filterState)
-      setFilterState(filteredStateOptions[0]);
-  }, [filteredStateOptions, filterState, filterMotherNgo]);
-
-  useEffect(() => {
-    if (filterState && filteredDistrictOptions.length === 1 && !filterDistrict)
-      setFilterDistrict(filteredDistrictOptions[0]);
-  }, [filteredDistrictOptions, filterDistrict, filterState]);
-
-  useEffect(() => {
-    if (
-      appUserRole === "Supervisor" &&
-      filteredSupervisorOptions.length === 1 &&
-      !filterSupervisor
-    )
-      setFilterSupervisor(filteredSupervisorOptions[0]);
-  }, [appUserRole, filteredSupervisorOptions, filterSupervisor]);
-
-  useEffect(() => {
-    if (
-      (appUserRole === "Astha Didi" || filterSupervisor) &&
-      filteredAsthaDidiOptions.length === 1 &&
-      !filterAsthaDidi
-    )
-      setFilterAsthaDidi(filteredAsthaDidiOptions[0]);
-  }, [
-    filteredAsthaDidiOptions,
     filterAsthaDidi,
-    filterSupervisor,
     appUserRole,
   ]);
 

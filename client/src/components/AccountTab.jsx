@@ -121,6 +121,7 @@ const AccountTab = () => {
           }
           return;
         }
+
         setDbNationalNgos(options);
       })
       .catch(() => {
@@ -312,135 +313,12 @@ const AccountTab = () => {
   }, [filterState]);
 
   // =========================================================================
-  // ✅ MODULAR AUTO-POPULATE ENGINE FOR LOCKED USERS
-  // =========================================================================
-  const currentUserProfile = useMemo(() => {
-    if (!appUserRole || !loggedInProfileId) return null;
-    if (appUserRole === "State Super Administrator")
-      return dbStateNgos.find(
-        (sn) => String(sn.value) === String(loggedInProfileId),
-      );
-    if (appUserRole === "District Administrator")
-      return dbMotherNgos.find(
-        (n) => String(n.value) === String(loggedInProfileId),
-      );
-    if (appUserRole === "Supervisor")
-      return dbSupervisors.find(
-        (s) => String(s.value) === String(loggedInProfileId),
-      );
-    if (appUserRole === "Astha Didi")
-      return dbAsthaDidis.find(
-        (a) => String(a.value) === String(loggedInProfileId),
-      );
-    return null;
-  }, [
-    appUserRole,
-    loggedInProfileId,
-    dbStateNgos,
-    dbMotherNgos,
-    dbSupervisors,
-    dbAsthaDidis,
-  ]);
-
-  useEffect(() => {
-    if (!currentUserProfile) return;
-
-    if (!filterStateNgo && dbStateNgos.length > 0) {
-      let targetStateNgoId = null;
-      if (appUserRole === "State Super Administrator")
-        targetStateNgoId = currentUserProfile.value;
-      else if (currentUserProfile.stateNgoRegId)
-        targetStateNgoId = currentUserProfile.stateNgoRegId;
-
-      if (targetStateNgoId) {
-        const match = dbStateNgos.find(
-          (sn) => String(sn.value) === String(targetStateNgoId),
-        );
-        if (match) setFilterStateNgo(match);
-      }
-    }
-
-    if (!filterMotherNgo && dbMotherNgos.length > 0) {
-      let targetMotherNgoId = null;
-      if (appUserRole === "District Administrator")
-        targetMotherNgoId = currentUserProfile.value;
-      else if (currentUserProfile.motherNgoId)
-        targetMotherNgoId = currentUserProfile.motherNgoId;
-
-      if (targetMotherNgoId) {
-        const match = dbMotherNgos.find(
-          (mn) => String(mn.value) === String(targetMotherNgoId),
-        );
-        if (match) setFilterMotherNgo(match);
-      }
-    }
-
-    if (!filterState && dbStates.length > 0 && currentUserProfile.stateName) {
-      const match = dbStates.find(
-        (s) =>
-          s.label.trim().toLowerCase() ===
-          String(currentUserProfile.stateName).trim().toLowerCase(),
-      );
-      if (match) setFilterState(match);
-    }
-
-    if (!filterSupervisor && dbSupervisors.length > 0) {
-      let targetSupId = null;
-      if (appUserRole === "Supervisor") targetSupId = currentUserProfile.value;
-      else if (appUserRole === "Astha Didi")
-        targetSupId = currentUserProfile.supRegId;
-
-      if (targetSupId) {
-        const match = dbSupervisors.find(
-          (s) => String(s.value) === String(targetSupId),
-        );
-        if (match) setFilterSupervisor(match);
-      }
-    }
-
-    if (
-      !filterAsthaDidi &&
-      dbAsthaDidis.length > 0 &&
-      appUserRole === "Astha Didi"
-    ) {
-      setFilterAsthaDidi(currentUserProfile);
-    }
-  }, [
-    currentUserProfile,
-    dbStateNgos,
-    dbMotherNgos,
-    dbStates,
-    dbSupervisors,
-    dbAsthaDidis,
-    filterStateNgo,
-    filterMotherNgo,
-    filterState,
-    filterSupervisor,
-    filterAsthaDidi,
-    appUserRole,
-  ]);
-
-  useEffect(() => {
-    if (!currentUserProfile || dbDistricts.length === 0 || filterDistrict)
-      return;
-    const districtName =
-      currentUserProfile.distName || currentUserProfile.districtName;
-    if (districtName) {
-      const match = dbDistricts.find(
-        (d) =>
-          d.label.trim().toLowerCase() ===
-          String(districtName).trim().toLowerCase(),
-      );
-      if (match) setFilterDistrict(match);
-    }
-  }, [currentUserProfile, dbDistricts, filterDistrict]);
-
-  // =========================================================================
-  // ✅ SYNC ENGINE: Auto-select items when upper levels are manually clicked
-  // E.g. Selecting a District NGO automatically populates its State & District
+  // ✅ CASCADING AUTO-POPULATE LOGIC
+  // Instantly populates State, District, and State NGO when District NGO is selected
+  // Handles hierarchy upwards automatically based on selection
   // =========================================================================
 
-  // 1. If Astha Didi is manually selected, automatically select her Supervisor
+  // 1. Astha Didi -> Supervisor
   useEffect(() => {
     if (!filterAsthaDidi) return;
     const matchedSup = dbSupervisors.find(
@@ -454,7 +332,7 @@ const AccountTab = () => {
     }
   }, [filterAsthaDidi, dbSupervisors, filterSupervisor]);
 
-  // 2. If Supervisor is manually selected, automatically select their District NGO (Mother NGO)
+  // 2. Supervisor -> District NGO (Mother NGO)
   useEffect(() => {
     if (!filterSupervisor) return;
     const matchedMother = dbMotherNgos.find(
@@ -468,131 +346,119 @@ const AccountTab = () => {
     }
   }, [filterSupervisor, dbMotherNgos, filterMotherNgo]);
 
-  // 3. If District NGO is manually selected, automatically select the State NGO and State
+  // 3. District NGO -> State NGO & State
   useEffect(() => {
     if (!filterMotherNgo) return;
 
-    const matchedStateNgo = dbStateNgos.find(
-      (sn) => String(sn.value) === String(filterMotherNgo.stateNgoRegId),
-    );
-    if (
-      matchedStateNgo &&
-      String(filterStateNgo?.value) !== String(matchedStateNgo.value)
-    ) {
-      setFilterStateNgo(matchedStateNgo);
+    // Auto-select State NGO
+    if (dbStateNgos.length > 0) {
+      const matchedStateNgo = dbStateNgos.find(
+        (sn) => String(sn.value) === String(filterMotherNgo.stateNgoRegId),
+      );
+      if (
+        matchedStateNgo &&
+        String(filterStateNgo?.value) !== String(matchedStateNgo.value)
+      ) {
+        setFilterStateNgo(matchedStateNgo);
+      }
     }
 
-    const matchedState = dbStates.find(
-      (s) =>
-        s.label.trim().toLowerCase() ===
-        String(filterMotherNgo.stateName || "")
-          .trim()
-          .toLowerCase(),
-    );
-    if (
-      matchedState &&
-      String(filterState?.value) !== String(matchedState.value)
-    ) {
-      setFilterState(matchedState);
+    // Auto-select State
+    if (dbStates.length > 0 && filterMotherNgo.stateName) {
+      const matchedState = dbStates.find(
+        (s) =>
+          s.label.trim().toLowerCase() ===
+          String(filterMotherNgo.stateName).trim().toLowerCase(),
+      );
+      if (
+        matchedState &&
+        String(filterState?.value) !== String(matchedState.value)
+      ) {
+        setFilterState(matchedState);
+      }
     }
   }, [filterMotherNgo, dbStateNgos, dbStates, filterStateNgo, filterState]);
 
-  // 4. Auto-select District once the District list finishes fetching
+  // 4. District NGO -> District (waits for dbDistricts to load from State selection)
   useEffect(() => {
     if (!filterMotherNgo || dbDistricts.length === 0) return;
 
-    const matchedDist = dbDistricts.find(
-      (d) =>
-        d.label.trim().toLowerCase() ===
-        String(filterMotherNgo.districtName || "")
-          .trim()
-          .toLowerCase(),
-    );
-    if (
-      matchedDist &&
-      String(filterDistrict?.value) !== String(matchedDist.value)
-    ) {
-      setFilterDistrict(matchedDist);
+    if (filterMotherNgo.districtName) {
+      const matchedDist = dbDistricts.find(
+        (d) =>
+          d.label.trim().toLowerCase() ===
+          String(filterMotherNgo.districtName).trim().toLowerCase(),
+      );
+      if (
+        matchedDist &&
+        String(filterDistrict?.value) !== String(matchedDist.value)
+      ) {
+        setFilterDistrict(matchedDist);
+      }
     }
   }, [filterMotherNgo, dbDistricts, filterDistrict]);
 
-  // =========================================================================
-  // NORMAL FILTER OPTIONS (Filters arrays visually based on dependencies)
-  // =========================================================================
-
   const filteredStateNgos = useMemo(() => {
-    if (
-      filterStateNgo &&
-      [
-        "State Super Administrator",
-        "District Administrator",
-        "Supervisor",
-        "Astha Didi",
-        "Astha Maa",
-      ].includes(appUserRole)
-    ) {
-      return [filterStateNgo];
-    }
-    if (filterNationalNgo) {
+    if (appUserRole === "State Super Administrator" && loggedInProfileId) {
       return dbStateNgos.filter(
-        (ngo) => String(ngo.nationalNgoId) === String(filterNationalNgo.value),
+        (ngo) => String(ngo.value) === String(loggedInProfileId),
       );
     }
     return dbStateNgos;
-  }, [dbStateNgos, filterNationalNgo, filterStateNgo, appUserRole]);
+  }, [dbStateNgos, appUserRole, loggedInProfileId]);
+
+  useEffect(() => {
+    if (
+      appUserRole === "State Super Administrator" &&
+      filteredStateNgos.length === 1 &&
+      !filterStateNgo
+    ) {
+      setFilterStateNgo(filteredStateNgos[0]);
+    }
+  }, [appUserRole, filteredStateNgos, filterStateNgo]);
 
   const filteredMotherNgos = useMemo(() => {
-    if (
-      filterMotherNgo &&
-      [
-        "District Administrator",
-        "Supervisor",
-        "Astha Didi",
-        "Astha Maa",
-      ].includes(appUserRole)
-    ) {
-      return [filterMotherNgo];
-    }
     if (appUserRole === "National NGO" && !filterStateNgo) return [];
+    if (appUserRole === "District Administrator" && loggedInProfileId)
+      return dbMotherNgos.filter(
+        (ngo) => String(ngo.value) === String(loggedInProfileId),
+      );
+    if (
+      appUserRole === "Supervisor" &&
+      loggedInProfileId &&
+      dbSupervisors.length > 0
+    ) {
+      const currentSupervisor = dbSupervisors.find(
+        (sup) => String(sup.value) === String(loggedInProfileId),
+      );
+      if (currentSupervisor && currentSupervisor.motherNgoId)
+        return dbMotherNgos.filter(
+          (ngo) => String(ngo.value) === String(currentSupervisor.motherNgoId),
+        );
+    }
     if (filterStateNgo) {
       return dbMotherNgos.filter(
         (ngo) => String(ngo.stateNgoRegId) === String(filterStateNgo.value),
       );
     }
     return dbMotherNgos;
-  }, [dbMotherNgos, appUserRole, filterStateNgo, filterMotherNgo]);
+  }, [
+    dbMotherNgos,
+    appUserRole,
+    loggedInProfileId,
+    dbSupervisors,
+    filterStateNgo,
+  ]);
 
   const filteredStateOptions = useMemo(() => {
-    if (
-      filterState &&
-      [
-        "District Administrator",
-        "Supervisor",
-        "Astha Didi",
-        "Astha Maa",
-      ].includes(appUserRole)
-    ) {
-      return [filterState];
-    }
     if (filterMotherNgo && filterMotherNgo.stateName) {
       const ngoState = filterMotherNgo.stateName.trim().toLowerCase();
       return dbStates.filter((s) => s.label.trim().toLowerCase() === ngoState);
     }
     return dbStates;
-  }, [dbStates, filterMotherNgo, filterState, appUserRole]);
+  }, [dbStates, filterMotherNgo]);
 
   const filteredDistrictOptions = useMemo(() => {
-    if (
-      filterDistrict &&
-      [
-        "District Administrator",
-        "Supervisor",
-        "Astha Didi",
-        "Astha Maa",
-      ].includes(appUserRole)
-    ) {
-      return [filterDistrict];
-    }
     if (filterMotherNgo && filterMotherNgo.districtName) {
       const ngoDist = filterMotherNgo.districtName.trim().toLowerCase();
       return dbDistricts.filter(
@@ -600,15 +466,9 @@ const AccountTab = () => {
       );
     }
     return dbDistricts;
-  }, [dbDistricts, filterMotherNgo, filterDistrict, appUserRole]);
+  }, [dbDistricts, filterMotherNgo]);
 
   const filteredSupervisorOptions = useMemo(() => {
-    if (
-      filterSupervisor &&
-      ["Supervisor", "Astha Didi", "Astha Maa"].includes(appUserRole)
-    ) {
-      return [filterSupervisor];
-    }
     if (
       (appUserRole === "National NGO" && !filterStateNgo) ||
       !filterMotherNgo ||
@@ -650,14 +510,10 @@ const AccountTab = () => {
     filterMotherNgo,
     filterState,
     filterDistrict,
-    filterSupervisor,
     appUserRole,
   ]);
 
   const filteredAsthaDidiOptions = useMemo(() => {
-    if (filterAsthaDidi && ["Astha Didi", "Astha Maa"].includes(appUserRole)) {
-      return [filterAsthaDidi];
-    }
     if (
       appUserRole !== "Astha Didi" &&
       (!filterMotherNgo || !filterState || !filterDistrict || !filterSupervisor)
@@ -667,6 +523,7 @@ const AccountTab = () => {
 
     const user = getSafeUser();
     const currentUserId = user ? user.id || user.UserSignUpId : null;
+    const currentProfileId = user ? user.ProfileRegId : null;
 
     return dbAsthaDidis.filter((ad) => {
       let matches = true;
@@ -693,14 +550,18 @@ const AccountTab = () => {
           filterDistrict.label.trim().toLowerCase()
       )
         matches = false;
-      if (
-        filterSupervisor &&
-        ad.supRegId != null &&
-        String(ad.supRegId) !== String(filterSupervisor.value)
-      )
-        matches = false;
 
-      if (appUserRole === "Supervisor" && filterSupervisor) {
+      if (appUserRole === "Astha Didi") {
+        if (String(ad.value) !== String(currentProfileId)) matches = false;
+      } else if (appUserRole === "Supervisor") {
+        const matchBySupRegId =
+          ad.supRegId != null &&
+          String(ad.supRegId) === String(currentProfileId);
+        const matchByCreator =
+          ad.createdByAuthRegId != null &&
+          String(ad.createdByAuthRegId) === String(currentUserId);
+        if (!matchBySupRegId && !matchByCreator) matches = false;
+      } else if (filterSupervisor) {
         const matchBySupRegId =
           ad.supRegId != null &&
           String(ad.supRegId) === String(filterSupervisor.value);
@@ -720,7 +581,44 @@ const AccountTab = () => {
     filterDistrict,
     filterSupervisor,
     filterStateNgo,
+    appUserRole,
+  ]);
+
+  useEffect(() => {
+    if (isLockedRole && filteredMotherNgos.length === 1 && !filterMotherNgo)
+      setFilterMotherNgo(filteredMotherNgos[0]);
+  }, [filteredMotherNgos, filterMotherNgo, isLockedRole]);
+
+  useEffect(() => {
+    if (filterMotherNgo && filteredStateOptions.length === 1 && !filterState)
+      setFilterState(filteredStateOptions[0]);
+  }, [filteredStateOptions, filterState, filterMotherNgo]);
+
+  useEffect(() => {
+    if (filterState && filteredDistrictOptions.length === 1 && !filterDistrict)
+      setFilterDistrict(filteredDistrictOptions[0]);
+  }, [filteredDistrictOptions, filterDistrict, filterState]);
+
+  useEffect(() => {
+    if (
+      appUserRole === "Supervisor" &&
+      filteredSupervisorOptions.length === 1 &&
+      !filterSupervisor
+    )
+      setFilterSupervisor(filteredSupervisorOptions[0]);
+  }, [appUserRole, filteredSupervisorOptions, filterSupervisor]);
+
+  useEffect(() => {
+    if (
+      (appUserRole === "Astha Didi" || filterSupervisor) &&
+      filteredAsthaDidiOptions.length === 1 &&
+      !filterAsthaDidi
+    )
+      setFilterAsthaDidi(filteredAsthaDidiOptions[0]);
+  }, [
+    filteredAsthaDidiOptions,
     filterAsthaDidi,
+    filterSupervisor,
     appUserRole,
   ]);
 

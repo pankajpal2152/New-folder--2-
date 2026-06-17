@@ -7,9 +7,13 @@ const DistrictManagement = () => {
   const [districts, setDistricts] = useState([]);
   const [states, setStates] = useState([]);
   const [loading, setLoading] = useState(true);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedDistrict, setSelectedDistrict] = useState(null);
+
+  // ✅ NEW: State for the Filter Dropdown
+  const [filterStateId, setFilterStateId] = useState("");
 
   const [formData, setFormData] = useState({
     DistId: null,
@@ -38,8 +42,108 @@ const DistrictManagement = () => {
     fetchData();
   }, []);
 
+  // ✅ NEW: Derived array to filter districts based on the selected dropdown state
+  const displayedDistricts = filterStateId
+    ? districts.filter((d) => String(d.StateId) === String(filterStateId))
+    : districts;
+
+  // ✅ NEW: Check if ALL currently displayed districts are active (for the header master checkbox)
+  const isAllFilteredActive =
+    displayedDistricts.length > 0 &&
+    displayedDistricts.every((d) => d.IsActive == 1);
+
+  // ✅ NEW: Instantly toggle a single district's active status via Checkbox
+  const handleToggleActive = async (district) => {
+    const newStatus = district.IsActive == 1 ? 0 : 1;
+
+    // Optimistically update UI for instant feedback
+    setDistricts((prev) =>
+      prev.map((d) =>
+        d.DistId === district.DistId ? { ...d, IsActive: newStatus } : d,
+      ),
+    );
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/manage/districts/${district.DistId}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            DistName: district.DistName,
+            StateId: district.StateId,
+            IsActive: newStatus,
+          }),
+        },
+      );
+      if (!response.ok) throw new Error("Failed to update");
+    } catch (error) {
+      toast.error("Failed to change status. Reverting...");
+      fetchData(); // Revert if network fails
+    }
+  };
+
+  // ✅ NEW: Instantly toggle ALL displayed districts (Header Checkbox)
+  const handleHeaderCheckboxChange = async () => {
+    if (!filterStateId && districts.length > 50) {
+      if (
+        !window.confirm(
+          "You are about to update ALL districts across ALL states. Are you sure?",
+        )
+      )
+        return;
+    }
+
+    const newStatus = isAllFilteredActive ? 0 : 1;
+    const targetDistricts = displayedDistricts.filter(
+      (d) => d.IsActive != newStatus,
+    );
+
+    if (targetDistricts.length === 0) return;
+
+    toast.loading(`Updating ${targetDistricts.length} districts...`, {
+      toastId: "bulkUpdate",
+    });
+
+    // Optimistically update UI
+    setDistricts((prev) =>
+      prev.map((d) => {
+        if (displayedDistricts.some((disp) => disp.DistId === d.DistId)) {
+          return { ...d, IsActive: newStatus };
+        }
+        return d;
+      }),
+    );
+
+    try {
+      // Execute updates sequentially to protect the MySQL connection pool
+      for (const d of targetDistricts) {
+        await fetch(`${API_BASE_URL}/manage/districts/${d.DistId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            DistName: d.DistName,
+            StateId: d.StateId,
+            IsActive: newStatus,
+          }),
+        });
+      }
+      toast.dismiss("bulkUpdate");
+      toast.success("Bulk update complete!");
+    } catch (error) {
+      toast.dismiss("bulkUpdate");
+      toast.error("Error during bulk update. Refreshing data...");
+      fetchData();
+    }
+  };
+
   const openCreateModal = () => {
-    setFormData({ DistId: null, DistName: "", StateId: "", IsActive: 1 });
+    setFormData({
+      DistId: null,
+      DistName: "",
+      StateId: filterStateId || "",
+      IsActive: 1,
+    });
     setIsModalOpen(true);
   };
 
@@ -279,6 +383,19 @@ const DistrictManagement = () => {
       gap: "12px",
       marginTop: "10px",
     },
+
+    // Styles for the new Dropdown Banner
+    filterBanner: {
+      padding: "16px",
+      backgroundColor: "#f8f9fa",
+      borderRadius: "8px",
+      border: "1px solid #d9dee3",
+      marginBottom: "20px",
+      display: "flex",
+      alignItems: "center",
+      flexWrap: "wrap",
+      gap: "16px",
+    },
   };
 
   return (
@@ -291,6 +408,39 @@ const DistrictManagement = () => {
             + Add District
           </button>
         </div>
+
+        {/* ✅ NEW: Master Dropdown Filter matching the Whiteboard Sketch */}
+        <div style={styles.filterBanner}>
+          <label style={{ margin: 0, fontWeight: "600", color: "#566a7f" }}>
+            📍 Filter by State:
+          </label>
+          <select
+            style={{
+              flex: 1,
+              maxWidth: "300px",
+              padding: "8px 12px",
+              borderRadius: "6px",
+              border: "1px solid #d9dee3",
+              outline: "none",
+              color: "#697a8d",
+            }}
+            value={filterStateId}
+            onChange={(e) => setFilterStateId(e.target.value)}
+          >
+            <option value="">-- Show All States --</option>
+            {states.map((s) => (
+              <option key={s.StateId} value={s.StateId}>
+                {s.StateName}
+              </option>
+            ))}
+          </select>
+          <span
+            style={{ color: "#a1acb8", fontSize: "0.85rem", fontWeight: "500" }}
+          >
+            Showing {displayedDistricts.length} District(s)
+          </span>
+        </div>
+
         {loading ? (
           <p>Loading Data...</p>
         ) : (
@@ -301,13 +451,46 @@ const DistrictManagement = () => {
                   <th style={styles.th}>Dist ID</th>
                   <th style={styles.th}>District Name</th>
                   <th style={styles.th}>Parent State</th>
-                  <th style={styles.th}>Status</th>
+
+                  {/* ✅ NEW: Master Checkbox Column */}
+                  <th style={{ ...styles.th, textAlign: "center" }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "6px",
+                      }}
+                    >
+                      Active
+                      <input
+                        type="checkbox"
+                        style={{
+                          cursor: "pointer",
+                          width: "16px",
+                          height: "16px",
+                          margin: 0,
+                        }}
+                        checked={isAllFilteredActive}
+                        onChange={handleHeaderCheckboxChange}
+                        title="Toggle All Displayed Districts"
+                        disabled={displayedDistricts.length === 0}
+                      />
+                    </div>
+                  </th>
+
                   <th style={styles.th}>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {districts.map((d) => (
-                  <tr key={d.DistId}>
+                {displayedDistricts.map((d) => (
+                  <tr
+                    key={d.DistId}
+                    style={{
+                      backgroundColor:
+                        d.IsActive == 1 ? "transparent" : "#fff5f5",
+                    }}
+                  >
                     <td style={styles.td}>#{d.DistId}</td>
                     <td
                       style={{
@@ -321,23 +504,21 @@ const DistrictManagement = () => {
                     <td style={styles.td}>
                       {d.StateName || `State ID: ${d.StateId}`}
                     </td>
-                    <td style={styles.td}>
-                      <span
+
+                    {/* ✅ NEW: Interactive Row Checkbox */}
+                    <td style={{ ...styles.td, textAlign: "center" }}>
+                      <input
+                        type="checkbox"
                         style={{
-                          backgroundColor:
-                            d.IsActive == 1
-                              ? "rgba(113, 221, 55, 0.16)"
-                              : "rgba(255, 62, 29, 0.16)",
-                          color: d.IsActive == 1 ? "#71dd37" : "#ff3e1d",
-                          padding: "4px 8px",
-                          borderRadius: "4px",
-                          fontSize: "12px",
-                          fontWeight: "600",
+                          cursor: "pointer",
+                          width: "18px",
+                          height: "18px",
                         }}
-                      >
-                        {d.IsActive == 1 ? "Active" : "Inactive"}
-                      </span>
+                        checked={d.IsActive == 1}
+                        onChange={() => handleToggleActive(d)}
+                      />
                     </td>
+
                     <td style={styles.td}>
                       <button
                         style={styles.actionBtnEdit}
@@ -354,6 +535,20 @@ const DistrictManagement = () => {
                     </td>
                   </tr>
                 ))}
+                {displayedDistricts.length === 0 && (
+                  <tr>
+                    <td
+                      colSpan="5"
+                      style={{
+                        textAlign: "center",
+                        padding: "30px",
+                        color: "#a1acb8",
+                      }}
+                    >
+                      No districts found for this selection.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
